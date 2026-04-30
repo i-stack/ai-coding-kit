@@ -1,7 +1,7 @@
 {
-  "active_version": "v34",
+  "active_version": "v35",
   "status": "active",
-  "promoted_at": "2026-04-30T17:22:12+0800",
-  "source": "proposal:20260430-171802-add-behavior-validation-layer",
+  "promoted_at": "2026-04-30T17:27:34+0800",
+  "source": "proposal:20260430-172538-add-real-task-behavior-scenarios",
   "notes": "Promoted after passing base evolution validation."
 }
