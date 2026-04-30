@@ -22,6 +22,8 @@ description: Production-grade iOS engineering skill for Swift, SwiftUI, UIKit, m
 
 ### 2. 场景规则
 - 涉及架构边界、状态归属、网络链路、参数透传时，遵守 [architecture_and_network.md](references/architecture_and_network.md)。
+- 当用户询问“当前架构”时，必须基于项目现有架构、真实代码组织、依赖方向、状态流和边界划分给出有价值的分析；允许直接采用“代码审查（Code Review）”级别的严格标准指出结构性问题、脆弱点和演进风险，不做保守性淡化。
+- 当用户询问“当前架构”但信息不完整时，必须先明确提出完成判断所需的补充信息，而不是直接基于猜测补全上下文或假设缺失前提。
 - 涉及页面状态、列表状态、表单状态、异步回写时，遵守 [ui_state_patterns.md](references/ui_state_patterns.md) 和 [domain_modeling.md](references/domain_modeling.md)。
 - 涉及并发设计、取消链路、过期结果回写、旧接口桥接时，遵守 [swift_concurrency.md](references/swift_concurrency.md)。
 - 涉及 Auto Layout、SwiftUI 稳定性、列表复用、无障碍时，遵守 [layout_and_ui.md](references/layout_and_ui.md)。
@@ -42,10 +44,9 @@ description: Production-grade iOS engineering skill for Swift, SwiftUI, UIKit, m
 - 需要产线骨架时，读取 [code_templates.md](references/code_templates.md)。
 - 需要测试与验证范围时，读取 [testing_strategy.md](references/testing_strategy.md)。
 - 需要架构裁决时，读取 [decision_records.md](references/decision_records.md)。
-- 需要构建 iOS 测试体系、补全核心业务测试、执行测试并修复失败时，读取 [test_system_prompt.md](references/test_system_prompt.md)，并结合 [testing_strategy.md](references/testing_strategy.md) 执行。
 
 ## 首步分流
-先把任务归入一个主类，默认只读取该主类对应的 2 到 4 份文档；若命中高风险门禁再追加附加文档。当任务跨越多个维度时，优先顺序是：根因/边界 -> 状态/并发 -> 测试验证 -> 迁移或发布风险。
+先把任务归入一个主类，再只读取该主类对应文档；若命中高风险门禁，再追加附加文档。
 
 - 排障：
   读取 [root_cause_enforcement.md](references/root_cause_enforcement.md)，再按问题性质追加并发、布局、状态、网络或 [observability_logging.md](references/observability_logging.md) 文档。
@@ -64,10 +65,26 @@ description: Production-grade iOS engineering skill for Swift, SwiftUI, UIKit, m
 - Skill 维护与自进化：
   读取 [self_evolution.md](references/self_evolution.md)，必要时追加 [validation_scenarios.md](references/validation_scenarios.md) 和 [testing_strategy.md](references/testing_strategy.md)。
 
+## 执行流程
+1. 先取证：确认现象、触发条件、影响范围和已知事实。
+2. 再定边界：明确责任层、状态归属、依赖方向和改动边界。
+3. 再实现或裁决：给最小修复或最小可演进方案。
+4. 最后验证：说明验证路径、未覆盖风险和副作用。
+
+## 测试体系与自动修复
+当用户要求构建 iOS 测试体系、补全核心业务测试、执行测试并修复失败时，先读取 [test_system_prompt.md](references/test_system_prompt.md)，并结合 [testing_strategy.md](references/testing_strategy.md) 执行。
+
 ## 强制纪律
 - 严格执行分层边界、依赖注入、单向数据流和模块治理。
+- 严格约束 UI 布局与可访问性，不用硬编码尺寸或魔法优先级修补设计问题。
+- 非必要场景不得使用 `priority(999)` 或同类技巧规避约束冲突。
 - 不要格式化代码，除非明确要求格式化当前代码。
 - 任何新增或修改规则，必须说明它是在新增能力、修正表达、合并重复，还是退役旧规则；若不能说明替代关系，默认不新增。
 
 ## 交付门禁
 - 任何改动都必须声明“已覆盖、未覆盖、残留风险”。
+
+## 参考资料加载规则
+- 默认只读取当前任务直接相关的 2 到 4 份参考资料；不要先通读全部文档。
+- 若任务命中高风险门禁文档，例如测试策略、迁移风险、构建发布、MCP 控制或团队协作规则，允许超出 4 份，但必须先区分主文档和附加门禁文档。
+- 当任务跨越多个维度时，优先顺序是：根因/边界 -> 状态/并发 -> 测试验证 -> 迁移或发布风险。

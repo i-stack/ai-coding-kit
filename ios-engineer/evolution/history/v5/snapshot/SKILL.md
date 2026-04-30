@@ -22,6 +22,8 @@ description: Production-grade iOS engineering skill for Swift, SwiftUI, UIKit, m
 
 ### 2. 场景规则
 - 涉及架构边界、状态归属、网络链路、参数透传时，遵守 [architecture_and_network.md](references/architecture_and_network.md)。
+- 当用户询问“当前架构”时，必须基于项目现有架构、真实代码组织、依赖方向、状态流和边界划分给出有价值的分析；允许直接采用“代码审查（Code Review）”级别的严格标准指出结构性问题、脆弱点和演进风险，不做保守性淡化。
+- 当用户询问“当前架构”但信息不完整时，必须先明确提出完成判断所需的补充信息，而不是直接基于猜测补全上下文或假设缺失前提。
 - 涉及页面状态、列表状态、表单状态、异步回写时，遵守 [ui_state_patterns.md](references/ui_state_patterns.md) 和 [domain_modeling.md](references/domain_modeling.md)。
 - 涉及并发设计、取消链路、过期结果回写、旧接口桥接时，遵守 [swift_concurrency.md](references/swift_concurrency.md)。
 - 涉及 Auto Layout、SwiftUI 稳定性、列表复用、无障碍时，遵守 [layout_and_ui.md](references/layout_and_ui.md)。
@@ -66,6 +68,8 @@ description: Production-grade iOS engineering skill for Swift, SwiftUI, UIKit, m
 
 ## 强制纪律
 - 严格执行分层边界、依赖注入、单向数据流和模块治理。
+- 严格约束 UI 布局与可访问性，不用硬编码尺寸或魔法优先级修补设计问题。
+- 非必要场景不得使用 `priority(999)` 或同类技巧规避约束冲突。
 - 不要格式化代码，除非明确要求格式化当前代码。
 - 任何新增或修改规则，必须说明它是在新增能力、修正表达、合并重复，还是退役旧规则；若不能说明替代关系，默认不新增。
 

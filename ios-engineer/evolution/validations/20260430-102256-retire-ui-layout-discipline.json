@@ -1,0 +1,29 @@
+{
+  "proposal_id": "20260430-102256-retire-ui-layout-discipline",
+  "proposal_file": "evolution/proposals/20260430-102256-retire-ui-layout-discipline.md",
+  "validated_at": "2026-04-30T10:24:15+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v6",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 73\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "layout",
+      "result": "pass",
+      "hits": [
+        "首步分流排障类仍命中 layout_and_ui.md",
+        "UIKit 约束规则小节保留 priority(999) 禁令和硬编码尺寸约束",
+        "SKILL.md L27 场景规则引用不变"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T10:24:33+0800"
+}

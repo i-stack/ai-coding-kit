@@ -1,0 +1,42 @@
+{
+  "proposal_id": "20260430-095705-retire-duplicate-constraints",
+  "proposal_file": "evolution/proposals/20260430-095705-retire-duplicate-constraints.md",
+  "validated_at": "2026-04-30T09:58:56+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v2",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 98\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "场景规则仍指向 review_checklists.md",
+        "退役 SKILL.md 快速检查后唯一检查清单在 reference"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "parameter-pass-through",
+      "result": "pass",
+      "hits": [
+        "场景规则 L24 仍指向 architecture_and_network.md",
+        "review_checklists.md:14 保留检查项"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T09:59:07+0800"
+}
