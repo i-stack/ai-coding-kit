@@ -18,11 +18,6 @@ hits_raw="$4"
 deviations_raw="$5"
 improvements_raw="$6"
 
-if [[ ! "$proposal_file" =~ ^evolution/proposals/[0-9]{8}-[0-9]{6}-[A-Za-z0-9_-]+\.md$ ]]; then
-  echo "Invalid proposal_file format: ${proposal_file}"
-  exit 1
-fi
-
 case "$result" in
   pass|partial|fail)
     ;;

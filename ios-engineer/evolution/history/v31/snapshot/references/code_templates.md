@@ -117,16 +117,13 @@ protocol FeatureRepositoryProtocol {
 struct FeatureRepository: FeatureRepositoryProtocol {
     private let remote: FeatureRemoteDataSourceProtocol
     private let cache: FeatureCacheProtocol
-    private let logger: LoggerProtocol
 
     init(
         remote: FeatureRemoteDataSourceProtocol,
-        cache: FeatureCacheProtocol,
-        logger: LoggerProtocol
+        cache: FeatureCacheProtocol
     ) {
         self.remote = remote
         self.cache = cache
-        self.logger = logger
     }
 
     func fetch() async throws -> FeatureEntity {
