@@ -18,7 +18,17 @@
 - 任何网络模式都必须说明边界、失败策略和验证方式。
 
 ## 请求链路
-完整链路和各环节职责定义见 [architecture_and_network.md](architecture_and_network.md) "基础结构"。本文件聚焦具体网络模式（分页 / 重试 / 缓存 / 鉴权刷新 / 上传下载 / 幂等去重），不重复链路骨架。
+固定链路：
+
+```text
+Endpoint -> RequestBuilder -> APIClient -> DTO -> Repository -> Entity -> ViewModel
+```
+
+要求：
+- Endpoint 定义路径、方法、查询参数、Header、Body。
+- RequestBuilder 负责构造 `URLRequest`。
+- APIClient 负责发送、解码、错误分层。
+- Repository 负责聚合网络、缓存、持久化与映射。
 
 ## 分页模式
 ### Page-based

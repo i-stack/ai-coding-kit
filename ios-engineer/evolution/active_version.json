@@ -1,7 +1,7 @@
 {
-  "active_version": "v23",
+  "active_version": "v25",
   "status": "active",
-  "promoted_at": "2026-04-30T11:57:10+0800",
-  "source": "proposal:20260430-115553-retire-hard-tool-budget-count",
+  "promoted_at": "2026-04-30T14:29:14+0800",
+  "source": "proposal:20260430-142606-post-Q-T-U-cross-file-cleanup",
   "notes": "Promoted after passing base evolution validation."
 }

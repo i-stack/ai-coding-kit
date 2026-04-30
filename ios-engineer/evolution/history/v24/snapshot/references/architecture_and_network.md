@@ -68,21 +68,8 @@ Infrastructure/
 
 ## 网络层设计
 ### 基础结构
-推荐链路（完整链路单一定义，其他文件引用此处）：
-
-```text
-Endpoint -> RequestBuilder -> APIClient -> Decoder/DTO -> Repository/Mapper -> Entity -> UseCase -> ViewModel/ViewState
-```
-
-各环节职责：
-- **Endpoint**：定义路径 / 方法 / Header / Body schema。
-- **RequestBuilder**：构造 `URLRequest`（或项目既有网络抽象的等价请求对象）。
-- **APIClient**：发送请求、接收响应、错误分层转换。
-- **Decoder/DTO**：把响应字节流解码为 DTO 数据传输对象（接口传输结构）。
-- **Repository/Mapper**：把 DTO 映射为 Entity 业务实体，聚合远端 / 缓存 / 持久化。
-- **Entity**：业务语义结构，脱离传输细节。
-- **UseCase**：业务用例编排（复杂业务场景必要，简单 CRUD 可省略）。
-- **ViewModel/ViewState**：界面状态编排和渲染结构。
+推荐链路：
+`Endpoint -> RequestBuilder -> APIClient -> Decoder -> Repository -> UseCase -> ViewModel`
 
 ### 强制要求
 - 统一请求抽象，禁止分散手写 URL、Header、Query。

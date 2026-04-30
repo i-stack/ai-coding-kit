@@ -79,7 +79,7 @@
   5. **业务错误**（服务端业务规则拒绝，例如 "余额不足"）
   6. **展示错误**（面向用户的错误文案 + 可执行动作）
 - 每层错误归属：
-  - 传输错误：APIClient / 项目既有网络抽象层捕获（URLSession / 自研 NetworkManager / Alamofire 等），转为 `ErrorModel.network`，不向上暴露 `NSError` 或底层 SDK 错误类型。
+  - 传输错误：APIClient / URLSession 层捕获，转为 `ErrorModel.network`，不向上暴露 `NSError`。
   - 状态码错误：APIClient 根据 code 映射（4xx → 客户端错误分支，5xx → 服务端错误分支）。
   - 解码错误：Decoder 层抛出，携带 schema 不匹配细节；不回退到展示层。
   - 鉴权错误：`AuthInterceptor` 统一处理（触发刷新 / 跳登录 / 降级只读）。
