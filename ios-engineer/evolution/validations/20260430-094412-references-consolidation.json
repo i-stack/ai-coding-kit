@@ -1,0 +1,29 @@
+{
+  "proposal_id": "20260430-094412-references-consolidation",
+  "proposal_file": "evolution/proposals/20260430-094412-references-consolidation.md",
+  "validated_at": "2026-04-30T09:48:33+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v1",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 116\n[3/4] Validate referenced files exist\nscripts/validate_skill_evolution.sh: line 27: rg: command not found\nReference files OK\n[4/4] Validate layering guardrails\nscripts/validate_skill_evolution.sh: line 35: rg: command not found\nscripts/validate_skill_evolution.sh: line 40: rg: command not found\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "migration",
+      "result": "pass",
+      "hits": [
+        "迁移四段式保留在 migration_strategy.md",
+        "阶段化/兼容层/灰度回滚/验证策略在同一份内聚合",
+        "SKILL.md 单一引用指向合并后文档"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "后续提案考虑是否把 build_release_and_ci.md 也纳入同一条引用分流,避免发布门禁仍需跨文档检索"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T09:49:29+0800"
+}
