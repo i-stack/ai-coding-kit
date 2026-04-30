@@ -12,6 +12,11 @@ fi
 
 proposal_file="$1"
 
+if [[ ! "$proposal_file" =~ ^evolution/proposals/[0-9]{8}-[0-9]{6}-[A-Za-z0-9_-]+\.md$ ]]; then
+  echo "Invalid proposal_file format: ${proposal_file}"
+  exit 1
+fi
+
 if [ ! -f "$proposal_file" ]; then
   echo "Missing proposal file: ${proposal_file}"
   exit 1
