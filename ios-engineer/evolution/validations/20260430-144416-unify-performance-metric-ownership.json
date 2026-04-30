@@ -1,0 +1,28 @@
+{
+  "proposal_id": "20260430-144416-unify-performance-metric-ownership",
+  "proposal_file": "evolution/proposals/20260430-144416-unify-performance-metric-ownership.md",
+  "validated_at": "2026-04-30T14:46:09+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v27",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 48\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "性能指标口径单一归属 observability_logging",
+        "performance 专注决策流"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T14:46:09+0800"
+}

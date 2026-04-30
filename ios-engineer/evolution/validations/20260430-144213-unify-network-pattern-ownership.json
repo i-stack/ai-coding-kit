@@ -1,0 +1,28 @@
+{
+  "proposal_id": "20260430-144213-unify-network-pattern-ownership",
+  "proposal_file": "evolution/proposals/20260430-144213-unify-network-pattern-ownership.md",
+  "validated_at": "2026-04-30T14:43:42+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v26",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 48\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "parameter-pass-through",
+      "result": "pass",
+      "hits": [
+        "网络模式单一归属 networking_patterns.md",
+        "architecture 保留架构边界+跨层安全"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T14:43:43+0800"
+}

@@ -14,10 +14,10 @@
 - 优化必须有前后对比数据，并确认没有引入行为回归。
 
 ## 性能排查顺序
-1. **先取证**：按 [observability_logging.md](observability_logging.md) "性能观测" 的指标口径 + 工具选择采集数据，明确当前指标值 + 触发路径。
-2. **对照阈值**：用上文"总原则"的阈值（> 16 ms 掉帧 / > 100 ms 卡顿 / 重复计算 > 20% / body 重算 > 60Hz）判定是否命中优化必要。
-3. **选主因**：定位到一个主因（主线程阻塞 / 过度刷新 / 重复计算 / 资源浪费 / 内存热点），按本文件下方对应专项（SwiftUI / UIKit / 启动 / 内存）做针对性优化。
-4. **前后对比**：用同一指标口径重新采集，确认指标下降且无行为回归。
+1. 明确问题指标：启动时长、帧率、主线程耗时、内存峰值、CPU、能耗
+2. 确定触发路径：冷启动、热启动、特定页面、滚动、网络回包、后台切前台
+3. 用工具取证：Instruments、Memory Graph、OSLog、MetricKit
+4. 定位主因后再决定是架构调整、缓存、异步化还是渲染瘦身
 
 ## SwiftUI 优化要点
 ### 刷新范围
@@ -51,8 +51,12 @@
 - 排查闭包循环引用、Task 生命周期、通知未释放、观察者未移除。
 - 优化时同时关注峰值和稳态，而不是只看瞬时分配。
 
-## 工具选择
-性能取证工具（Instruments / Time Profiler / Core Animation / Allocations / Leaks / Memory Graph / Points of Interest / OSLog / MetricKit）的用途和采集方式见 [observability_logging.md](observability_logging.md) "性能观测"。本文件不重复维护工具清单。
+## 常用工具
+- `Time Profiler`：定位 CPU 和主线程热点
+- `Core Animation`：观察帧率、混合和渲染压力
+- `Allocations` / `Leaks` / `Memory Graph`：分析内存增长和引用关系
+- `Points of Interest` / `OSLog`：补齐关键链路耗时标记
+- `MetricKit`：关注线上崩溃、卡顿和能耗趋势
 
 ## 常见反模式
 - 没有指标就盲目“优化”代码风格。
