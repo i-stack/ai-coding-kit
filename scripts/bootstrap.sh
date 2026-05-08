@@ -14,7 +14,9 @@
 #
 # Environment variables:
 #   REPO_URL               Default: https://github.com/i-stack/skills-engineering.git
-#   CLONE_TARGET           Default: ~/Desktop/github/skills-engineering
+#   CLONE_TARGET           Clone destination. If unset and a TTY is available,
+#                          the script prompts interactively (Enter = default).
+#                          Default: ~/Desktop/github/skills-engineering
 #   REF                    Branch/tag/commit to check out after clone. Default: main
 #   CURSOR_PROJECT_ROOTS   Passthrough to sync-agent-preamble.sh (optional)
 #   SKIP_PREAMBLE=true     Skip sync-agent-preamble.sh
@@ -23,8 +25,31 @@
 set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/i-stack/skills-engineering.git}"
-CLONE_TARGET="${CLONE_TARGET:-${HOME}/Desktop/github/skills-engineering}"
+DEFAULT_CLONE_TARGET="${HOME}/Desktop/github/skills-engineering"
 REF="${REF:-main}"
+
+# CLONE_TARGET resolution:
+#   1. Respect an explicit env var.
+#   2. Otherwise, if /dev/tty can be opened, prompt (Enter = default).
+#   3. Otherwise (no TTY, e.g. CI) fall back to the default silently.
+# /dev/tty is used instead of stdin so prompting still works under `curl | bash`,
+# where stdin is the pipe carrying the script itself.
+if [[ -z "${CLONE_TARGET:-}" ]]; then
+  if { : >/dev/tty; } 2>/dev/null; then
+    printf "Clone target [%s]: " "${DEFAULT_CLONE_TARGET}" > /dev/tty
+    read -r _user_input < /dev/tty || _user_input=""
+    CLONE_TARGET="${_user_input:-${DEFAULT_CLONE_TARGET}}"
+    unset _user_input
+  else
+    CLONE_TARGET="${DEFAULT_CLONE_TARGET}"
+  fi
+fi
+
+# Expand a leading ~ — read does not trigger tilde expansion.
+case "${CLONE_TARGET}" in
+  "~")    CLONE_TARGET="${HOME}" ;;
+  "~/"*)  CLONE_TARGET="${HOME}/${CLONE_TARGET#\~/}" ;;
+esac
 
 if ! command -v git >/dev/null 2>&1; then
   echo "git is required but not found on PATH" >&2
