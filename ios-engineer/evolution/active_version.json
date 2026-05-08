@@ -1,7 +1,7 @@
 {
-  "active_version": "v38",
+  "active_version": "v39",
   "status": "active",
-  "promoted_at": "2026-05-08T10:50:39+0800",
-  "source": "proposal:20260508-104821-add-usage-section-to-root-cause-and-test-exec",
+  "promoted_at": "2026-05-08T10:56:08+0800",
+  "source": "proposal:20260508-105236-consolidate-output-template-owners",
   "notes": "Promoted after passing base evolution validation."
 }
