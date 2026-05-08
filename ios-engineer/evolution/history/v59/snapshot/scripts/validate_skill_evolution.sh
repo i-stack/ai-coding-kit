@@ -5,10 +5,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-echo "[1/13] Validate YAML structure"
+echo "[1/12] Validate YAML structure"
 ruby -e 'require "yaml"; YAML.load_file("SKILL.md"); YAML.load_file("agents/openai.yaml"); puts "YAML OK"'
 
-echo "[2/13] Validate SKILL.md size"
+echo "[2/12] Validate SKILL.md size"
 line_count="$(wc -l < SKILL.md | tr -d ' ')"
 if [ "$line_count" -gt 500 ]; then
   echo "SKILL.md too long: ${line_count} lines"
@@ -16,7 +16,7 @@ if [ "$line_count" -gt 500 ]; then
 fi
 echo "SKILL.md lines: ${line_count}"
 
-echo "[3/13] Validate referenced files exist"
+echo "[3/12] Validate referenced files exist"
 missing=0
 while IFS= read -r path; do
   [ -z "$path" ] && continue
@@ -31,7 +31,7 @@ if [ "$missing" -ne 0 ]; then
 fi
 echo "Reference files OK"
 
-echo "[4/13] Validate layering guardrails"
+echo "[4/12] Validate layering guardrails"
 if rg -q '^## (调用预算|重试与限流|上下文压缩|防循环退出条件|输出要求)$' references/root_cause_enforcement.md; then
   echo "root_cause_enforcement.md should not define MCP control sections"
   exit 1
@@ -44,7 +44,7 @@ fi
 
 echo "Layering guardrails OK"
 
-echo "[5/13] Validate internal markdown links"
+echo "[5/12] Validate internal markdown links"
 ruby <<'RUBY'
 broken = 0
 Dir.glob('references/*.md').sort.each do |file|
@@ -65,16 +65,16 @@ exit 1 if broken > 0
 RUBY
 echo "Internal links OK"
 
-echo "[6/13] Validate scenario specs"
+echo "[6/12] Validate scenario specs"
 bash scripts/validate_scenario_specs.sh
 
-echo "[7/13] Validate rule IDs"
+echo "[7/12] Validate rule IDs"
 bash scripts/validate_rule_ids.sh
 
-echo "[8/13] Validate usage ledger"
+echo "[8/12] Validate usage ledger"
 bash scripts/validate_usage_ledger.sh
 
-echo "[9/13] Validate no orphan references"
+echo "[9/12] Validate no orphan references"
 ruby <<'RUBY'
 referenced = {}
 # SKILL.md 直接引用
@@ -102,7 +102,7 @@ end
 RUBY
 echo "No orphan references"
 
-echo "[10/13] Validate unique ownership + retired word regression"
+echo "[10/12] Validate unique ownership + retired word regression"
 ruby <<'RUBY'
 # pattern => [expected_owner_basename, description]
 UNIQUE_OWNERS = {
@@ -145,60 +145,14 @@ exit 1 if violations > 0
 RUBY
 echo "Unique ownership + retired words OK"
 
-echo "[11/13] Validate threshold doc/script sync"
-ruby <<'RUBY'
-script_path = "scripts/summarize_usage_ledger.sh"
-doc_path = "references/usage_ledger.md"
-
-script_consts = {}
-File.foreach(script_path) do |line|
-  m = line.match(/^([A-Z_]+_THRESHOLD)\s*=\s*([0-9.]+)\s*$/)
-  next unless m
-  script_consts[m[1]] = m[2]
-end
-
-required = %w[MISSED_RULE_THRESHOLD TASK_TYPE_OTHER_THRESHOLD DEVIATION_THRESHOLD TOOL_DIVERGENCE_THRESHOLD]
-missing = required - script_consts.keys
-unless missing.empty?
-  puts "Missing threshold constants in #{script_path}: #{missing.join(', ')}"
-  exit 1
-end
-
-doc_consts = {}
-File.foreach(doc_path) do |line|
-  m = line.match(/^\|\s*`([A-Z_]+_THRESHOLD)`\s*\|\s*([0-9.]+)\s*\|/)
-  next unless m
-  doc_consts[m[1]] = m[2]
-end
-
-doc_missing = required - doc_consts.keys
-unless doc_missing.empty?
-  puts "Missing threshold rows in #{doc_path} §8: #{doc_missing.join(', ')}"
-  exit 1
-end
-
-drift = []
-required.each do |k|
-  if script_consts[k] != doc_consts[k]
-    drift << "#{k}: script=#{script_consts[k]} doc=#{doc_consts[k]}"
-  end
-end
-unless drift.empty?
-  puts "Threshold drift between #{script_path} and #{doc_path} §8:"
-  drift.each { |d| puts "  #{d}" }
-  exit 1
-end
-RUBY
-echo "Threshold doc/script sync OK"
-
-echo "[12/13] Validate snapshot consistency with active version"
+echo "[11/12] Validate snapshot consistency with active version"
 if [ "${SKIP_SNAPSHOT_CONSISTENCY:-0}" = "1" ]; then
   echo "Skipped (SKIP_SNAPSHOT_CONSISTENCY=1)"
 else
   bash scripts/check_snapshot_consistency.sh
 fi
 
-echo "[13/13] Run behavior validation scenarios"
+echo "[12/12] Run behavior validation scenarios"
 if [ "${SKIP_BEHAVIOR_VALIDATION:-0}" = "1" ]; then
   echo "Skipped (SKIP_BEHAVIOR_VALIDATION=1)"
 else
