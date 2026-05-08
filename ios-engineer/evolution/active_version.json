@@ -1,7 +1,7 @@
 {
-  "active_version": "v52",
+  "active_version": "v53",
   "status": "active",
-  "promoted_at": "2026-05-08T16:01:37+0800",
-  "source": "proposal:20260508-155946-tighten-route-017-playbook-entry-condition",
+  "promoted_at": "2026-05-08T16:06:07+0800",
+  "source": "proposal:20260508-160250-compress-out-002-cross-ref-ir-004",
   "notes": "Promoted after passing base evolution validation."
 }
