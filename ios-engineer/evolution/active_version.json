@@ -1,7 +1,7 @@
 {
-  "active_version": "v36",
+  "active_version": "v37",
   "status": "active",
-  "promoted_at": "2026-05-08T10:41:27+0800",
-  "source": "proposal:20260508-103117-consolidate-ios-test-execution-reference",
+  "promoted_at": "2026-05-08T10:43:46+0800",
+  "source": "proposal:20260508-104200-scripts-exec-bit-and-guard",
   "notes": "Promoted after passing base evolution validation."
 }
