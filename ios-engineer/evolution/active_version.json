@@ -1,7 +1,7 @@
 {
-  "active_version": "v51",
+  "active_version": "v52",
   "status": "active",
-  "promoted_at": "2026-05-08T15:58:42+0800",
-  "source": "proposal:20260508-155553-tighten-route-012-refactor-as-execution",
+  "promoted_at": "2026-05-08T16:01:37+0800",
+  "source": "proposal:20260508-155946-tighten-route-017-playbook-entry-condition",
   "notes": "Promoted after passing base evolution validation."
 }
