@@ -1,7 +1,7 @@
 {
-  "active_version": "v49",
+  "active_version": "v50",
   "status": "active",
-  "promoted_at": "2026-05-08T15:53:22+0800",
-  "source": "proposal:20260508-155152-retire-ir-009-meta-ir",
+  "promoted_at": "2026-05-08T15:55:14+0800",
+  "source": "proposal:20260508-155403-rename-perf-observation-to-embedding",
   "notes": "Promoted after passing base evolution validation."
 }
