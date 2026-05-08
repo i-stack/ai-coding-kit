@@ -1,7 +1,7 @@
 {
-  "active_version": "v37",
+  "active_version": "v38",
   "status": "active",
-  "promoted_at": "2026-05-08T10:43:46+0800",
-  "source": "proposal:20260508-104200-scripts-exec-bit-and-guard",
+  "promoted_at": "2026-05-08T10:50:39+0800",
+  "source": "proposal:20260508-104821-add-usage-section-to-root-cause-and-test-exec",
   "notes": "Promoted after passing base evolution validation."
 }
