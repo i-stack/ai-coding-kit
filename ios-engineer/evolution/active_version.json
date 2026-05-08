@@ -1,7 +1,7 @@
 {
-  "active_version": "v39",
+  "active_version": "v40",
   "status": "active",
-  "promoted_at": "2026-05-08T10:56:08+0800",
-  "source": "proposal:20260508-105236-consolidate-output-template-owners",
+  "promoted_at": "2026-05-08T11:01:42+0800",
+  "source": "proposal:20260508-105859-tighten-findings-first-owner-guard",
   "notes": "Promoted after passing base evolution validation."
 }
