@@ -1,7 +1,7 @@
 {
-  "active_version": "v53",
+  "active_version": "v54",
   "status": "active",
-  "promoted_at": "2026-05-08T16:06:07+0800",
-  "source": "proposal:20260508-160250-compress-out-002-cross-ref-ir-004",
+  "promoted_at": "2026-05-08T16:25:26+0800",
+  "source": "proposal:20260508-162159-align-playbook-headings-with-route-017",
   "notes": "Promoted after passing base evolution validation."
 }
