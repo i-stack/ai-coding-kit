@@ -1,46 +1,54 @@
-# 测试体系与自动修复 Prompt
+# 测试执行与失败修复
 
-当用户要求构建 iOS 测试体系、补全核心业务测试、执行测试并修复失败时，按以下通用 Prompt 执行：
+当用户要求构建 iOS 测试体系、补全核心业务测试、执行测试并修复失败时，按本流程执行。
 
-```text
-你是一个追求高质量代码的 iOS 测试专家，同时具备生产级 Swift / UIKit / SwiftUI / XCTest 工程能力。
+目标不是“补几个测试”，而是构建可靠的测试体系，并在测试暴露缺陷后进行最小可验证修复，直到核心业务逻辑具备可上线信心。
 
-你的目标不是“补几个测试”，而是构建可靠的测试体系，并在测试暴露缺陷后进行最小可验证修复，直到核心业务逻辑具备可上线信心。
-
-项目背景：
+## 项目背景
 - 这是 iOS 工程，不要使用 macOS 目标进行编译或测试。
 - 如果出现 “building for macOS” 或 macOS 相关编译失败，优先检查 scheme / destination / platform 设置。
 - 编译与测试必须使用 iPhone 模拟器或真机目标。
 - 优先使用 XCTest / XCUITest / 项目现有测试框架，不引入不必要的新依赖。
 
-推荐验证命令：
-1. 先查看可用 scheme：
+## 验证命令
+- 对包含 `UIKit` / iOS-only API / 仅面向 iOS 的 framework 的 SPM 包，不要用裸 `swift test` 做最终验证；它默认按当前主机平台构建，常见失败是 `no such module 'UIKit'`。这种失败通常表示验证命令目标平台错了，不等价于源码在 iOS 下不可编译。
+- 先查 workspace / project 的 scheme 与可用模拟器：
 
-   xcodebuild -list -workspace <WorkspaceName>.xcworkspace
+  ```sh
+  xcodebuild -list -workspace <App.xcworkspace>
+  xcodebuild -showdestinations -workspace <App.xcworkspace> -scheme <Scheme>
+  ```
 
-2. 使用 iPhone 模拟器编译：
+  只有 `.xcodeproj` 时，把 `-workspace <App.xcworkspace>` 替换为 `-project <App.xcodeproj>`。
 
-   xcodebuild \
-     -workspace <WorkspaceName>.xcworkspace \
-     -scheme <SchemeName> \
-     -configuration Debug \
-     -destination 'platform=iOS Simulator,name=iPhone 16' \
-     build
+- 用 iOS Simulator SDK 构建包或 app scheme：
 
-3. 使用 iPhone 模拟器运行测试：
+  ```sh
+  xcodebuild build \
+    -workspace <App.xcworkspace> \
+    -scheme <PackageOrAppScheme> \
+    -destination 'platform=iOS Simulator,name=<SimulatorName>,OS=<OSVersion>'
+  ```
 
-   xcodebuild \
-     -workspace <WorkspaceName>.xcworkspace \
-     -scheme <SchemeName> \
-     -configuration Debug \
-     -destination 'platform=iOS Simulator,name=iPhone 16' \
-     test
+- 用同一个模拟器执行测试：
 
-如果项目只有 .xcodeproj，则把 -workspace 替换为：
+  ```sh
+  xcodebuild test \
+    -workspace <App.xcworkspace> \
+    -scheme <AppScheme> \
+    -destination 'platform=iOS Simulator,name=<SimulatorName>,OS=<OSVersion>'
+  ```
 
-   -project <ProjectName>.xcodeproj
+- 若存在多个同名 destination，优先使用 `-showdestinations` 输出中的 `id` 精确指定：
 
-核心要求：
+  ```sh
+  xcodebuild test \
+    -workspace <App.xcworkspace> \
+    -scheme <AppScheme> \
+    -destination 'platform=iOS Simulator,id=<SimulatorUDID>'
+  ```
+
+## 核心要求
 1. 测试范围
 - 覆盖所有核心业务逻辑。
 - 优先覆盖边界条件、异常路径、空数据、网络失败、解析失败、超时、取消、状态切换、并发回调、过期结果、重复请求、缓存命中/失效、用户输入校验。
@@ -80,10 +88,9 @@
 - 风险点：未覆盖路径、仍可能存在的边界风险、环境或 CI 风险、异步/并发/状态残留风险。
 - 上线判断：是否可以上线 Yes / No，理由必须具体；如果是 No，说明上线前必须完成哪些事项。
 
-工作原则：
+## 工作原则
 - 以可靠性为目标，不以测试数量为目标。
 - 以真实业务断言为准，不制造虚假覆盖率。
 - 优先证明核心路径正确，再补边界与异常路径。
 - 最小改动，避免无关重构。
 - 所有结论必须来自代码分析、测试结果或明确证据。
-```

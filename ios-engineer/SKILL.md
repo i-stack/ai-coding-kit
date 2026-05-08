@@ -29,9 +29,11 @@ description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering
 | 请求失败 / 重试异常 / 鉴权刷新 / 分页重复或漏数据 / 缓存污染 | [networking_patterns.md](references/networking_patterns.md) | 错误建模追加 [domain_modeling.md](references/domain_modeling.md) |
 | 卡顿 / 启动慢 / 内存上涨 / 过度刷新 / 能耗异常 | [performance_optimization.md](references/performance_optimization.md) | 指标与埋点追加 [observability_logging.md](references/observability_logging.md) |
 | 命名混乱 / 术语混用 / 强制解包 / 访问控制 / 代码结构 | [ios_conventions.md](references/ios_conventions.md) | 代码审查场景追加 [review_checklists.md](references/review_checklists.md) |
+| 架构分析 / 架构体检 / 项目健康度 / 技术债盘点 / 系统性风险 / 当前架构有没有问题 | [architecture_analysis.md](references/architecture_analysis.md) | 需要具体修法追加 [architecture_and_network.md](references/architecture_and_network.md)；路线图与迁移风险追加 [migration_strategy.md](references/migration_strategy.md) |
 
 - **排障 / Bug / 偶现问题 / Crash**：主读 [root_cause_enforcement.md](references/root_cause_enforcement.md)；按问题性质追加：并发 → [swift_concurrency.md](references/swift_concurrency.md)、布局 → [layout_and_ui.md](references/layout_and_ui.md)、状态 → [ui_state_patterns.md](references/ui_state_patterns.md)、网络 → [networking_patterns.md](references/networking_patterns.md)、日志取证 → [observability_logging.md](references/observability_logging.md)。
 - **架构设计 / 模块拆分 / 状态归属 / 参数透传**：主读 [architecture_and_network.md](references/architecture_and_network.md)；涉及数据建模追加 [domain_modeling.md](references/domain_modeling.md)；涉及 UI 状态追加 [ui_state_patterns.md](references/ui_state_patterns.md)。
+- **架构分析 / 架构体检 / 项目健康度评估 / 技术债盘点 / 系统性风险排查 / 重构路线图**：主读 [architecture_analysis.md](references/architecture_analysis.md)；需要具体修法按命中维度追加 [architecture_and_network.md](references/architecture_and_network.md) / [swift_concurrency.md](references/swift_concurrency.md) / [performance_optimization.md](references/performance_optimization.md)；涉及迁移与回滚追加 [migration_strategy.md](references/migration_strategy.md)；涉及决策沉淀追加 [decision_records.md](references/decision_records.md)。
 - **数据建模 / DTO / Entity / ViewState / ErrorModel / 映射**：主读 [domain_modeling.md](references/domain_modeling.md)。
 - **UI 状态 / 列表 / 表单 / 异步回写**：主读 [ui_state_patterns.md](references/ui_state_patterns.md)。
 - **UI 布局 / SwiftUI 稳定性 / Auto Layout / 无障碍 / 列表复用**：主读 [layout_and_ui.md](references/layout_and_ui.md)。
@@ -57,4 +59,4 @@ description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering
 - 产线代码骨架：[code_templates.md](references/code_templates.md)。
 - 测试策略 / 验证范围：[testing_strategy.md](references/testing_strategy.md)。
 - 架构裁决记录：[decision_records.md](references/decision_records.md)。
-- iOS 测试体系建设 / 执行测试并修复失败：[test_system_prompt.md](references/test_system_prompt.md)，并结合 [testing_strategy.md](references/testing_strategy.md)。
+- iOS 测试体系建设 / 执行测试并修复失败：[test_execution_and_repair.md](references/test_execution_and_repair.md)，并结合 [testing_strategy.md](references/testing_strategy.md)。
