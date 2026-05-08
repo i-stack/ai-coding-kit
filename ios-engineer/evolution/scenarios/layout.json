@@ -1,0 +1,47 @@
+{
+  "id": "layout",
+  "version": 1,
+  "category": "behavior",
+  "input": "消息气泡高度偶发错误，长文本会截断，先别重构，帮我找根因。",
+  "primary_refs": [
+    "references/layout_and_ui.md",
+    "references/ui_state_patterns.md"
+  ],
+  "output_contract": "four-segment",
+  "expected_hits": [
+    {
+      "key": "reuse-and-constraints-first",
+      "desc": "先落到布局、复用、自适应高度链路",
+      "anchor": "references/layout_and_ui.md"
+    },
+    {
+      "key": "no-full-rewrite",
+      "desc": "不直接建议重写整个消息视图",
+      "anchor": "SKILL.md:13"
+    },
+    {
+      "key": "four-segment-output",
+      "desc": "输出保持根因 / 为什么 / 修法 / 验证",
+      "anchor": "SKILL.md:12"
+    }
+  ],
+  "failure_signals": [
+    {
+      "key": "shotgun-causes",
+      "desc": "一上来给大量候选原因"
+    },
+    {
+      "key": "skip-reuse-chain",
+      "desc": "没有先看复用、约束链路、异步回填"
+    },
+    {
+      "key": "replace-layout-system",
+      "desc": "直接建议整体替换布局方案"
+    }
+  ],
+  "scoring": {
+    "pass": "所有 expected_hits 命中且无 failure_signals 触发",
+    "partial": "至少半数 expected_hits 命中且未触发任何核心 failure_signals",
+    "fail": "命中任一 failure_signals 或 expected_hits 命中不到一半"
+  }
+}
