@@ -84,7 +84,9 @@ sync_one() {
   ensure_target_parent "${target}"
   ensure_real_dir_target "${target}"
 
-  local rsync_flags=(-a --delete --exclude ".DS_Store" --exclude ".git/")
+  local rsync_flags=(-a --delete --delete-excluded \
+    --exclude ".DS_Store" --exclude ".git/" \
+    --exclude "evolution/" --exclude "scripts/" --exclude "agents/")
   if [[ "${DRY_RUN}" == "true" ]]; then
     rsync_flags+=(--dry-run --itemize-changes)
   fi
