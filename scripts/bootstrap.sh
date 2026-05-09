@@ -21,6 +21,7 @@
 #   CURSOR_PROJECT_ROOTS   Passthrough to sync-agent-preamble.sh (optional)
 #   SKIP_PREAMBLE=true     Skip sync-agent-preamble.sh
 #   SKIP_SKILLS=true       Skip sync-skills.sh
+#   SKIP_CLAUDE_HOOKS=true Skip sync-claude-hooks.sh
 
 set -euo pipefail
 
@@ -87,9 +88,16 @@ if [[ "${SKIP_PREAMBLE:-false}" != "true" ]]; then
   "${SCRIPTS_DIR}/sync-agent-preamble.sh"
 fi
 
+if [[ "${SKIP_CLAUDE_HOOKS:-false}" != "true" ]]; then
+  echo "---"
+  echo "Running sync-claude-hooks.sh"
+  "${SCRIPTS_DIR}/sync-claude-hooks.sh"
+fi
+
 echo "---"
 echo "Bootstrap complete."
 echo "Source repo: ${CLONE_TARGET}"
 echo "Re-run sync anytime with:"
 echo "  ${SCRIPTS_DIR}/sync-skills.sh"
 echo "  ${SCRIPTS_DIR}/sync-agent-preamble.sh"
+echo "  ${SCRIPTS_DIR}/sync-claude-hooks.sh"
