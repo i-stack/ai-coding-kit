@@ -41,8 +41,8 @@ check_preamble_tilde() {
     note_fail "$file missing"
     return
   fi
-  if ! grep -q '^SKILL 源在 `~' "$file"; then
-    note_fail "$file is not tilde-ified (expected: SKILL 源在 \`~...\`)"
+  if ! grep -q '^SKILL 规则位于 `~' "$file"; then
+    note_fail "$file is not tilde-ified (expected: SKILL 规则位于 \`~...\`)"
   fi
 }
 

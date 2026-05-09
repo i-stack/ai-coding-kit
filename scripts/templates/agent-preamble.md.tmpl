@@ -3,7 +3,7 @@
 
 执行 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务前，必须先加载并遵循 `ios-engineer` SKILL 规则（SKILL.md + references/rule_index.md 中 `status=active` 的 IR / SYM / ROUTE / OUT 条目）。
 
-SKILL 源在 `{{SOURCE_DIR}}/`，会同步到 `{{SKILLS_DIR}}`，可直接加载。
+SKILL 规则位于 `{{SKILLS_DIR}}`，可直接加载。
 
 # ios-engineer skill audit
 
@@ -26,7 +26,7 @@ evolution-signal: <none | 修正表达 | 新增能力 | 合并重复 | 退役规
 
 可选字段：`session-id: <id>`（默认省略 = null）。
 
-Rule ID 词表取自 `{{SOURCE_DIR}}/references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN）。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
+Rule ID 词表取自 `{{SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN）。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
 
 **非 iOS 工程任务不输出这个块**：写文档、答 API 问题、通用重构、元工程 / 自进化讨论 / SkillOps 维护本身都跳过。task-type 落不进 7 选 1 时也跳过。
 <!-- managed-block:ios-engineer:end -->

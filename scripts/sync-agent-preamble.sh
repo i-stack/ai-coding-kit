@@ -3,7 +3,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 LOCAL_CONFIG="${SCRIPT_DIR}/config.local.sh"
 if [[ -f "${LOCAL_CONFIG}" ]]; then
@@ -12,7 +11,6 @@ if [[ -f "${LOCAL_CONFIG}" ]]; then
 fi
 
 SKILL_NAME="${SKILL_NAME:-ios-engineer}"
-SOURCE_DIR="${SOURCE_DIR:-${REPO_ROOT}/${SKILL_NAME}}"
 
 TEMPLATE="${TEMPLATE:-${SCRIPT_DIR}/templates/agent-preamble.md.tmpl}"
 CLAUDE_TARGET="${CLAUDE_TARGET:-${HOME}/.claude/CLAUDE.md}"
@@ -51,8 +49,6 @@ Options:
 Environment variables:
   TEMPLATE               Default: <script-dir>/templates/agent-preamble.md.tmpl
   SKILL_NAME             Default: ios-engineer
-  SOURCE_DIR             Default: <repo-root>/<SKILL_NAME>
-                         Substituted as {{SOURCE_DIR}} in the template.
   CLAUDE_TARGET          Default: ~/.claude/CLAUDE.md
   CODEX_TARGET           Default: ~/.codex/AGENTS.md
   CURSOR_PROJECT_ROOTS   Colon-separated project roots, e.g.
@@ -78,13 +74,8 @@ fi
 render() {
   local tool_name="$1"
   local skills_dir="$2"
-  local source_dir="${SOURCE_DIR}"
-  if [[ "${source_dir}" == "${HOME}/"* ]]; then
-    source_dir="~/${source_dir#${HOME}/}"
-  fi
   sed -e "s|{{TOOL_NAME}}|${tool_name}|g" \
       -e "s|{{SKILLS_DIR}}|${skills_dir}|g" \
-      -e "s|{{SOURCE_DIR}}|${source_dir}|g" \
       "${TEMPLATE}"
 }
 
