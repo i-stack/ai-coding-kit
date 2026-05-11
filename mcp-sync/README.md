@@ -1,5 +1,9 @@
 # mcp-sync
 
+[![Config](https://img.shields.io/badge/config-mcp--servers.json-663399)](mcp-servers.json.example)
+![Tool](https://img.shields.io/badge/tool-mcp--sync-24292f)
+[![Sync](https://img.shields.io/badge/sync-Cursor%20%7C%20Codex%20%7C%20Claude%20%7C%20Xcode-5856D6)](#功能概览)
+
 Single-source **`mcp-servers.json`** → sync MCP servers to **Cursor** (symlink), **OpenAI Codex** & **Xcode Coding Assistant** (TOML merge), and **Claude Code** / **Xcode Claude Agent** (JSON merge). Bash + Python.
 
 以**一份** MCP 清单同步到 Cursor、Codex（终端与 Xcode 内）、Claude Code 与 Xcode Coding Intelligence，免去多端重复维护。
