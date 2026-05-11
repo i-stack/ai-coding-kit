@@ -4,10 +4,6 @@ Single-source **`mcp-servers.json`** → sync MCP servers to **Cursor** (symlink
 
 以**一份** MCP 清单同步到 Cursor、Codex（终端与 Xcode 内）、Claude Code 与 Xcode Coding Intelligence，免去多端重复维护。
 
-[![GitHub Repo](https://img.shields.io/badge/repo-i--stack%2Fmcp--sync-181717?style=flat-square&logo=github)](https://github.com/i-stack/mcp-sync)
-[![GitHub Stars](https://img.shields.io/github/stars/i-stack/mcp-sync?style=flat-square&logo=github&label=stars)](https://github.com/i-stack/mcp-sync/stargazers)
-[![Last Commit](https://img.shields.io/github/last-commit/i-stack/mcp-sync?style=flat-square&logo=github&label=commit)](https://github.com/i-stack/mcp-sync/commits)
-
 [![Bash](https://img.shields.io/badge/shell-bash-4EAA25?style=flat-square&logo=gnu-bash&logoColor=white)](https://www.gnu.org/software/bash/)
 [![Python 3](https://img.shields.io/badge/Python-3-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Linux-555555?style=flat-square)](https://github.com/i-stack/mcp-sync)
