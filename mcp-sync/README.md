@@ -72,7 +72,7 @@ git clone https://github.com/i-stack/mcp-sync.git
 cd mcp-sync
 ```
 
-克隆后若要用 **Git 钩子** 在推送前自动同步，在本仓库根目录执行一次 `./install-hooks.sh`（详见下文）。
+克隆后若要用 **Git 钩子** 在推送前自动同步，在外层 `ai-coding-kit/` 根目录执行一次 `bash install-hooks.sh`（详见下文）。
 
 ## 快速开始
 
@@ -95,24 +95,25 @@ cd mcp-sync
    ./sync_all.sh
    ```
 
-4. （可选）启用 **`pre-push` 钩子**：希望每次 `git push` 前先跑一遍同步时，执行 `./install-hooks.sh`。说明见下一节。
+4. （可选）启用 **`pre-push` 钩子**：希望每次 `git push` 前先跑一遍同步时，在外层 `ai-coding-kit/` 根目录执行 `bash install-hooks.sh`。说明见下一节。
 
 5. 重启或重新加载 **Cursor / Codex / Claude Code**（若当前会话未自动读取新配置）。若在 **Xcode** 中使用 Coding Assistant，建议**重启 Xcode** 后再试。
 
 ## Git 钩子（可选）
 
-本仓库提供 **`githooks/pre-push`**：在你执行 `git push` 并把对象发往远程**之前**调用 `sync_all.sh`，从而在推送前把 Cursor / Codex / Claude 一侧的配置与本仓库对齐。
+合并入 `ai-coding-kit` 后，钩子由仓库根目录统一管理（一个 git repo 只有一个 `core.hooksPath`，根级 `pre-push` 同时跑 skills-engineering 同步链与本目录的 `sync_all.sh`）。在 `git push` 把对象发往远程**之前**会自动调用 `sync_all.sh`，让 Cursor / Codex / Claude / Xcode 一侧的 MCP 配置先与本仓库对齐。
 
 **说明：** Git 客户端只有与 push 相关的 **`pre-push`**，没有官方的 **`post-push`**（无法在「远端已接收完毕」后再用本地钩子跑脚本；若需要那种时机，只能用远端 bare 仓库的 `post-receive`、CI 等）。
 
-**启用（每个克隆只做一次）：**
+**启用（每个克隆只做一次，在外层 `ai-coding-kit/` 根目录执行）：**
 
 ```bash
-chmod +x install-hooks.sh sync_all.sh   # 若尚未可执行
-./install-hooks.sh
+chmod +x sync_all.sh   # 若尚未可执行
+cd <ai-coding-kit-root>
+bash install-hooks.sh
 ```
 
-该脚本会将本仓库的 `core.hooksPath` 设为 `githooks`（路径相对于仓库根目录，可随仓库提交），并为 `githooks/pre-push` 加上可执行权限。
+该脚本会把外层仓库的 `core.hooksPath` 设为 `.githooks`，并为根级 `pre-commit` / `pre-push` 加上可执行权限。详见外层根 README 的「Git 钩子」章节。
 
 **跳过单次钩子（仍会执行 push）：**
 
@@ -129,10 +130,10 @@ git push --no-verify
 | `sync_all.sh` | 一键：Cursor 软链 → `sync_mcp.py`（含 Xcode `codex` 目录）→ `sync_claude.py`（含 Xcode `ClaudeAgentConfig`） |
 | `sync_mcp.py` | 生成 Codex 用 TOML，并合并进 `~/.codex/config.toml` 与 **`~/Library/Developer/Xcode/CodingAssistant/codex/config.toml`** |
 | `sync_claude.py` | 将 `mcpServers` 合并进 `~/.claude.json` 与 **`~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`**（Xcode 侧为按工程 `projects.*.mcpServers` 合并） |
-| `install-hooks.sh` | 设置 `core.hooksPath=githooks`，保证 `githooks/pre-push` 可执行 |
-| `githooks/pre-push` | 在 `git push` 发送前执行 `sync_all.sh`（需先运行 `install-hooks.sh`） |
-| `mcp-servers.json` | **唯一数据源**（本地文件，已加入 `.gitignore`） |
+| `mcp-servers.json` | **唯一数据源**（本地密钥文件；勿提交，忽略规则见仓库根 `.gitignore` 中的 `mcp-sync/mcp-servers.json`） |
 | `mcp-servers.json.example` | 无密钥的模板，可安全提交到 Git |
+
+> 仓库级 git 钩子由外层 `ai-coding-kit/install-hooks.sh` 统一注册；本目录不再持有独立的 `githooks/` 与 `install-hooks.sh`。根 `pre-push` 会在 push 前自动调用本目录的 `sync_all.sh`。
 
 也可单独运行：
 

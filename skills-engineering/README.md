@@ -30,15 +30,11 @@
 ├── README.md
 ├── scripts/
 │   ├── bootstrap.sh
-│   ├── install-hooks.sh
 │   ├── sync-agent-preamble.sh
 │   ├── sync-skills.sh
 │   ├── verify-sync.sh
 │   ├── config.local.sh.example
 │   └── templates/
-├── .githooks/
-│   ├── pre-commit
-│   └── pre-push
 └── ios-engineer/
     ├── SKILL.md
     ├── agents/
@@ -52,8 +48,8 @@
 - `ios-engineer/references/`：按主题拆分的技能规则与参考材料，例如并发、布局、网络、性能、审查、迁移、测试、可观测性和自进化治理。
 - `ios-engineer/scripts/`：技能演进、校验、提案、验证、晋升、回滚、usage ledger 写入与汇总脚本。
 - `ios-engineer/evolution/`：技能演进数据，包括 `proposals/`、`validations/`、`approvals/`、`history/`、`scenarios/`、`usage/`。
-- `scripts/`：仓库级脚本，负责安装、同步技能、同步 Agent preamble 与同步结果校验；本地机器专属配置放在 git-ignore 的 `scripts/config.local.sh`（模板为 `scripts/config.local.sh.example`），会被 sync 脚本自动 source。
-- `.githooks/`：提交与推送守卫。`pre-commit` 约束技能规则变更必须绑定演进提案和审批记录；`pre-push` 在推送前强制 `sync-skills.sh` + `sync-agent-preamble.sh` + `verify-sync.sh` 全部通过，避免 Agent 端加载到陈旧 / 漂移的 SKILL。
+- `scripts/`：仓库级脚本，负责同步技能、同步 Agent preamble 与同步结果校验；本地机器专属配置放在 `scripts/config.local.sh`（模板为 `scripts/config.local.sh.example`），路径由仓库根 `.gitignore` 排除，会被 sync 脚本自动 source。
+- 提交/推送守卫：合并入 `ai-coding-kit` 后由仓库根的 [../.githooks/](../.githooks/) 统一管理，详见外层根 README 的「Git 钩子」章节。
 
 ## 快速开始
 
@@ -119,7 +115,7 @@ SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=1 ./scripts/sync-skills.sh
 CURSOR_PROJECT_ROOTS="/path/to/appA:/path/to/appB" ./scripts/sync-agent-preamble.sh
 ```
 
-也可以把 `CURSOR_PROJECT_ROOTS` 写进 `scripts/config.local.sh`（从 `scripts/config.local.sh.example` 复制得到，`.gitignore` 已排除），脚本启动时会自动 source，CLI / shell 变量仍然优先。
+也可以把 `CURSOR_PROJECT_ROOTS` 写进 `scripts/config.local.sh`（从 `scripts/config.local.sh.example` 复制得到；该文件已由仓库根 `.gitignore` 按路径 `skills-engineering/scripts/config.local.sh` 排除），脚本启动时会自动 source，CLI / shell 变量仍然优先。
 
 Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 侧由 `CURSOR_PROJECT_ROOTS` 是否设置来决定，不复用 `SYNC_CURSOR`。
 
@@ -280,39 +276,43 @@ Ledger schema、脱敏要求和 self-grading 偏差说明见 `ios-engineer/refer
 
 ## 提交与推送守卫
 
-安装仓库级 Git hooks（`install-hooks.sh` 会把 `core.hooksPath` 指向 `.githooks/`，一次安装同时启用 `pre-commit` 与 `pre-push`）：
+钩子由仓库根目录统一管理（合并入 `ai-coding-kit` 后，整个仓库共享一个 `core.hooksPath`）。在 `ai-coding-kit/` 根执行：
 
 ```bash
-bash scripts/install-hooks.sh
+bash install-hooks.sh
 ```
+
+会把 `core.hooksPath` 指向 `<repo-root>/.githooks/`，一次启用 `pre-commit` 与 `pre-push` 两条守卫。
 
 ### pre-commit：规则变更必须绑定治理记录
 
-`.githooks/pre-commit` 会拦截以下规则文件的未治理变更：
+[`.githooks/pre-commit`](../.githooks/pre-commit) 拦截以下文件的未治理变更：
 
-- `ios-engineer/SKILL.md`
-- `ios-engineer/references/*.md`
+- `skills-engineering/ios-engineer/SKILL.md`
+- `skills-engineering/ios-engineer/references/*.md`
 
 如果这些文件有 staged 改动，同一个 commit 必须包含：
 
-- `ios-engineer/evolution/proposals/<id>.md`
-- `ios-engineer/evolution/approvals/<id>.json`，或该 approval 已经在历史中存在
+- `skills-engineering/ios-engineer/evolution/proposals/<id>.md`
+- `skills-engineering/ios-engineer/evolution/approvals/<id>.json`，或该 approval 已经在历史中存在
 
 ### pre-push：推送前强制三端同步并校验
 
-`.githooks/pre-push` 在推送前顺序执行并串联失败即中止：
+[`.githooks/pre-push`](../.githooks/pre-push) 在推送前顺序执行（任一失败即中止 push）：
 
-1. `scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor` 的 skill 缓存（按 `SYNC_*` 门控与排除规则）。
-2. `scripts/sync-agent-preamble.sh` —— 重写 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 和 `CURSOR_PROJECT_ROOTS` 里每个项目的 `.cursor/rules/ios-engineer.mdc` 托管块。
-3. `scripts/verify-sync.sh` —— 断言三端缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
+1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor` 的 skill 缓存（按 `SYNC_*` 门控与排除规则）。
+2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 和 `CURSOR_PROJECT_ROOTS` 里每个项目的 `.cursor/rules/ios-engineer.mdc` 托管块。
+3. `skills-engineering/scripts/verify-sync.sh` —— 断言三端缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
+4. `mcp-sync/sync_all.sh` —— 把 MCP 配置同步到 Cursor / Codex / Claude / Xcode（来自 `mcp-sync` subtree，与本守卫并存）。
 
 任何一步失败都会 `exit 1` 并阻止 `git push`，保证远端指向的版本与本地 Agent 正在加载的版本一致。
 
 ### 紧急绕过
 
 ```bash
-SKILL_BYPASS=1 git commit ...
+SKILL_BYPASS=1 git commit ...        # 跳过 pre-commit + pre-push 中的 skill-sync 段（仍会跑 mcp-sync）
 SKILL_BYPASS=1 git push ...
+git push --no-verify                 # 跳过整个 pre-push（含 mcp-sync）
 ```
 
 绕过只应用于无法走完整流程的紧急修复，并应在 commit message / PR 里说明原因。
@@ -325,4 +325,4 @@ SKILL_BYPASS=1 git push ...
 - 提交前运行 `./scripts/sync-skills.sh --dry-run` 和 `bash ios-engineer/scripts/validate_skill_evolution.sh`。
 - 修改托管 preamble 时只改 `scripts/templates/agent-preamble.md.tmpl`，再运行 `./scripts/sync-agent-preamble.sh --dry-run` 检查输出。
 - 推送前（或 `SKILL_BYPASS=1` 推送后）手动跑 `./scripts/verify-sync.sh` 确认三端缓存与 preamble 状态一致，避免 Agent 侧加载漂移版本。
-- 本机专属配置（如 `CURSOR_PROJECT_ROOTS`）写进 `scripts/config.local.sh`（由 `scripts/config.local.sh.example` 复制），切勿把该文件提交进仓库。
+- 本机专属配置（如 `CURSOR_PROJECT_ROOTS`）写进 `scripts/config.local.sh`（由 `scripts/config.local.sh.example` 复制）；该路径在仓库根 `.gitignore` 中已排除，切勿提交进仓库。

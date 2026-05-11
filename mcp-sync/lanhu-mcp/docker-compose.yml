@@ -69,7 +69,7 @@ services:
 #    docker-compose.yml 中的 environment > .env 文件
 #
 # 10. 安全提示：
-#     - 确保 .env 文件已添加到 .gitignore
+#     - 确保 .env 已被忽略（合并入 ai-coding-kit 时见仓库根 .gitignore 中的 mcp-sync/lanhu-mcp/.env）
 #     - 不要将包含真实 Cookie 的 .env 文件提交到代码仓库
 #     - 定期更换 LANHU_COOKIE
 #

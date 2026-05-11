@@ -208,7 +208,7 @@ def test_save_message():
 - **不要**提交包含真实 API 密钥的代码
 - **不要**提交包含用户隐私数据的代码
 - 使用环境变量或配置文件处理敏感信息
-- 在提交前检查 `.gitignore` 是否正确配置
+- 在提交前确认敏感文件已被仓库根目录 `.gitignore` 排除（合并入 `ai-coding-kit` 后无本目录独立 `.gitignore`）
 
 ---
 
@@ -334,7 +334,7 @@ If you change APIs or add new features, please update relevant documentation.
 - **DO NOT** commit code with real API keys
 - **DO NOT** commit code with user privacy data
 - Use environment variables or config files for sensitive information
-- Check `.gitignore` is properly configured before committing
+- Before committing, confirm sensitive files are ignored by the repository root `.gitignore` (there is no per-directory `.gitignore` here when embedded in `ai-coding-kit`)
 
 ---
 

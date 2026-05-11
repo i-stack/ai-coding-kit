@@ -710,7 +710,6 @@ lanhu-mcp-server/
 ├── config.example.env            # 配置文件示例
 ├── quickstart.sh                 # Linux/Mac 快速启动脚本
 ├── quickstart.bat                # Windows 快速启动脚本
-├── .gitignore                    # Git 忽略文件
 ├── LICENSE                       # MIT 许可证
 ├── README.md                     # 中文文档（本文件）
 ├── README_EN.md                  # 英文文档
@@ -730,6 +729,8 @@ lanhu-mcp-server/
 └── logs/                         # 日志文件（自动创建）
     └── *.log                     # 运行日志
 ```
+
+本目录不再附带独立 `.gitignore`。在合并入 `ai-coding-kit` 的 monorepo 中，与本服务相关的忽略项（如 `mcp-sync/lanhu-mcp/.venv/`、`.env`、`__pycache__/` 等）写在仓库根目录的 `.gitignore` 中；若单独克隆历史上仍带本目录 `.gitignore` 的 fork，以该 fork 为准。
 
 ## 🔧 高级配置
 
