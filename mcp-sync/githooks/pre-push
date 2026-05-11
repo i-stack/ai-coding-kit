@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# 在 `git push` 发送对象到远程之前运行（Git 客户端没有官方的 post-push 钩子）。
+# 跳过本次钩子：git push --no-verify
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+exec "$ROOT/sync_all.sh"

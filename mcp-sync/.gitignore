@@ -1,0 +1,4 @@
+.DS_Store
+
+# Local secrets — copy from mcp-servers.json.example and fill in tokens.
+mcp-servers.json
