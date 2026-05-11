@@ -6,6 +6,9 @@ mcp-sync/mcp-servers.json
 # skills-engineering: local machine sync config (see scripts/config.local.sh.example)
 skills-engineering/scripts/config.local.sh
 
+# Claude Code: project-local permissions and paths (repo root)
+.claude/settings.local.json
+
 # mcp-sync/lanhu-mcp (Python MCP; paths scoped to this subtree)
 mcp-sync/lanhu-mcp/**/__pycache__/
 mcp-sync/lanhu-mcp/**/*.py[cod]

@@ -8,10 +8,18 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MCP_JSON="$SCRIPT_DIR/mcp-servers.json"
+
+if [ ! -f "$MCP_JSON" ]; then
+  echo "[mcp-sync] $MCP_JSON is missing (gitignored local file)." >&2
+  echo "[mcp-sync] Copy mcp-servers.json.example → mcp-servers.json, edit, then run this script again." >&2
+  echo "[mcp-sync] Skipping sync; pre-push will not block on this." >&2
+  exit 0
+fi
 
 echo "[1/3] Sync Cursor (symlink)"
 mkdir -p ~/.cursor
-ln -sf "$SCRIPT_DIR/mcp-servers.json" ~/.cursor/mcp.json
+ln -sf "$MCP_JSON" ~/.cursor/mcp.json
 
 echo "[2/3] Sync Codex (generate TOML; includes Xcode CodingAssistant/codex)"
 python3 "$SCRIPT_DIR/sync_mcp.py"

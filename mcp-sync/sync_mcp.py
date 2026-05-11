@@ -114,6 +114,9 @@ def merge_into_codex_config(cfg: Path, generated: str) -> None:
 
 
 def main():
+    if not SRC.exists():
+        print(f"Skip Codex MCP sync: {SRC} not found (copy from mcp-servers.json.example).")
+        return
     data = json.loads(SRC.read_text(encoding="utf-8"))
     servers = data.get("mcpServers", {})
 
