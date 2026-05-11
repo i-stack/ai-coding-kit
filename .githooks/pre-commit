@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Pre-commit hook: enforce that any change to ios-engineer/SKILL.md or
-# ios-engineer/references/*.md is bound to a staged evolution proposal whose
-# approval record is staged or already committed.
+# Root pre-commit guard for ai-coding-kit.
 #
-# Bypass: set SKILL_BYPASS=1 in the environment for emergencies. Bypass usage
+# Enforces that any change to skills-engineering/ios-engineer/SKILL.md or
+# skills-engineering/ios-engineer/references/*.md is bound to a staged
+# evolution proposal whose approval record is staged or already committed.
+#
+# Bypass: SKILL_BYPASS=1 in the environment for emergencies. Bypass usage
 # should be documented in the commit message; reflog plus the SKILL_BYPASS
 # string in the parent shell history is the audit trail.
 
@@ -13,15 +15,17 @@ if [ "${SKILL_BYPASS:-0}" = "1" ]; then
   exit 0
 fi
 
+PREFIX="skills-engineering/ios-engineer"
+
 changed_files="$(git diff --cached --name-only --diff-filter=ACMR)"
 
-guarded="$(printf '%s\n' "$changed_files" | grep -E '^ios-engineer/(SKILL\.md|references/.+\.md)$' || true)"
+guarded="$(printf '%s\n' "$changed_files" | grep -E "^${PREFIX}/(SKILL\.md|references/.+\.md)$" || true)"
 
 if [ -z "$guarded" ]; then
   exit 0
 fi
 
-staged_proposals="$(printf '%s\n' "$changed_files" | grep -E '^ios-engineer/evolution/proposals/[0-9]{8}-[0-9]{6}-[A-Za-z0-9_-]+\.md$' || true)"
+staged_proposals="$(printf '%s\n' "$changed_files" | grep -E "^${PREFIX}/evolution/proposals/[0-9]{8}-[0-9]{6}-[A-Za-z0-9_-]+\.md$" || true)"
 
 if [ -z "$staged_proposals" ]; then
   {
@@ -38,7 +42,7 @@ missing_approvals=""
 while IFS= read -r proposal; do
   [ -z "$proposal" ] && continue
   proposal_id="$(basename "$proposal" .md)"
-  approval_path="ios-engineer/evolution/approvals/${proposal_id}.json"
+  approval_path="${PREFIX}/evolution/approvals/${proposal_id}.json"
 
   if printf '%s\n' "$changed_files" | grep -qx "$approval_path"; then
     continue
@@ -59,7 +63,7 @@ if [ -n "${missing_approvals%$'\n'}" ]; then
     echo "skill-evolution pre-commit: staged proposals lack approval records."
     printf '%s' "$missing_approvals" | sed 's/^/  - /'
     echo ""
-    echo "Run bash ios-engineer/scripts/approve_skill_promotion.sh and stage the resulting approval JSON,"
+    echo "Run bash ${PREFIX}/scripts/approve_skill_promotion.sh and stage the resulting approval JSON,"
     echo "or set SKILL_BYPASS=1 to bypass (emergencies only)."
   } >&2
   exit 1

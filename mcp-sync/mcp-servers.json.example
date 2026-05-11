@@ -1,0 +1,30 @@
+{
+    "mcpServers": {
+        "code-collaboration": {
+            "command": "npx",
+            "args": ["-y", "@github/github-mcp-server"],
+            "env": {
+                "GITHUB_TOKEN": "YOUR_GITHUB_PAT"
+            }
+        },
+        "browser-automation": {
+            "command": "npx",
+            "args": ["-y", "@playwright/mcp@latest", "--extension"],
+            "env": {}
+        },
+        "design-handoff": {
+            "url": "http://localhost:8000/mcp?role=Developer&name=YourName"
+        },
+        "api-documentation": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "apifox-mcp-server@latest",
+                "--project=YOUR_APIFOX_PROJECT_ID"
+            ],
+            "env": {
+                "APIFOX_ACCESS_TOKEN": "YOUR_APIFOX_TOKEN"
+            }
+        }
+    }
+}
