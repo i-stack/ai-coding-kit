@@ -15,6 +15,7 @@ SKILL_NAME="${SKILL_NAME:-ios-engineer}"
 TEMPLATE="${TEMPLATE:-${SCRIPT_DIR}/templates/agent-preamble.md.tmpl}"
 CLAUDE_TARGET="${CLAUDE_TARGET:-${HOME}/.claude/CLAUDE.md}"
 CODEX_TARGET="${CODEX_TARGET:-${HOME}/.codex/AGENTS.md}"
+XCODE_CLAUDE_TARGET="${XCODE_CLAUDE_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md}"
 CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
 
 BEGIN_MARKER="<!-- managed-block:ios-engineer:begin"
@@ -36,6 +37,8 @@ Usage:
 Renders scripts/templates/agent-preamble.md.tmpl into the managed block in:
   - ~/.claude/CLAUDE.md  (tool=claude-code, skills=~/.claude/skills/ios-engineer/)
   - ~/.codex/AGENTS.md   (tool=codex,       skills=~/.codex/skills/ios-engineer/)
+  - ~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md
+                          (tool=claude-code, skills=~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/ios-engineer/)
   - <project>/.cursor/rules/ios-engineer.mdc for each project root in
     CURSOR_PROJECT_ROOTS (colon-separated). Skipped if unset.
 
@@ -51,14 +54,16 @@ Environment variables:
   SKILL_NAME             Default: ios-engineer
   CLAUDE_TARGET          Default: ~/.claude/CLAUDE.md
   CODEX_TARGET           Default: ~/.codex/AGENTS.md
+  XCODE_CLAUDE_TARGET    Default: ~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md
   CURSOR_PROJECT_ROOTS   Colon-separated project roots, e.g.
                          /path/to/projA:/path/to/projB
                          Writes to <root>/.cursor/rules/ios-engineer.mdc
 
 Sync target gating (per-tool; values: 1=force on, 0=force off, unset=auto-detect
-via ~/.claude, ~/.codex existence):
+via target root existence):
   SYNC_CLAUDE            Enable Claude preamble rewrite
   SYNC_CODEX             Enable Codex preamble rewrite
+  SYNC_XCODE_CLAUDE      Enable Xcode Claude preamble rewrite
 EOF
 }
 
@@ -174,6 +179,13 @@ elif [[ -n "${SYNC_CODEX:-}" ]]; then
   echo "Skip Codex preamble: disabled via SYNC_CODEX=${SYNC_CODEX}."
 else
   echo "Skip Codex preamble: ${HOME}/.codex not found (set SYNC_CODEX=1 to force)."
+fi
+if sync_enabled "${SYNC_XCODE_CLAUDE:-}" "${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig"; then
+  sync_target "${XCODE_CLAUDE_TARGET}" "claude-code" "~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/ios-engineer/"
+elif [[ -n "${SYNC_XCODE_CLAUDE:-}" ]]; then
+  echo "Skip Xcode Claude preamble: disabled via SYNC_XCODE_CLAUDE=${SYNC_XCODE_CLAUDE}."
+else
+  echo "Skip Xcode Claude preamble: ${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig not found (set SYNC_XCODE_CLAUDE=1 to force)."
 fi
 
 if [[ -n "${CURSOR_PROJECT_ROOTS}" ]]; then

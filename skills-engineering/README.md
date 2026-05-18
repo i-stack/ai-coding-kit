@@ -67,6 +67,7 @@
 - `~/.claude/skills/ios-engineer`
 - `~/.cursor/skills/ios-engineer`
 - `~/Library/Developer/Xcode/CodingAssistant/codex/skills/ios-engineer`
+- `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/ios-engineer`
 
 同步内容只包含技能运行期真正需要的规则和参考：`SKILL.md` + `references/`。`evolution/`、`scripts/`、`agents/`、`proposals/`、`validations/`、`approvals/`、`history/`、`usage/`、`scenarios/` 等目录一律 rsync 排除，并通过 `--delete-excluded` 从目标端清除历史残留，保证 Agent 侧只加载运行期必要文件。
 
@@ -85,6 +86,7 @@
 - `CLAUDE_DEST_BASE`：默认 `~/.claude/skills`
 - `CURSOR_DEST_BASE`：默认 `~/.cursor/skills`
 - `XCODE_CODEX_DEST_BASE`：默认 `~/Library/Developer/Xcode/CodingAssistant/codex/skills`
+- `XCODE_CLAUDE_DEST_BASE`：默认 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills`
 
 同步目标门控（各端独立；值：`1 / true / yes / on` 强制开启，`0 / false / no / off` 强制关闭，留空 = 按目标根目录是否存在自动探测）：
 
@@ -92,6 +94,7 @@
 - `SYNC_CODEX`
 - `SYNC_CURSOR`
 - `SYNC_XCODE_CODEX`
+- `SYNC_XCODE_CLAUDE`
 
 例如只对 Cursor 做一次同步：
 
@@ -103,6 +106,12 @@ SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=1 ./scripts/sync-skills.sh
 
 ```bash
 SYNC_XCODE_CODEX=1 ./scripts/sync-skills.sh
+```
+
+例如只同步 Xcode 内建 Claude：
+
+```bash
+SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=0 SYNC_XCODE_CODEX=0 SYNC_XCODE_CLAUDE=1 ./scripts/sync-skills.sh
 ```
 
 ### 2. 同步 Agent preamble
@@ -117,6 +126,7 @@ SYNC_XCODE_CODEX=1 ./scripts/sync-skills.sh
 
 - `~/.claude/CLAUDE.md`
 - `~/.codex/AGENTS.md`
+- `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md`
 
 如需同步 Cursor 项目规则，传入冒号分隔的项目根目录：
 
@@ -127,6 +137,7 @@ CURSOR_PROJECT_ROOTS="/path/to/appA:/path/to/appB" ./scripts/sync-agent-preamble
 也可以把 `CURSOR_PROJECT_ROOTS` 写进 `scripts/config.local.sh`（从 `scripts/config.local.sh.example` 复制得到；该文件已由仓库根 `.gitignore` 按路径 `skills-engineering/scripts/config.local.sh` 排除），脚本启动时会自动 source，CLI / shell 变量仍然优先。
 
 Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 侧由 `CURSOR_PROJECT_ROOTS` 是否设置来决定，不复用 `SYNC_CURSOR`。
+Xcode Claude 侧遵循 `SYNC_XCODE_CLAUDE` 门控语义（`1 / 0 / 留空自动探测`），默认写入 `ClaudeAgentConfig/CLAUDE.md`。
 
 脚本只重写 `<!-- managed-block:ios-engineer:begin ... :end -->` 托管块，保留文件中的其他内容。
 
@@ -141,8 +152,8 @@ Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1
 该脚本做的事：
 
 - 各已启用 skill 目录里只能有 `SKILL.md` + `references/`；一旦检测到残留的 `evolution/`、`proposals/`、`history/`、`scripts/`、`agents/`、`validations/`、`scenarios/`、`approvals/`、`usage/` 等目录，立即 `FAIL`（这些目录应被 `sync-skills.sh` 的 `--delete-excluded` 清除）。
-- `~/.claude/CLAUDE.md` 和 `~/.codex/AGENTS.md` 的托管块必须以 `` SKILL 规则位于 `~ `` 开头（tilde 化），避免绝对路径泄露到多机环境。
-- 同样支持 `SYNC_CLAUDE / SYNC_CODEX / SYNC_CURSOR / SYNC_XCODE_CODEX` 门控，未启用的目标不参与校验。
+- `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 和 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md` 的托管块必须以 `` SKILL 规则位于 `~ `` 开头（tilde 化），避免绝对路径泄露到多机环境。
+- 同样支持 `SYNC_CLAUDE / SYNC_CODEX / SYNC_CURSOR / SYNC_XCODE_CODEX / SYNC_XCODE_CLAUDE` 门控，未启用的目标不参与校验。
 
 任何一项失败都会 `exit 1` 并给出 `FAIL: ...` 明细；`pre-push` 会用这一脚本做最后一道闸门（见下文）。
 
@@ -309,8 +320,8 @@ bash install-hooks.sh
 
 [`.githooks/pre-push`](../.githooks/pre-push) 在推送前顺序执行（默认任一失败即中止 push）：
 
-1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor`，以及可选的 `~/Library/Developer/Xcode/CodingAssistant/codex` skill 缓存（按 `SYNC_*` 门控与排除规则）。
-2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 和 `CURSOR_PROJECT_ROOTS` 里每个项目的 `.cursor/rules/ios-engineer.mdc` 托管块。
+1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor`，以及可选的 `~/Library/Developer/Xcode/CodingAssistant/codex` 和 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig` skill 缓存（按 `SYNC_*` 门控与排除规则）。
+2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写 `~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md`、`~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md` 和 `CURSOR_PROJECT_ROOTS` 里每个项目的 `.cursor/rules/ios-engineer.mdc` 托管块。
 3. `skills-engineering/scripts/verify-sync.sh` —— 断言各已启用缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
 4. `mcp-sync/sync_all.sh` —— 把 MCP 配置同步到 Cursor / Codex / Claude / Xcode（来自 `mcp-sync` subtree，与本守卫并存）。
 

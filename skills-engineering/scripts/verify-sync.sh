@@ -12,8 +12,10 @@ CLAUDE_SKILL="${HOME}/.claude/skills/${SKILL_NAME}"
 CODEX_SKILL="${HOME}/.codex/skills/${SKILL_NAME}"
 CURSOR_SKILL="${HOME}/.cursor/skills/${SKILL_NAME}"
 XCODE_CODEX_SKILL="${HOME}/Library/Developer/Xcode/CodingAssistant/codex/skills/${SKILL_NAME}"
+XCODE_CLAUDE_SKILL="${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/${SKILL_NAME}"
 CLAUDE_PREAMBLE="${HOME}/.claude/CLAUDE.md"
 CODEX_PREAMBLE="${HOME}/.codex/AGENTS.md"
+XCODE_CLAUDE_PREAMBLE="${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md"
 
 FAIL=0
 note_fail() {
@@ -96,6 +98,15 @@ elif [[ -n "${SYNC_XCODE_CODEX:-}" ]]; then
   echo "Skip Xcode Codex verify: disabled via SYNC_XCODE_CODEX=${SYNC_XCODE_CODEX}."
 else
   echo "Skip Xcode Codex verify: ${HOME}/Library/Developer/Xcode/CodingAssistant/codex not found (set SYNC_XCODE_CODEX=1 to force)."
+fi
+if sync_enabled "${SYNC_XCODE_CLAUDE:-}" "${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig"; then
+  check_skill_dir "$XCODE_CLAUDE_SKILL"
+  check_preamble_tilde "$XCODE_CLAUDE_PREAMBLE"
+  CHECKED=$((CHECKED + 1))
+elif [[ -n "${SYNC_XCODE_CLAUDE:-}" ]]; then
+  echo "Skip Xcode Claude verify: disabled via SYNC_XCODE_CLAUDE=${SYNC_XCODE_CLAUDE}."
+else
+  echo "Skip Xcode Claude verify: ${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig not found (set SYNC_XCODE_CLAUDE=1 to force)."
 fi
 
 if [[ $FAIL -eq 0 ]]; then

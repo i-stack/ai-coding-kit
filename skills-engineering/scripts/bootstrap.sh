@@ -7,7 +7,8 @@
 #                                        ~/.claude, ~/.codex, ~/.cursor
 #                                        and optional Xcode CodingAssistant/codex skills dirs
 #   2. scripts/sync-agent-preamble.sh -> renders agent preamble into
-#                                        ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md
+#                                        ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md,
+#                                        Xcode ClaudeAgentConfig/CLAUDE.md
 #                                        (and optional Cursor project rules)
 #
 # One-liner for a fresh device:
