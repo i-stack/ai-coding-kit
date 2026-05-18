@@ -17,10 +17,12 @@ SOURCE_DIR="${SOURCE_DIR:-${REPO_ROOT}/${SKILL_NAME}}"
 CODEX_DEST_BASE="${CODEX_DEST_BASE:-${HOME}/.codex/skills}"
 CLAUDE_DEST_BASE="${CLAUDE_DEST_BASE:-${HOME}/.claude/skills}"
 CURSOR_DEST_BASE="${CURSOR_DEST_BASE:-${HOME}/.cursor/skills}"
+XCODE_CODEX_DEST_BASE="${XCODE_CODEX_DEST_BASE:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/skills}"
 
 CLAUDE_ROOT="${HOME}/.claude"
 CODEX_ROOT="${HOME}/.codex"
 CURSOR_ROOT="${HOME}/.cursor"
+XCODE_CODEX_ROOT="${HOME}/Library/Developer/Xcode/CodingAssistant/codex"
 
 WATCH_MODE=false
 DRY_RUN=false
@@ -41,12 +43,14 @@ Environment variables:
   CODEX_DEST_BASE  Default: ~/.codex/skills
   CLAUDE_DEST_BASE Default: ~/.claude/skills
   CURSOR_DEST_BASE Default: ~/.cursor/skills
+  XCODE_CODEX_DEST_BASE Default: ~/Library/Developer/Xcode/CodingAssistant/codex/skills
 
 Sync target gating (per-tool; values: 1=force on, 0=force off, unset=auto-detect
-via ~/.claude, ~/.codex, ~/.cursor existence):
+via target root existence):
   SYNC_CLAUDE      Enable Claude sync
   SYNC_CODEX       Enable Codex sync
   SYNC_CURSOR      Enable Cursor sync
+  SYNC_XCODE_CODEX Enable Xcode CodingAssistant Codex sync
 EOF
 }
 
@@ -114,6 +118,13 @@ elif [[ -n "${SYNC_CURSOR:-}" ]]; then
   echo "Skip Cursor sync: disabled via SYNC_CURSOR=${SYNC_CURSOR}."
 else
   echo "Skip Cursor sync: ${CURSOR_ROOT} not found (set SYNC_CURSOR=1 to force)."
+fi
+if sync_enabled "${SYNC_XCODE_CODEX:-}" "${XCODE_CODEX_ROOT}"; then
+  TARGETS+=("${XCODE_CODEX_DEST_BASE}/${SKILL_NAME}")
+elif [[ -n "${SYNC_XCODE_CODEX:-}" ]]; then
+  echo "Skip Xcode Codex sync: disabled via SYNC_XCODE_CODEX=${SYNC_XCODE_CODEX}."
+else
+  echo "Skip Xcode Codex sync: ${XCODE_CODEX_ROOT} not found (set SYNC_XCODE_CODEX=1 to force)."
 fi
 
 if [[ ${#TARGETS[@]} -eq 0 ]]; then

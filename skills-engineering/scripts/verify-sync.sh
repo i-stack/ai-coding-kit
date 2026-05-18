@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Sanity-check sync outputs. Run after sync-skills.sh / sync-agent-preamble.sh
-# to confirm three-way skill caches are clean and preamble files are tilde-ified.
+# to confirm enabled skill caches are clean and preamble files are tilde-ified.
 #
 # Exits non-zero if any check fails; prints one FAIL line per problem.
 
@@ -11,6 +11,7 @@ SKILL_NAME="${SKILL_NAME:-ios-engineer}"
 CLAUDE_SKILL="${HOME}/.claude/skills/${SKILL_NAME}"
 CODEX_SKILL="${HOME}/.codex/skills/${SKILL_NAME}"
 CURSOR_SKILL="${HOME}/.cursor/skills/${SKILL_NAME}"
+XCODE_CODEX_SKILL="${HOME}/Library/Developer/Xcode/CodingAssistant/codex/skills/${SKILL_NAME}"
 CLAUDE_PREAMBLE="${HOME}/.claude/CLAUDE.md"
 CODEX_PREAMBLE="${HOME}/.codex/AGENTS.md"
 
@@ -87,6 +88,14 @@ elif [[ -n "${SYNC_CURSOR:-}" ]]; then
   echo "Skip Cursor verify: disabled via SYNC_CURSOR=${SYNC_CURSOR}."
 else
   echo "Skip Cursor verify: ${HOME}/.cursor not found (set SYNC_CURSOR=1 to force)."
+fi
+if sync_enabled "${SYNC_XCODE_CODEX:-}" "${HOME}/Library/Developer/Xcode/CodingAssistant/codex"; then
+  check_skill_dir "$XCODE_CODEX_SKILL"
+  CHECKED=$((CHECKED + 1))
+elif [[ -n "${SYNC_XCODE_CODEX:-}" ]]; then
+  echo "Skip Xcode Codex verify: disabled via SYNC_XCODE_CODEX=${SYNC_XCODE_CODEX}."
+else
+  echo "Skip Xcode Codex verify: ${HOME}/Library/Developer/Xcode/CodingAssistant/codex not found (set SYNC_XCODE_CODEX=1 to force)."
 fi
 
 if [[ $FAIL -eq 0 ]]; then

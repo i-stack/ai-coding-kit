@@ -4,7 +4,8 @@
 #
 # Clones the repo (or pulls if already present) and runs the sync scripts:
 #   1. scripts/sync-skills.sh         -> pushes ios-engineer skill to
-#                                        ~/.claude, ~/.codex, ~/.cursor skills dirs
+#                                        ~/.claude, ~/.codex, ~/.cursor
+#                                        and optional Xcode CodingAssistant/codex skills dirs
 #   2. scripts/sync-agent-preamble.sh -> renders agent preamble into
 #                                        ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md
 #                                        (and optional Cursor project rules)
