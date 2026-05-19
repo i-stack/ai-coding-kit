@@ -8,7 +8,8 @@
 #   1. skills-engineering/scripts/sync-skills.sh         — rsync ios-engineer/
 #      into ~/.claude, ~/.codex, ~/.cursor skill caches (with excludes)
 #   2. skills-engineering/scripts/sync-agent-preamble.sh — rewrite managed
-#      preamble blocks in ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md, and
+#      preamble blocks in ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md,
+#      Xcode codex/AGENTS.md, Xcode ClaudeAgentConfig/CLAUDE.md, and
 #      <cursor-project>/.cursor/rules/ios-engineer.mdc
 #   3. skills-engineering/scripts/verify-sync.sh         — assert caches are
 #      clean and preambles are tilde-ified

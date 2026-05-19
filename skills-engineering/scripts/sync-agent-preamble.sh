@@ -15,6 +15,8 @@ SKILL_NAME="${SKILL_NAME:-ios-engineer}"
 TEMPLATE="${TEMPLATE:-${SCRIPT_DIR}/templates/agent-preamble.md.tmpl}"
 CLAUDE_TARGET="${CLAUDE_TARGET:-${HOME}/.claude/CLAUDE.md}"
 CODEX_TARGET="${CODEX_TARGET:-${HOME}/.codex/AGENTS.md}"
+XCODE_CODEX_TARGET="${XCODE_CODEX_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md}"
+XCODE_CLAUDE_TARGET="${XCODE_CLAUDE_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md}"
 CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
 
 BEGIN_MARKER="<!-- managed-block:ios-engineer:begin"
@@ -26,6 +28,9 @@ alwaysApply: true
 ---
 '
 
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+SE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 DRY_RUN=false
 
 usage() {
@@ -33,32 +38,25 @@ usage() {
 Usage:
   ./scripts/sync-agent-preamble.sh [options]
 
-Renders scripts/templates/agent-preamble.md.tmpl into the managed block in:
-  - ~/.claude/CLAUDE.md  (tool=claude-code, skills=~/.claude/skills/ios-engineer/)
-  - ~/.codex/AGENTS.md   (tool=codex,       skills=~/.codex/skills/ios-engineer/)
-  - <project>/.cursor/rules/ios-engineer.mdc for each project root in
-    CURSOR_PROJECT_ROOTS (colon-separated). Skipped if unset.
+Renders scripts/templates/agent-preamble.md.tmpl into preamble managed blocks and
+generates Cursor .mdc rules from skill references (see sync-manifest in tmpl).
 
-Block markers: <!-- managed-block:ios-engineer:begin ... :end -->
-Only block contents are rewritten; surrounding content is preserved.
+Preamble targets:
+  ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md, Xcode AGENTS.md / CLAUDE.md
+
+Cursor project rules (from sync-manifest skill:* lines):
+  <repo>/.cursor/rules/<skill>.mdc
+  <CURSOR_PROJECT_ROOTS>/.cursor/rules/<skill>.mdc
+
+Skill full text is synced by sync-skills.sh to ~/.*/skills/<skill>/ — run
+sync-skill-full.sh or sync-skills.sh before this script.
+
+Manifest: agent-preamble.md.tmpl <!-- sync-manifest:v1 --> block; add
+  skill:<name> to register Cursor mdc generation — no script edit.
 
 Options:
   --dry-run     Print diff without writing
   -h, --help    Show help
-
-Environment variables:
-  TEMPLATE               Default: <script-dir>/templates/agent-preamble.md.tmpl
-  SKILL_NAME             Default: ios-engineer
-  CLAUDE_TARGET          Default: ~/.claude/CLAUDE.md
-  CODEX_TARGET           Default: ~/.codex/AGENTS.md
-  CURSOR_PROJECT_ROOTS   Colon-separated project roots, e.g.
-                         /path/to/projA:/path/to/projB
-                         Writes to <root>/.cursor/rules/ios-engineer.mdc
-
-Sync target gating (per-tool; values: 1=force on, 0=force off, unset=auto-detect
-via ~/.claude, ~/.codex existence):
-  SYNC_CLAUDE            Enable Claude preamble rewrite
-  SYNC_CODEX             Enable Codex preamble rewrite
 EOF
 }
 
@@ -76,7 +74,6 @@ if [[ ! -f "${TEMPLATE}" ]]; then
   exit 1
 fi
 
-# Mirror sync-skills.sh gating: 1=force on, 0=force off, unset=auto-detect.
 sync_enabled() {
   local flag="$1"
   local root_dir="$2"
@@ -91,12 +88,44 @@ sync_enabled() {
   esac
 }
 
-render() {
+parse_sync_manifest() {
+  awk '
+    /^<!-- sync-manifest/ { inblock=1; next }
+    inblock && /^-->/ { exit }
+    inblock {
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "")
+      if ($0 == "" || $0 ~ /^#/) next
+      print
+    }
+  ' "${TEMPLATE}"
+}
+
+sibling_skill_dir() {
+  printf '%s' "$(dirname "${1%/}")/${2}/"
+}
+
+skill_primary_reference() {
+  local skill="$1"
+  local underscored="${skill//-/_}"
+  printf '%s/%s/references/%s.md' "${SE_DIR}" "${skill}" "${underscored}"
+}
+
+render_managed_block() {
   local tool_name="$1"
   local skills_dir="$2"
-  sed -e "s|{{TOOL_NAME}}|${tool_name}|g" \
+  local ce_dir lr_dir ed_dir
+  ce_dir="$(sibling_skill_dir "${skills_dir}" "cognitive-expansion")"
+  lr_dir="$(sibling_skill_dir "${skills_dir}" "logical-reasoning")"
+  ed_dir="$(sibling_skill_dir "${skills_dir}" "engineering-discipline")"
+  awk -v begin="${BEGIN_MARKER}" -v end="${END_MARKER}" '
+    index($0, begin) > 0 { inblock = 1; print; next }
+    inblock && index($0, end) > 0 { print; exit }
+    inblock { print }
+  ' "${TEMPLATE}" | sed -e "s|{{TOOL_NAME}}|${tool_name}|g" \
       -e "s|{{SKILLS_DIR}}|${skills_dir}|g" \
-      "${TEMPLATE}"
+      -e "s|{{COGNITIVE_EXPANSION_SKILLS_DIR}}|${ce_dir}|g" \
+      -e "s|{{LOGICAL_REASONING_SKILLS_DIR}}|${lr_dir}|g" \
+      -e "s|{{ENGINEERING_DISCIPLINE_SKILLS_DIR}}|${ed_dir}|g"
 }
 
 sync_target() {
@@ -110,7 +139,7 @@ sync_target() {
   local rendered new_content
   rendered="$(mktemp)"
   new_content="$(mktemp)"
-  render "${tool_name}" "${skills_dir}" > "${rendered}"
+  render_managed_block "${tool_name}" "${skills_dir}" > "${rendered}"
 
   if [[ ! -f "${target}" ]]; then
     {
@@ -147,7 +176,11 @@ sync_target() {
     else
       echo "--- ${target} (current)"
       echo "+++ ${target} (rendered)"
-      diff -u "${target}" "${new_content}" || true
+      if [[ -f "${target}" ]]; then
+        diff -u "${target}" "${new_content}" || true
+      else
+        diff -u /dev/null "${new_content}" || true
+      fi
     fi
   else
     if [[ -f "${target}" ]] && diff -q "${target}" "${new_content}" >/dev/null 2>&1; then
@@ -159,6 +192,75 @@ sync_target() {
   fi
 
   rm -f "${rendered}" "${new_content}"
+}
+
+write_file_or_diff() {
+  local dest="$1"
+  local src_file="$2"
+  mkdir -p "$(dirname "${dest}")"
+  if [[ "${DRY_RUN}" == "true" ]]; then
+    if [[ -f "${dest}" ]] && diff -q "${dest}" "${src_file}" >/dev/null 2>&1; then
+      echo "No change: ${dest}"
+    else
+      echo "--- ${dest} (current)"
+      echo "+++ ${dest} (generated)"
+      if [[ -f "${dest}" ]]; then
+        diff -u "${dest}" "${src_file}" || true
+      else
+        diff -u /dev/null "${src_file}" || true
+      fi
+    fi
+  else
+    if [[ -f "${dest}" ]] && diff -q "${dest}" "${src_file}" >/dev/null 2>&1; then
+      echo "No change: ${dest}"
+    else
+      cp "${src_file}" "${dest}"
+      echo "Wrote: ${dest}"
+    fi
+  fi
+}
+
+generate_skill_cursor_mdc() {
+  local skill="$1"
+  local dest="$2"
+  local ref mdc_tmpl generated
+  ref="$(skill_primary_reference "${skill}")"
+  mdc_tmpl="${SCRIPT_DIR}/templates/${skill}.mdc.tmpl"
+
+  if [[ ! -f "${ref}" ]]; then
+    echo "Skill reference missing for ${skill}: ${ref}" >&2
+    return 1
+  fi
+
+  generated="$(mktemp)"
+  if [[ -f "${mdc_tmpl}" ]]; then
+    cat "${mdc_tmpl}" > "${generated}"
+    echo "" >> "${generated}"
+    cat "${ref}" >> "${generated}"
+  else
+    {
+      echo "---"
+      echo "description: ${skill} (from skills-engineering)"
+      echo "alwaysApply: true"
+      echo "---"
+      echo ""
+      cat "${ref}"
+    } > "${generated}"
+  fi
+
+  write_file_or_diff "${dest}" "${generated}"
+  rm -f "${generated}"
+}
+
+sync_manifest_skill_cursor_rules() {
+  local dest_root="$1"
+  local line skill
+  while IFS= read -r line; do
+    [[ "${line}" == skill:* ]] || continue
+    skill="${line#skill:}"
+    [[ -n "${skill}" ]] || continue
+    generate_skill_cursor_mdc "${skill}" "${dest_root}/.cursor/rules/${skill}.mdc"
+  done < <(parse_sync_manifest)
 }
 
 if sync_enabled "${SYNC_CLAUDE:-}" "${HOME}/.claude"; then
@@ -175,6 +277,22 @@ elif [[ -n "${SYNC_CODEX:-}" ]]; then
 else
   echo "Skip Codex preamble: ${HOME}/.codex not found (set SYNC_CODEX=1 to force)."
 fi
+if sync_enabled "${SYNC_XCODE_CODEX:-}" "${HOME}/Library/Developer/Xcode/CodingAssistant/codex"; then
+  sync_target "${XCODE_CODEX_TARGET}" "codex" "~/Library/Developer/Xcode/CodingAssistant/codex/skills/ios-engineer/"
+elif [[ -n "${SYNC_XCODE_CODEX:-}" ]]; then
+  echo "Skip Xcode Codex preamble: disabled via SYNC_XCODE_CODEX=${SYNC_XCODE_CODEX}."
+else
+  echo "Skip Xcode Codex preamble: ${HOME}/Library/Developer/Xcode/CodingAssistant/codex not found (set SYNC_XCODE_CODEX=1 to force)."
+fi
+if sync_enabled "${SYNC_XCODE_CLAUDE:-}" "${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig"; then
+  sync_target "${XCODE_CLAUDE_TARGET}" "claude-code" "~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/ios-engineer/"
+elif [[ -n "${SYNC_XCODE_CLAUDE:-}" ]]; then
+  echo "Skip Xcode Claude preamble: disabled via SYNC_XCODE_CLAUDE=${SYNC_XCODE_CLAUDE}."
+else
+  echo "Skip Xcode Claude preamble: ${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig not found (set SYNC_XCODE_CLAUDE=1 to force)."
+fi
+
+sync_manifest_skill_cursor_rules "${REPO_ROOT}"
 
 if [[ -n "${CURSOR_PROJECT_ROOTS}" ]]; then
   IFS=':' read -ra _cursor_roots <<< "${CURSOR_PROJECT_ROOTS}"
@@ -188,7 +306,8 @@ if [[ -n "${CURSOR_PROJECT_ROOTS}" ]]; then
                 "cursor" \
                 "~/.cursor/skills/ios-engineer/" \
                 "${CURSOR_MDC_PROLOGUE}"
+    sync_manifest_skill_cursor_rules "${_root}"
   done
 else
-  echo "CURSOR_PROJECT_ROOTS not set; skipping Cursor project rules."
+  echo "CURSOR_PROJECT_ROOTS not set; skipping Cursor ios-engineer.mdc on external projects."
 fi

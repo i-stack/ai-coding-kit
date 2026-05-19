@@ -13,6 +13,20 @@
 | [skills-engineering](skills-engineering/README.md) | 维护、同步与演进工程化 Skill（当前主技能 `ios-engineer`）；含 `SKILL.md`、references、演进提案与校验、同步到各 Agent skills 目录与 preamble。详见该目录 [README](skills-engineering/README.md)。 |
 | [mcp-sync](mcp-sync/README.md) | 以单份 `mcp-servers.json` 同步 MCP 到 Cursor、Codex、Claude Code 与 Xcode Coding Assistant 等路径。详见该目录 [README](mcp-sync/README.md)。 |
 
+## 认知拓展
+
+独立 skill `cognitive-expansion`，与 `ios-engineer` 同级：**单源** `SKILL.md` + `references/cognitive_expansion.md`，经 `sync-skills.sh` 同步 **全文** 到 Codex / Claude / Cursor / Xcode 的 `~/.*/skills/cognitive-expansion/`；Cursor 项目内另生成 `.cursor/rules/cognitive-expansion.mdc`（由详规自动生成，勿手改）。
+
+| 入口 | 路径 |
+|------|------|
+| Skill 源（唯一维护处） | [skills-engineering/cognitive-expansion/](skills-engineering/cognitive-expansion/) |
+| 详规正文 | [skills-engineering/cognitive-expansion/references/cognitive_expansion.md](skills-engineering/cognitive-expansion/references/cognitive_expansion.md) |
+| 认知对手（Tier 2） | [skills-engineering/ios-engineer/references/cognitive_adversary_mode.md](skills-engineering/ios-engineer/references/cognitive_adversary_mode.md) |
+
+**同步**：`cd skills-engineering && ./scripts/sync-skill-full.sh`（先 `sync-skills.sh` 全文，再 `sync-agent-preamble.sh` 写入 preamble 加载指令与 Cursor `.mdc`）。新增 skill 时在 `agent-preamble.md.tmpl` 的 `sync-manifest` 加 `skill:<name>`。详见 [skills-engineering/README.md](skills-engineering/README.md)。
+
+**触发语**：默认 Tier 0 尾注；`【深潜】` / `【拓展】`；`【认知对手模式】` 等走 ios-engineer 认知对手全文。
+
 ## 快速开始
 
 - **技能与 preamble**：在 `skills-engineering` 下按 [skills-engineering/README.md](skills-engineering/README.md) 的「快速开始」执行 `./scripts/sync-skills.sh` 等。

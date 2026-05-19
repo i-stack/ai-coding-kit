@@ -24,7 +24,7 @@
       "key": "no-local-patch",
       "desc": "不只在 A 或 B 局部补变量",
       "anchor": "SKILL.md:13",
-      "rule_id": "IR-005"
+      "rule_id": "GR-005"
     }
   ],
   "failure_signals": [

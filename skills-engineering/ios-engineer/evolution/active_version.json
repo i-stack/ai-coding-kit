@@ -1,7 +1,7 @@
 {
-  "active_version": "v66",
+  "active_version": "v70",
   "status": "active",
-  "promoted_at": "2026-05-11T16:16:46+0800",
-  "source": "proposal:20260511-161346-add-mcp-priority-mapping-to-mcp-control",
-  "notes": "Promoted after passing base evolution validation."
+  "promoted_at": "2026-05-19T03:18:52+0800",
+  "source": "proposal:extract-engineering-discipline-global-skill",
+  "notes": "IR-002/003/004/005/007/008 迁移至 engineering-discipline global skill GR-002/003/004/005/007/008；ios-engineer 核心铁律仅保留 IR-001/006/011；IR-004 PR review 例外保留在 OUT-002。"
 }

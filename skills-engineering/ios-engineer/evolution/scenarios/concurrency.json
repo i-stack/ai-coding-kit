@@ -18,13 +18,13 @@
       "key": "minimal-fix-first",
       "desc": "优先最小修复，例如取消旧任务或丢弃过期结果",
       "anchor": "SKILL.md:13",
-      "rule_id": "IR-005"
+      "rule_id": "GR-005"
     },
     {
       "key": "verification-step",
       "desc": "说明验证方式",
       "anchor": "SKILL.md:12",
-      "rule_id": "IR-004"
+      "rule_id": "GR-004"
     },
     {
       "key": "version-premise-declared",

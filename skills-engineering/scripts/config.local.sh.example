@@ -9,5 +9,6 @@
 # already-exported shell variables still take precedence.
 
 # Colon-separated iOS project roots that should receive
-# `<root>/.cursor/rules/ios-engineer.mdc`. Leave unset to skip Cursor sync.
+# `<root>/.cursor/rules/ios-engineer.mdc` and generated `<skill>.mdc` (e.g. cognitive-expansion).
+# Leave unset to skip Cursor project rules (repo root still gets generated .mdc from sync-manifest).
 export CURSOR_PROJECT_ROOTS="/Users/you/path/to/projA:/Users/you/path/to/projB"
