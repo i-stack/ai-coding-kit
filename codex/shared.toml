@@ -17,7 +17,7 @@ model_reasoning_effort = "medium"
 name = "dataeyes"
 base_url = "https://cloud.dataeyes.ai/v1"
 env_key = "DATAEYES_API_KEY"
-wire_api = "chat"
+wire_api = "responses"
 
 [features]
 skills = true
