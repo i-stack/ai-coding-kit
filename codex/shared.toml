@@ -2,8 +2,8 @@
 #   - ~/.codex/config.toml                              (Codex CLI)
 #   - ~/Library/Developer/Xcode/CodingAssistant/codex/config.toml  (Xcode Coding Assistant)
 #
-# Edit fields here; sync_mcp.py regenerates the `# BEGIN/END CODEX SHARED` block
-# in each target config. Content outside that block is left untouched.
+# Edit fields here; mcp-sync/sync_mcp.py regenerates the `# BEGIN/END CODEX SHARED`
+# block in each target config. Content outside that block is left untouched.
 #
 # Do NOT put host-specific config here (developer_instructions / xcode-tools MCP /
 # sandbox / plugins / personality / notify / ...). Keep those in the per-host

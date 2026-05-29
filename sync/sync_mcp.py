@@ -6,10 +6,11 @@ Sync Codex configuration from this repo into:
 3. Xcode CodingAssistant Codex dir: ~/Library/Developer/Xcode/CodingAssistant/codex/
    (same TOML + merge into that config.toml — agents launched inside Xcode only)
 
-Two source files live next to this script:
-- mcp-servers.json   → generated into the `# BEGIN/END MCP SYNC` block
-- codex-shared.toml  → copied verbatim into the `# BEGIN/END CODEX SHARED` block
-                       (fields common to CLI + Xcode: model, provider, features, projects, ...)
+Two source files drive this sync:
+- mcp/servers.json    → generated into the `# BEGIN/END MCP SYNC` block
+- codex/shared.toml   → copied verbatim into the `# BEGIN/END CODEX SHARED` block
+                        (fields common to CLI + Xcode: model, provider, features,
+                         projects, ...)
 
 Anything outside these two marker blocks in each target config.toml is preserved
 as-is, so per-host config (developer_instructions, xcode-tools MCP, sandbox,
@@ -26,8 +27,8 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent
-SRC_MCP = REPO_ROOT / "mcp-servers.json"
-SRC_SHARED = REPO_ROOT / "codex-shared.toml"
+SRC_MCP = REPO_ROOT.parent / "mcp" / "servers.json"
+SRC_SHARED = REPO_ROOT.parent / "codex" / "shared.toml"
 
 
 def codex_config_path() -> Path:
@@ -44,7 +45,7 @@ def codex_generated_toml_path() -> Path:
     return Path.home() / ".codex/mcp.generated.toml"
 
 
-MCP_BEGIN = "# BEGIN MCP SYNC (from mcp-servers.json)"
+MCP_BEGIN = "# BEGIN MCP SYNC (from mcp/servers.json)"
 MCP_END = "# END MCP SYNC"
 # Legacy Codex blocks used "(from servers.json)"; still match for in-place upgrade.
 MCP_BLOCK_PATTERN = re.compile(
@@ -156,7 +157,7 @@ def merge_managed_blocks(cfg: Path, shared_body: str, mcp_body: str) -> None:
 
 def main():
     if not SRC_MCP.exists():
-        print(f"Skip Codex MCP sync: {SRC_MCP} not found (copy from mcp-servers.json.example).")
+        print(f"Skip Codex MCP sync: {SRC_MCP} not found (copy from mcp/servers.json.example).")
         return
     data = json.loads(SRC_MCP.read_text(encoding="utf-8"))
     servers = data.get("mcpServers", {})

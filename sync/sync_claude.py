@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Merge MCP servers from this repo's mcp-servers.json into Claude Code user config.
+Merge MCP servers from this repo's mcp/servers.json into Claude Code user config.
 Updates only mcpServers; does not overwrite other keys in the config.
 
 Targets:
@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent
-SRC = REPO_ROOT / "mcp-servers.json"
+SRC = REPO_ROOT.parent / "mcp" / "servers.json"
 CLAUDE_JSON = Path.home() / ".claude.json"
 XCODE_CLAUDE_JSON = Path.home() / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json"
 

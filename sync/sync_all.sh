@@ -1,19 +1,29 @@
 #!/usr/bin/env bash
-# Sync MCP data from this repo's mcp-servers.json to Cursor / Codex / Claude Code / Xcode.
-# 1) Cursor: symlink → .cursor updates when data source updates.
-# 2) Codex: generate mcp.generated.toml and merge into config.toml (marked block only; rest unchanged),
-#    and the same into ~/Library/Developer/Xcode/CodingAssistant/codex/ for Xcode's built-in Codex.
-# 3) Claude Code: merge mcpServers into ~/.claude.json and into Xcode's
-#    ~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json (per-project mcpServers).
+# Sync configuration sources to Cursor / Codex / Claude Code / Xcode.
+#
+# Sources (siblings of this sync/ dir):
+#   - mcp/servers.json     — MCP server catalog (gitignored, local secrets)
+#   - codex/shared.toml    — shared Codex config (model, provider, features, projects)
+#
+# Targets:
+#   1) Cursor: symlink ~/.cursor/mcp.json → mcp/servers.json (updates when source changes).
+#   2) Codex CLI + Xcode Coding Assistant: regenerate ~/.codex/mcp.generated.toml and
+#      ~/Library/Developer/Xcode/CodingAssistant/codex/mcp.generated.toml, then merge the
+#      MCP and CODEX SHARED marker blocks into each config.toml (anything outside the
+#      markers is preserved).
+#   3) Claude Code: merge mcpServers into ~/.claude.json and into Xcode's
+#      ~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json
+#      (per-project mcpServers).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-MCP_JSON="$SCRIPT_DIR/mcp-servers.json"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+MCP_JSON="$REPO_ROOT/mcp/servers.json"
 
 if [ ! -f "$MCP_JSON" ]; then
-  echo "[mcp-sync] $MCP_JSON is missing (gitignored local file)." >&2
-  echo "[mcp-sync] Copy mcp-servers.json.example → mcp-servers.json, edit, then run this script again." >&2
-  echo "[mcp-sync] Skipping sync; pre-push will not block on this." >&2
+  echo "[sync] $MCP_JSON is missing (gitignored local file)." >&2
+  echo "[sync] Copy mcp/servers.json.example → mcp/servers.json, edit, then run this script again." >&2
+  echo "[sync] Skipping sync; pre-push will not block on this." >&2
   exit 0
 fi
 

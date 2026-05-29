@@ -15,8 +15,9 @@
 #      clean and preambles are tilde-ified
 #
 # MCP-sync:
-#   4. mcp-sync/sync_all.sh                              — sync MCP server
-#      definitions to Cursor / Codex / Claude / Xcode
+#   4. sync/sync_all.sh                                   — sync MCP server
+#      definitions to Cursor / Codex / Claude / Xcode, plus the CODEX SHARED
+#      block from codex/shared.toml.
 #
 # Any failure aborts the push.
 #
@@ -64,18 +65,18 @@ if [ "${SKILL_BYPASS:-0}" != "1" ]; then
   fi
 fi
 
-# --- mcp-sync -----------------------------------------------------------------
+# --- sync (MCP + Codex shared) ------------------------------------------------
 
-MCP_SYNC="${ROOT}/mcp-sync/sync_all.sh"
+MCP_SYNC="${ROOT}/sync/sync_all.sh"
 if [ -x "${MCP_SYNC}" ]; then
-  echo "mcp-sync pre-push: syncing MCP servers to local agent configs..."
+  echo "sync pre-push: syncing MCP + Codex shared config to local agent configs..."
   if ! "${MCP_SYNC}"; then
-    echo "mcp-sync pre-push: sync_all.sh failed; push aborted." >&2
-    echo "Fix the MCP sync error, or use git push --no-verify to bypass (emergencies only)." >&2
+    echo "sync pre-push: sync_all.sh failed; push aborted." >&2
+    echo "Fix the sync error, or use git push --no-verify to bypass (emergencies only)." >&2
     exit 1
   fi
 else
-  echo "mcp-sync pre-push: ${MCP_SYNC} missing or not executable; skipping." >&2
+  echo "sync pre-push: ${MCP_SYNC} missing or not executable; skipping." >&2
 fi
 
 exit 0
