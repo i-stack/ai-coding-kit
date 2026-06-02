@@ -53,4 +53,4 @@
   - 残留风险：propertyWrapper 选型表覆盖 iOS 17 Observable 宏，但若 iOS 18+ 新增包装器或语义变更，需更新；当前 last-verified 2026-06 仍在 12 个月新鲜度窗口内。
 
 ## 状态
-- validated
+- promoted

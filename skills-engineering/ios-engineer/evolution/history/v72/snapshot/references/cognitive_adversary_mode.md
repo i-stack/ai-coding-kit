@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-05 -->
 # 认知对手模式（Cognitive Adversary Mode）
 
 > **真值来源**：本文件承载完整 Prompt 与执行细则。[SKILL.md](../SKILL.md) 仅作强制入口与路由声明；二者冲突时以本文件 Step / 输出格式 / 禁止行为字面为准。
@@ -138,7 +138,6 @@
 - 本模式管**认知校准**（是否接近真实）；[SKILL.md](../SKILL.md) 管**工程交付**（如何排障、实现、审查）
 - 启用本模式时，工程类输出（根因四段式、版本前提、残留风险等）仍须遵守 SKILL 铁律
 - 挑战用户结论的同时，AI 自身论证须满足 [GR-010]（可追溯、层级分明、推理可见；完整细则见 `logical-reasoning` skill）
-- 工程输出拼接顺序：先输出本文件「最终输出格式」的认知校准块，再追加对应工程骨架；不得用工程骨架替代 Step 0-6，也不得因 Step 0-6 已输出而省略工程交付必需字段。
 - 代码审查场景：先按本模式完成判断校准，再按 [review_checklists.md](review_checklists.md) findings-first 骨架输出工程发现
 
 ## 流程保障（超出单次 prompt）

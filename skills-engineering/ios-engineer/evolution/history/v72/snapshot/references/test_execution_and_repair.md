@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-05 -->
 # 测试执行与失败修复
 
 ## 适用场景
@@ -17,7 +17,6 @@
 
 ## 验证命令
 - 对包含 `UIKit` / iOS-only API / 仅面向 iOS 的 framework 的 SPM 包，不要用裸 `swift test` 做最终验证；它默认按当前主机平台构建，常见失败是 `no such module 'UIKit'`。这种失败通常表示验证命令目标平台错了，不等价于源码在 iOS 下不可编译。
-- 交互式 iOS 工程任务优先走 [mcp_control.md](mcp_control.md) 的 `XcodeBuildMCP` 映射；下列 `xcodebuild` 命令是 MCP 不可用、MCP 能力不覆盖、或需要沉淀到 CI / 脚本时的回退示例，不是默认首选路径。
 - 先查 workspace / project 的 scheme 与可用模拟器：
 
   ```sh
