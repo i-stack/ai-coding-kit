@@ -113,11 +113,12 @@ skill_primary_reference() {
 render_managed_block() {
   local tool_name="$1"
   local skills_dir="$2"
-  local ce_dir lr_dir ed_dir pa_dir
+  local ce_dir lr_dir ed_dir pa_dir ei_dir
   ce_dir="$(sibling_skill_dir "${skills_dir}" "cognitive-expansion")"
   lr_dir="$(sibling_skill_dir "${skills_dir}" "logical-reasoning")"
   ed_dir="$(sibling_skill_dir "${skills_dir}" "engineering-discipline")"
   pa_dir="$(sibling_skill_dir "${skills_dir}" "problem-analysis")"
+  ei_dir="$(sibling_skill_dir "${skills_dir}" "epistemic-integrity")"
   awk -v begin="${BEGIN_MARKER}" -v end="${END_MARKER}" '
     index($0, begin) > 0 { inblock = 1; print; next }
     inblock && index($0, end) > 0 { print; exit }
@@ -127,7 +128,8 @@ render_managed_block() {
       -e "s|{{COGNITIVE_EXPANSION_SKILLS_DIR}}|${ce_dir}|g" \
       -e "s|{{LOGICAL_REASONING_SKILLS_DIR}}|${lr_dir}|g" \
       -e "s|{{ENGINEERING_DISCIPLINE_SKILLS_DIR}}|${ed_dir}|g" \
-      -e "s|{{PROBLEM_ANALYSIS_SKILLS_DIR}}|${pa_dir}|g"
+      -e "s|{{PROBLEM_ANALYSIS_SKILLS_DIR}}|${pa_dir}|g" \
+      -e "s|{{EPISTEMIC_INTEGRITY_SKILLS_DIR}}|${ei_dir}|g"
 }
 
 sync_target() {
