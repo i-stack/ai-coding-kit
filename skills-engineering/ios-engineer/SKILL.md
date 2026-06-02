@@ -97,6 +97,9 @@ description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering
 - [ROUTE-018] **Skill 自进化 / 规则缺失冲突退役 / Skill 验证场景**：主读 [self_evolution.md](references/self_evolution.md)；具体场景规格或回放追加 [validation_scenarios.md](references/validation_scenarios.md)。
   - TRIGGER：「skill / 规则缺失 / 规则冲突 / 验证场景 / 提案 / 自进化」；元工程 / SkillOps 维护任务。
   - SKIP：是业务问题答法 → 走 ROUTE-001~017。
+- [ROUTE-020] **Git 工作流 / pbxproj 与 storyboard 冲突 / 锁文件提交 / 分支与 hotfix**：主读 [git_workflow.md](references/git_workflow.md)；涉及 PR 拆分与 ownership 追加 [team_collaboration.md](references/team_collaboration.md)；涉及 CI / 发布 tag 追加 [build_release_and_ci.md](references/build_release_and_ci.md)。
+  - TRIGGER：「pbxproj 冲突 / storyboard 合并 / Podfile.lock 或 Package.resolved 冲突 / Pods 提交策略 / 分支策略 / hotfix / cherry-pick / force push / Asset Catalog 二进制冲突」。
+  - SKIP：仅源码 merge 冲突无 Xcode 工程文件 → 走 ROUTE-015；构建配置 / CI 失败根因 → 走 ROUTE-013；技术债 / PR 拆分通用规则 → 走 ROUTE-015。
 
 ## 输出模板
 按输出类型触发对应模板，与任务分流正交：

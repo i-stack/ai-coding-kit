@@ -72,6 +72,7 @@ GR-NNN 规则由独立 global skill 承载，跨平台通用（不限 iOS）；i
 | ROUTE-016 | active | 工具预算 / 子代理分流 / 多轮排查 / 搜索控制 / MCP 优先映射 → mcp_control.md | 同上 |
 | ROUTE-017 | active | 复杂任务剧本（升级判据见 SKILL.md `### 路由优先级`）→ execution_playbooks.md | 同上 |
 | ROUTE-018 | active | Skill 自进化 / 规则缺失冲突退役 / Skill 验证场景 → self_evolution.md | 同上 |
+| ROUTE-020 | active | Git 工作流 / pbxproj 与 storyboard 冲突 / 锁文件提交 / 分支与 hotfix → git_workflow.md | 同上 |
 
 ## 输出模板 OUT-NNN
 
@@ -96,6 +97,9 @@ GR-NNN 规则由独立 global skill 承载，跨平台通用（不限 iOS）；i
 | OUT-003 | APIClient 模板 | [code_templates.md](code_templates.md) "## APIClient 模板" | URLSession + async/await / 强类型错误建模 |
 | OUT-003 | Coordinator 模板 | [code_templates.md](code_templates.md) "## Coordinator 模板" | UIKit 导航编排 / Feature 路由解耦 |
 | OUT-003 | Actor 模板 | [code_templates.md](code_templates.md) "## Actor 模板" | 共享可变状态隔离 / Token 刷新 / 内存缓存 / 请求去重 |
+| OUT-003 | SwiftUI propertyWrapper 选型 | [code_templates.md](code_templates.md) "## SwiftUI propertyWrapper 选型" | 状态归属决策 / @State / @Binding / @StateObject / @Observable / @Environment 选择 |
+| OUT-003 | 依赖注入三选一 | [code_templates.md](code_templates.md) "## 依赖注入三选一" | 构造注入 vs 属性注入 vs 容器决策 |
+| OUT-003 | 并发模型选型 | [code_templates.md](code_templates.md) "## 并发模型选型" | async/await / AsyncSequence / Combine / callback / GCD 选择 |
 | OUT-006 | 测试规划（分层与覆盖策略） | [testing_strategy.md](testing_strategy.md) | 设计测试时按层选 stub / 决定覆盖范围 |
 | OUT-006 | 测试执行与失败修复 | [test_execution_and_repair.md](test_execution_and_repair.md) | 跑测试 / 分析失败 / 决定补还是修 |
 | ROUTE-017 | 接手遗留页面 | [execution_playbooks.md](execution_playbooks.md) "## 接手遗留页面" | 超大 ViewController / 状态散落 / UIKit + SwiftUI 混合老页面 |
