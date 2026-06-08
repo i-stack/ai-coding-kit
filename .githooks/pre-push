@@ -17,7 +17,8 @@
 # MCP-sync:
 #   4. sync/sync_all.sh                                   — sync MCP server
 #      definitions to Cursor / Codex / Claude / Xcode, plus the CODEX SHARED
-#      block from codex/shared.toml.
+#      block from env/codex/shared.toml, plus Claude Code env from
+#      env/claude/settings.shared.json.
 #
 # Any failure aborts the push.
 #

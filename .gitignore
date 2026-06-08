@@ -8,3 +8,7 @@ skills-engineering/scripts/config.local.sh
 
 # Claude Code: project-local permissions and paths (repo root)
 .claude/settings.local.json
+
+# env/: shared secrets from codex/claude config sources.
+# Copy from *.example if needed and fill in tokens.
+env/claude/settings.shared.json

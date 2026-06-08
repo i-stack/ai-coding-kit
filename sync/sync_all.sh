@@ -3,7 +3,8 @@
 #
 # Sources (siblings of this sync/ dir):
 #   - mcp/servers.json     — MCP server catalog (gitignored, local secrets)
-#   - codex/shared.toml    — shared Codex config (model, provider, features, projects)
+#   - env/codex/shared.toml    — shared Codex config (model, provider, features, projects)
+#   - env/claude/settings.shared.json — Claude Code environment variables
 #
 # Targets:
 #   1) Cursor: symlink ~/.cursor/mcp.json → mcp/servers.json (updates when source changes).
@@ -39,6 +40,13 @@ if [ -f "$SCRIPT_DIR/sync_claude.py" ]; then
   python3 "$SCRIPT_DIR/sync_claude.py"
 else
   echo "sync_claude.py not found; skip Claude."
+fi
+
+echo "[4/4] Sync Claude Code settings (merge env into ~/.claude/settings.json)"
+if [ -f "$SCRIPT_DIR/sync_claude_settings.py" ]; then
+  python3 "$SCRIPT_DIR/sync_claude_settings.py"
+else
+  echo "sync_claude_settings.py not found; skip."
 fi
 
 echo "Done."

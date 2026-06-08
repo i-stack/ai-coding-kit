@@ -8,7 +8,7 @@ Sync Codex configuration from this repo into:
 
 Two source files drive this sync:
 - mcp/servers.json    → generated into the `# BEGIN/END MCP SYNC` block
-- codex/shared.toml   → copied verbatim into the `# BEGIN/END CODEX SHARED` block
+- env/codex/shared.toml   → copied verbatim into the `# BEGIN/END CODEX SHARED` block
                         (fields common to CLI + Xcode: model, provider, features,
                          projects, ...)
 
@@ -28,7 +28,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent
 SRC_MCP = REPO_ROOT.parent / "mcp" / "servers.json"
-SRC_SHARED = REPO_ROOT.parent / "codex" / "shared.toml"
+SRC_SHARED = REPO_ROOT.parent / "env" / "codex" / "shared.toml"
 
 
 def codex_config_path() -> Path:
