@@ -10,7 +10,7 @@
 # config.toml, outside the SHARED block.
 
 model = "gpt-5.5"
-model_provider = "custom"
+# model_provider = "custom"
 model_reasoning_effort = "medium"
 
 [model_providers.custom]
