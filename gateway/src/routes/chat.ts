@@ -2,7 +2,27 @@ import type { FastifyInstance } from "fastify";
 import type { OpenAIProvider } from "../provider/openai.js";
 import type { GatewayConfig } from "../config.js";
 import type { VectorStore } from "../vector/store.js";
+import type { ToolRegistry } from "../tool/registry.js";
+import type { ToolExecutorEngine } from "../tool/executor.js";
+import { getSimplifiedSchema } from "../tool/simplify.js";
+import {
+  createTelemetry,
+  recordDegradation,
+  emitTelemetry,
+  telemetrySummary,
+} from "../telemetry.js";
+import { metricsCollector } from "../metrics.js";
 import crypto from "node:crypto";
+
+// ── Type alias for OpenAI-compatible tool definitions ──────────────
+type OpenAICompatibleTool = {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+};
 
 // ── Optional transcript storage ────────────────────────────────────
 interface TranscriptStore {
@@ -73,7 +93,6 @@ async function indexToQdrant(
   if (!vectorStore) return;
 
   try {
-    // Index each user message as a chunk
     for (const msg of userMessages) {
       if (!msg.content) continue;
       await vectorStore.indexMessage({
@@ -86,7 +105,6 @@ async function indexToQdrant(
       });
     }
 
-    // Index assistant response
     if (responseContent) {
       await vectorStore.indexMessage({
         id: crypto.randomUUID(),
@@ -102,9 +120,7 @@ async function indexToQdrant(
   }
 }
 
-/**
- * Schema for the incoming OpenAI-compatible chat completion request.
- */
+// ── Schema for incoming request ────────────────────────────────────
 interface ChatCompletionRequest {
   model?: string;
   messages: Array<{
@@ -128,11 +144,54 @@ interface ChatCompletionRequest {
   temperature?: number;
 }
 
+// ── Tool deduplication: client tools win, gateway tools fill gaps ──
+function mergeDedupedTools(
+  clientTools: ChatCompletionRequest["tools"] | undefined,
+  gatewayTools: OpenAICompatibleTool[],
+): OpenAICompatibleTool[] | undefined {
+  if (!clientTools && gatewayTools.length === 0) return undefined;
+  if (!clientTools) return gatewayTools;
+  if (gatewayTools.length === 0) return clientTools.map(normalizeClientTool);
+
+  const clientNormalized = clientTools.map(normalizeClientTool);
+  const clientNames = new Set(clientNormalized.map((t) => t.function.name));
+  const uniqueGateway = gatewayTools.filter(
+    (t) => !clientNames.has(t.function.name),
+  );
+  return [...clientNormalized, ...uniqueGateway];
+}
+
+function normalizeClientTool(t: {
+  type: string;
+  function: { name: string; description?: string; parameters: Record<string, unknown> };
+}): OpenAICompatibleTool {
+  return {
+    type: "function",
+    function: {
+      name: t.function.name,
+      description: t.function.description ?? "",
+      parameters: t.function.parameters,
+    },
+  };
+}
+
+// ── Model-specific tool count cap ──────────────────────────────────
+function maxToolsForModel(model: string): number {
+  const lower = model.toLowerCase();
+  if (lower.includes("gpt-3.5") || lower.includes("gpt-4-turbo")) return 10;
+  if (lower.includes("claude-3-haiku") || lower.includes("claude-3-sonnet")) return 10;
+  if (lower.includes("claude-3-opus") || lower.includes("claude-sonnet-4")) return 20;
+  if (lower.includes("gpt-4o") || lower.includes("gpt-4.1")) return 20;
+  return 20; // default generous cap
+}
+
 export function registerChatRoutes(
   app: FastifyInstance,
   provider: OpenAIProvider,
   config: GatewayConfig,
   vectorStore?: VectorStore,
+  toolRegistry?: ToolRegistry,
+  toolExecutor?: ToolExecutorEngine,
 ): void {
   // ── POST /v1/chat/completions ──────────────────────────────────────
   app.post("/v1/chat/completions", async (request, reply) => {
@@ -140,23 +199,17 @@ export function registerChatRoutes(
     const requestId = crypto.randomUUID();
 
     const body = request.body as ChatCompletionRequest;
-
     const model = body.model ?? config.openaiDefaultModel;
     const messages = body.messages;
     const stream = body.stream ?? false;
 
-    const telemetry = {
+    const telemetry = createTelemetry({
       requestId,
-      tenantId: "default",
-      client: "unknown" as const,
       model,
       messageCount: messages.length,
       toolCount: body.tools?.length ?? 0,
       stream,
-      providerLatencyMs: 0,
-      createdAt: new Date(),
-      retrievalHits: 0,
-    };
+    });
 
     const flattenMessages = messages.map((m) => ({
       role: m.role,
@@ -164,21 +217,11 @@ export function registerChatRoutes(
         typeof m.content === "string" ? m.content : JSON.stringify(m.content),
     }));
 
-    const toolChoice = body.tool_choice as any;
-
-    const options = {
-      maxTokens: body.max_tokens,
-      temperature: body.temperature,
-      tools: body.tools as any,
-      toolChoice,
-    };
-
     try {
-      // ── Optional: retrieve relevant memories from Qdrant ─────────────
+      // ── Step 1: Retrieve relevant memories from Qdrant ─────────────
       let retrievedContext: string | undefined;
       if (vectorStore) {
         try {
-          // Use the last user message as the query
           const lastUserMsg = [...flattenMessages]
             .reverse()
             .find((m) => m.role === "user");
@@ -194,15 +237,17 @@ export function registerChatRoutes(
                 )
                 .join("\n\n");
               telemetry.retrievalHits = results.length;
+              metricsCollector.recordRetrievalHits(results.length);
             }
           }
         } catch (err) {
+          recordDegradation(telemetry, "memory-retrieval", (err as Error).message);
           console.error("Qdrant search error:", (err as Error).message);
         }
       }
 
-      // ── Build enriched messages ─────────────────────────────────────
-      let enrichedMessages = messages;
+      // ── Step 2: Inject tools from the registry ─────────────────────
+      let enrichedMessages: any[] = messages;
       if (retrievedContext) {
         enrichedMessages = [
           {
@@ -213,8 +258,58 @@ export function registerChatRoutes(
         ];
       }
 
+      // Resolve tool_choice: client → registry policy → "auto" → undefined
+      const policyChoice = toolRegistry?.resolveToolChoicePolicy(model);
+      const clientToolChoice = body.tool_choice as any;
+      let resolvedToolChoice: any;
+      if (clientToolChoice !== undefined) {
+        resolvedToolChoice = clientToolChoice;
+      } else if (policyChoice) {
+        resolvedToolChoice = policyChoice;
+      }
+
+      // Build gateway tools with per-model schema simplification
+      const rawGatewayTools: OpenAICompatibleTool[] = toolRegistry
+        ? toolRegistry.toOpenAITools(model)
+        : [];
+      const simplifiedGatewayTools: OpenAICompatibleTool[] = rawGatewayTools.map((gt) => {
+        const spec = toolRegistry?.get(gt.function.name);
+        if (spec) {
+          return {
+            type: "function" as const,
+            function: {
+              name: gt.function.name,
+              description: gt.function.description,
+              parameters: getSimplifiedSchema(spec, model) as unknown as Record<string, unknown>,
+            },
+          };
+        }
+        return gt;
+      });
+
+      // Deduplicate: client tools win, gateway fills gaps
+      const clientTools = body.tools as any[] | undefined;
+      const allTools = mergeDedupedTools(clientTools, simplifiedGatewayTools);
+
+      // Cap tools per model
+      const toolCap = maxToolsForModel(model);
+      const finalTools: OpenAICompatibleTool[] | undefined = allTools
+        ? allTools.slice(0, toolCap)
+        : undefined;
+      telemetry.injectedTools = finalTools
+        ? finalTools.length - (clientTools?.length ?? 0)
+        : 0;
+
+      // ── Step 3: Main completion (with potential tool roundtrip) ───
       if (stream) {
-        // ── Streaming path ──────────────────────────────────────────
+        // Streaming path: inject tools with per-model tool_choice
+        const options = {
+          maxTokens: body.max_tokens,
+          temperature: body.temperature,
+          tools: finalTools && finalTools.length > 0 ? finalTools : undefined,
+          toolChoice: resolvedToolChoice ?? (finalTools && finalTools.length > 0 ? "auto" : undefined),
+        };
+
         reply.raw.writeHead(200, {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",
@@ -230,9 +325,11 @@ export function registerChatRoutes(
         let usageEmitted = false;
         const contentParts: string[] = [];
         let totalTokens = 0;
+        let firstChunkTime = 0;
 
         for await (const chunk of chunkIter) {
           if (chunk.type === "delta") {
+            if (firstChunkTime === 0) firstChunkTime = Date.now();
             contentParts.push(chunk.delta ?? "");
             const sseData = {
               id: requestId,
@@ -291,8 +388,15 @@ export function registerChatRoutes(
         reply.raw.write("data: [DONE]\n\n");
         reply.raw.end();
 
-        // Fire-and-forget: transcript + Qdrant index
+        // Track streaming latency: time-to-first-token
+        const streamLatencyMs = firstChunkTime > 0
+          ? firstChunkTime - startTime
+          : Date.now() - startTime;
+        telemetry.providerLatencyMs = streamLatencyMs;
+        metricsCollector.recordRequest(model, streamLatencyMs, "200");
+
         const fullContent = contentParts.join("");
+        emitTelemetry(telemetry, request.log);
         storeTranscript({
           requestId,
           model,
@@ -303,16 +407,96 @@ export function registerChatRoutes(
         });
         indexToQdrant(vectorStore, requestId, model, flattenMessages, fullContent);
       } else {
-        // ── Non-streaming path ──────────────────────────────────────
-        const result = await provider.chat(
+        // ── Non-streaming: support tool call roundtrip ─────────────
+        const options = {
+          maxTokens: body.max_tokens,
+          temperature: body.temperature,
+          tools: finalTools && finalTools.length > 0 ? finalTools : undefined,
+          toolChoice: resolvedToolChoice ?? (finalTools && finalTools.length > 0 ? "auto" : undefined),
+        };
+
+        // First call to the model
+        let result = await provider.chat(
           model,
           enrichedMessages as any,
           options,
         );
 
+        // ── Tool call roundtrip ───────────────────────────────────
+        let toolRoundtripCount = 0;
+        const maxRoundtrips = 5; // safety limit
+
+        while (
+          result.toolCalls &&
+          result.toolCalls.length > 0 &&
+          toolRoundtripCount < maxRoundtrips
+        ) {
+          telemetry.toolCallsExecuted += result.toolCalls.length;
+          metricsCollector.recordToolCall(result.toolCalls.length);
+          toolRoundtripCount++;
+
+          // Execute each tool call
+          const toolResults = toolExecutor
+            ? await toolExecutor.executeBatch(
+                toolRegistry?.getActiveTools(model) ?? [],
+                result.toolCalls.map((tc) => ({
+                  id: tc.id,
+                  name: tc.function.name,
+                  args: JSON.parse(tc.function.arguments),
+                })),
+              )
+            : [];
+
+          // Check for tool execution failures
+          const failedResults = toolResults.filter((tr) => !tr.success);
+          if (failedResults.length > 0) {
+            recordDegradation(
+              telemetry,
+              "tool-execution",
+              `${failedResults.length} tool(s) failed: ${failedResults.map((f) => f.name).join(", ")}`,
+            );
+          }
+
+          // Append assistant message with tool_calls to the history
+          const assistantMsg: any = {
+            role: "assistant",
+            content: result.content ?? null,
+            tool_calls: result.toolCalls,
+          };
+          enrichedMessages = [...enrichedMessages, assistantMsg];
+
+          // Append each tool result as a tool-role message
+          const toolMsgMap = new Map(toolResults.map((tr) => [tr.toolCallId, tr]));
+          for (const tc of result.toolCalls) {
+            const tr = toolMsgMap.get(tc.id);
+            enrichedMessages = [
+              ...enrichedMessages,
+              {
+                role: "tool" as const,
+                tool_call_id: tc.id,
+                content: tr
+                  ? tr.success
+                    ? tr.content
+                    : `Error: ${tr.error}`
+                  : "Tool execution failed: no result",
+              },
+            ];
+          }
+
+          // Second call to model with tool results — use same tool_choice resolution
+          result = await provider.chat(model, enrichedMessages as any, {
+            maxTokens: body.max_tokens,
+            temperature: body.temperature,
+            tools: finalTools,
+            toolChoice: resolvedToolChoice ?? ("auto" as any),
+          });
+        }
+
         telemetry.providerLatencyMs = Date.now() - startTime;
+        metricsCollector.recordRequest(model, telemetry.providerLatencyMs, "200");
 
         // Fire-and-forget: transcript + Qdrant index
+        emitTelemetry(telemetry, request.log);
         storeTranscript({
           requestId,
           model,
@@ -345,7 +529,7 @@ export function registerChatRoutes(
             },
           ],
           usage: result.usage,
-          _telemetry: telemetry,
+          _telemetrySumary: telemetrySummary(telemetry),
         };
       }
     } catch (error) {
@@ -353,6 +537,9 @@ export function registerChatRoutes(
       console.error(`[${requestId}] provider error:`, err.message);
 
       const statusCode = err.message.includes("401") ? 502 : 502;
+      metricsCollector.recordRequest(model, Date.now() - startTime, String(statusCode));
+      recordDegradation(telemetry, "provider", err.message);
+
       return reply.status(statusCode).send({
         error: {
           message: "Upstream provider error",

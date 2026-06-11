@@ -7,6 +7,9 @@ import { initDb, migrateSchema } from "./db/index.js";
 import { EmbeddingService } from "./vector/embedding.js";
 import { QdrantStore } from "./vector/qdrant.js";
 import { VectorStore } from "./vector/store.js";
+import { ToolRegistry } from "./tool/registry.js";
+import { ToolExecutorEngine } from "./tool/executor.js";
+import { metricsCollector } from "./metrics.js";
 
 async function main() {
   const config = loadConfig();
@@ -22,20 +25,23 @@ async function main() {
     origin: true,
   });
 
+  // Track startup degradations
+  const startupDegradations: string[] = [];
+
   // ── Database (optional — degrade gracefully) ────────────────────────
   if (config.databaseUrl) {
     try {
       initDb(config.databaseUrl);
       await migrateSchema();
-      console.log("📦 PostgreSQL connected and schema migrated");
+      app.log.info("PostgreSQL connected and schema migrated");
     } catch (err) {
-      console.error(
-        "⚠️  PostgreSQL unavailable — transcripts will not be stored:",
-        (err as Error).message,
-      );
+      const msg = (err as Error).message;
+      app.log.warn({ err }, "PostgreSQL unavailable — transcripts will not be stored");
+      startupDegradations.push("postgres");
+      metricsCollector.recordDegradation("postgres", msg);
     }
   } else {
-    console.log("⚠️  DATABASE_URL not set — transcripts will not be stored");
+    app.log.info("DATABASE_URL not set — transcripts will not be stored");
   }
 
   // ── Qdrant semantic memory (optional — degrade gracefully) ──────────
@@ -46,31 +52,43 @@ async function main() {
       const qdrant = new QdrantStore(config.qdrantUrl);
       await qdrant.ensureCollection();
       vectorStore = new VectorStore(embedding, qdrant);
-      console.log("🧠 Qdrant semantic memory ready");
+      app.log.info("Qdrant semantic memory ready");
     } catch (err) {
-      console.error(
-        "⚠️  Qdrant unavailable — semantic memory disabled:",
-        (err as Error).message,
-      );
+      const msg = (err as Error).message;
+      app.log.warn({ err }, "Qdrant unavailable — semantic memory disabled");
+      startupDegradations.push("qdrant");
+      metricsCollector.recordDegradation("qdrant", msg);
     }
   } else {
-    console.log("⚠️  QDRANT_URL not set — semantic memory disabled");
+    app.log.info("QDRANT_URL not set — semantic memory disabled");
   }
+
+  // ── Declarative tool registry ───────────────────────────────────────
+  const toolRegistry = new ToolRegistry();
+  toolRegistry.loadFromFile();
+  app.log.info(`Tool registry: ${toolRegistry.count} tools loaded`);
+
+  const toolExecutor = new ToolExecutorEngine();
 
   // ── Health check ────────────────────────────────────────────────────
   app.get("/health", async () => {
     return { status: "ok", timestamp: new Date().toISOString() };
   });
 
+  // ── Metrics endpoint ───────────────────────────────────────────────
+  app.get("/metrics", async () => {
+    return metricsCollector.snapshot();
+  });
+
   // ── Provider ────────────────────────────────────────────────────────
   const provider = new OpenAIProvider(config);
 
   // ── Routes ──────────────────────────────────────────────────────────
-  registerChatRoutes(app, provider, config, vectorStore);
+  registerChatRoutes(app, provider, config, vectorStore, toolRegistry, toolExecutor);
 
   // ── Start ───────────────────────────────────────────────────────────
   const address = await app.listen({ port: config.port, host: config.host });
-  console.log(`🚀 Gateway listening on ${address}`);
+  app.log.info({ address, degradations: startupDegradations }, "Gateway started");
 }
 
 main().catch((err) => {

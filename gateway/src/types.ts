@@ -88,14 +88,27 @@ export interface RequestTelemetry {
   model: string;
   messageCount: number;
   toolCount: number;
+  injectedTools: number;
+  toolCallsExecuted: number;
+  retrievalHits: number;
   stream: boolean;
   providerLatencyMs: number;
   fallbackReason?: string;
+  skippedComponents: DegradedComponent[];
   createdAt: Date;
 }
+
+export type DegradedComponent =
+  | "qdrant"
+  | "postgres"
+  | "tool-registry"
+  | "embedding"
+  | "provider"
+  | "memory-retrieval"
+  | "tool-execution";
 
 export interface GatewayFallback {
   degraded: boolean;
   reason?: string;
-  skippedComponents: string[];
+  skippedComponents: DegradedComponent[];
 }

@@ -6,6 +6,11 @@ export interface ProviderResult {
   model: string;
   content: string | null;
   finishReason: OpenAI.Chat.Completions.ChatCompletion.Choice["finish_reason"];
+  toolCalls?: Array<{
+    id: string;
+    type: "function";
+    function: { name: string; arguments: string };
+  }>;
   usage?: {
     promptTokens: number;
     completionTokens: number;
@@ -60,11 +65,21 @@ export class OpenAIProvider {
     });
 
     const choice = response.choices[0];
+    const toolCalls = choice.message.tool_calls?.map((tc) => ({
+      id: tc.id,
+      type: "function" as const,
+      function: {
+        name: tc.function.name,
+        arguments: tc.function.arguments,
+      },
+    }));
+
     return {
       id: response.id,
       model: response.model,
       content: choice.message.content,
       finishReason: choice.finish_reason ?? null,
+      toolCalls,
       usage: response.usage
         ? {
             promptTokens: response.usage.prompt_tokens,
