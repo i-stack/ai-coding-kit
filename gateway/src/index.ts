@@ -1,5 +1,7 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
 import { OpenAIProvider } from "./provider/openai.js";
 import { registerChatRoutes } from "./routes/chat.js";
@@ -10,88 +12,116 @@ import { VectorStore } from "./vector/store.js";
 import { ToolRegistry } from "./tool/registry.js";
 import { ToolExecutorEngine } from "./tool/executor.js";
 import { metricsCollector } from "./metrics.js";
+import { McpClientManager } from "./mcp/client.js";
+import { loadMcpServerConfigs } from "./mcp/config.js";
+import { registerMcpServer } from "./mcp/server.js";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
-  const config = loadConfig();
+	const config = loadConfig();
 
-  const app = Fastify({
-    logger: {
-      level: "info",
-    },
-  });
+	const app = Fastify({
+		logger: {
+			level: "info",
+		},
+	});
 
-  // ── CORS (permissive for MVP; tighten in production) ───────────────
-  await app.register(cors, {
-    origin: true,
-  });
+	// ── CORS (permissive for MVP; tighten in production) ───────────────
+	await app.register(cors, {
+		origin: true,
+	});
 
-  // Track startup degradations
-  const startupDegradations: string[] = [];
+	// Track startup degradations
+	const startupDegradations: string[] = [];
 
-  // ── Database (optional — degrade gracefully) ────────────────────────
-  if (config.databaseUrl) {
-    try {
-      initDb(config.databaseUrl);
-      await migrateSchema();
-      app.log.info("PostgreSQL connected and schema migrated");
-    } catch (err) {
-      const msg = (err as Error).message;
-      app.log.warn({ err }, "PostgreSQL unavailable — transcripts will not be stored");
-      startupDegradations.push("postgres");
-      metricsCollector.recordDegradation("postgres", msg);
-    }
-  } else {
-    app.log.info("DATABASE_URL not set — transcripts will not be stored");
-  }
+	// ── Database (optional — degrade gracefully) ────────────────────────
+	if (config.databaseUrl) {
+		try {
+			initDb(config.databaseUrl);
+			await migrateSchema();
+			app.log.info("PostgreSQL connected and schema migrated");
+		} catch (err) {
+			const msg = (err as Error).message;
+			app.log.warn({ err }, "PostgreSQL unavailable — transcripts will not be stored");
+			startupDegradations.push("postgres");
+			metricsCollector.recordDegradation("postgres", msg);
+		}
+	} else {
+		app.log.info("DATABASE_URL not set — transcripts will not be stored");
+	}
 
-  // ── Qdrant semantic memory (optional — degrade gracefully) ──────────
-  let vectorStore: VectorStore | undefined;
-  if (config.qdrantUrl) {
-    try {
-      const embedding = new EmbeddingService(config);
-      const qdrant = new QdrantStore(config.qdrantUrl);
-      await qdrant.ensureCollection();
-      vectorStore = new VectorStore(embedding, qdrant);
-      app.log.info("Qdrant semantic memory ready");
-    } catch (err) {
-      const msg = (err as Error).message;
-      app.log.warn({ err }, "Qdrant unavailable — semantic memory disabled");
-      startupDegradations.push("qdrant");
-      metricsCollector.recordDegradation("qdrant", msg);
-    }
-  } else {
-    app.log.info("QDRANT_URL not set — semantic memory disabled");
-  }
+	// ── Qdrant semantic memory (optional — degrade gracefully) ──────────
+	let vectorStore: VectorStore | undefined;
+	if (config.qdrantUrl) {
+		try {
+			const embedding = new EmbeddingService(config);
+			const qdrant = new QdrantStore(config.qdrantUrl);
+			await qdrant.ensureCollection();
+			vectorStore = new VectorStore(embedding, qdrant);
+			app.log.info("Qdrant semantic memory ready");
+		} catch (err) {
+			const msg = (err as Error).message;
+			app.log.warn({ err }, "Qdrant unavailable — semantic memory disabled");
+			startupDegradations.push("qdrant");
+			metricsCollector.recordDegradation("qdrant", msg);
+		}
+	} else {
+		app.log.info("QDRANT_URL not set — semantic memory disabled");
+	}
 
-  // ── Declarative tool registry ───────────────────────────────────────
-  const toolRegistry = new ToolRegistry();
-  toolRegistry.loadFromFile();
-  app.log.info(`Tool registry: ${toolRegistry.count} tools loaded`);
+	// ── Declarative tool registry ───────────────────────────────────────
+	const toolRegistry = new ToolRegistry();
+	toolRegistry.loadFromFile();
+	app.log.info(`Tool registry: ${toolRegistry.count} tools loaded`);
 
-  const toolExecutor = new ToolExecutorEngine();
+	// ── MCP outbound client manager ──────────────────────────────────────
+	const mcpManager = new McpClientManager();
+	const mcpConfigPath = path.resolve(__dirname, "../../mcp/servers.json");
+	const mcpConfigs = loadMcpServerConfigs(mcpConfigPath);
+	if (mcpConfigs.size > 0) {
+		mcpManager.registerServers(mcpConfigs);
+		await mcpManager.startAll();
+		app.log.info(`MCP outbound: ${mcpManager.connectedCount}/${mcpManager.count} servers connected`);
+	} else {
+		app.log.info("No MCP server configs found — outbound MCP disabled");
+	}
 
-  // ── Health check ────────────────────────────────────────────────────
-  app.get("/health", async () => {
-    return { status: "ok", timestamp: new Date().toISOString() };
-  });
+	// ── Tool executor (with MCP client manager) ──────────────────────────
+	const toolExecutor = new ToolExecutorEngine(undefined, mcpManager);
 
-  // ── Metrics endpoint ───────────────────────────────────────────────
-  app.get("/metrics", async () => {
-    return metricsCollector.snapshot();
-  });
+	// ── Health check ────────────────────────────────────────────────────
+	app.get("/health", async () => {
+		return { status: "ok", timestamp: new Date().toISOString() };
+	});
 
-  // ── Provider ────────────────────────────────────────────────────────
-  const provider = new OpenAIProvider(config);
+	// ── Metrics endpoint ───────────────────────────────────────────────
+	app.get("/metrics", async () => {
+		return metricsCollector.snapshot();
+	});
 
-  // ── Routes ──────────────────────────────────────────────────────────
-  registerChatRoutes(app, provider, config, vectorStore, toolRegistry, toolExecutor);
+	// ── Provider ────────────────────────────────────────────────────────
+	const provider = new OpenAIProvider(config);
 
-  // ── Start ───────────────────────────────────────────────────────────
-  const address = await app.listen({ port: config.port, host: config.host });
-  app.log.info({ address, degradations: startupDegradations }, "Gateway started");
+	// ── Routes ──────────────────────────────────────────────────────────
+	registerChatRoutes(app, provider, config, vectorStore, toolRegistry, toolExecutor);
+	registerMcpServer(app, toolRegistry, toolExecutor);
+
+	// ── Start ───────────────────────────────────────────────────────────
+	const address = await app.listen({ port: config.port, host: config.host });
+	app.log.info({ address, degradations: startupDegradations }, "Gateway started");
+
+	// ── Graceful shutdown ───────────────────────────────────────────────
+	const shutdown = async () => {
+		app.log.info("Shutting down...");
+		await mcpManager.closeAll();
+		await app.close();
+	};
+	process.on("SIGTERM", shutdown);
+	process.on("SIGINT", shutdown);
 }
 
 main().catch((err) => {
-  console.error("Failed to start gateway:", err);
-  process.exit(1);
+	console.error("Failed to start gateway:", err);
+	process.exit(1);
 });

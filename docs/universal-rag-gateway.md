@@ -242,7 +242,9 @@ Defer these until the MVP is stable:
 - Automated candidate tool promotion.
 - LLM-Lingua or local compression service.
 - Multi-provider cost optimizer.
-- Full MCP server implementation.
+8. ✅ **Full MCP server implementation** — 双向 MCP 支持：
+    - **出站（outbound `mcp_call`）** — [`mcp/config.ts`](../gateway/src/mcp/config.ts) 定义 `McpServerConfig` 并加载 `mcp/servers.json`（支持 command+args 和 url+headers 两种模式）；[`mcp/client.ts`](../gateway/src/mcp/client.ts) `McpClientManager` 管理生命周期，通过 `StdioClientTransport` / `SSEClientTransport` 连接外部 MCP 服务器并缓存工具列表；[`executor.ts`](../gateway/src/tool/executor.ts) 实现 `mcp_call` case，合并 args 与 executor 默认值，调用 `client.callTool()` 并解析返回的 `ContentBlock[]`；启动时自动连接 8 个已配置 MCP 服务器（成功 5 个，降级 3 个），连接失败通过 `metricsCollector` 记录降级事件。
+    - **入站（inbound protocol adapter）** — [`mcp/server.ts`](../gateway/src/mcp/server.ts) 在 Fastify 上注册 `GET /mcp/sse`（建立 SSE 流）和 `POST /mcp/message?sessionId=xxx`（接收 JSON-RPC 消息），通过 `SSEServerTransport` 暴露 `tools/list` 和 `tools/call` 端点，将所有 `ToolRegistry` 中的工具以 MCP 格式暴露给 MCP 原生客户端（Cursor、VS Code 等）。
 
 ## Acceptance Criteria
 

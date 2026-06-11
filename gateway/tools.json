@@ -1,59 +1,63 @@
 [
-  {
-    "name": "get_current_time",
-    "description": "Get the current date and time in ISO 8601 format.",
-    "input_schema": {
-      "type": "object",
-      "properties": {},
-      "required": []
-    },
-    "executor": {
-      "type": "static_template",
-      "template": "Current time: {{env.NOW}}",
-      "contentType": "text/plain"
-    }
-  },
-  {
-    "name": "lookup_http_status",
-    "description": "Look up the meaning of an HTTP status code from httpbin.org.",
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "type": "string",
-          "description": "HTTP status code (e.g., '418', '200', '404')"
+    {
+        "name": "get_current_time",
+        "description": "Get the current date and time in ISO 8601 format.",
+        "input_schema": {
+            "type": "object",
+            "properties": {},
+            "required": []
+        },
+        "executor": {
+            "type": "static_template",
+            "template": "Current time: {{env.NOW}}",
+            "contentType": "text/plain"
         }
-      },
-      "required": ["code"]
     },
-    "executor": {
-      "type": "http_request",
-      "method": "GET",
-      "url": "https://httpbin.org/status/{{args.code}}",
-      "timeoutMs": 5000
-    }
-  },
-  {
-    "name": "get_definition",
-    "description": "Get a brief definition of a technical term from an open API.",
-    "input_schema": {
-      "type": "object",
-      "properties": {
-        "term": {
-          "type": "string",
-          "description": "Technical term to define"
+    {
+        "name": "lookup_http_status",
+        "description": "Look up the meaning of an HTTP status code from httpbin.org.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "description": "HTTP status code (e.g., '418', '200', '404')"
+                }
+            },
+            "required": [
+                "code"
+            ]
+        },
+        "executor": {
+            "type": "http_request",
+            "method": "GET",
+            "url": "https://httpbin.org/status/{{args.code}}",
+            "timeoutMs": 5000
         }
-      },
-      "required": ["term"]
     },
-    "executor": {
-      "type": "http_request",
-      "method": "GET",
-      "url": "https://api.urbandictionary.com/v0/define",
-      "query": {
-        "term": "{{args.term}}"
-      },
-      "timeoutMs": 5000
+    {
+        "name": "get_definition",
+        "description": "Get a brief definition of a technical term from an open API.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "term": {
+                    "type": "string",
+                    "description": "Technical term to define"
+                }
+            },
+            "required": [
+                "term"
+            ]
+        },
+        "executor": {
+            "type": "http_request",
+            "method": "GET",
+            "url": "https://api.urbandictionary.com/v0/define",
+            "query": {
+                "term": "{{args.term}}"
+            },
+            "timeoutMs": 5000
+        }
     }
-  }
 ]

@@ -11,38 +11,38 @@
 
 import type { FastifyBaseLogger } from "fastify";
 import type {
-  RequestTelemetry,
-  DegradedComponent,
+	RequestTelemetry,
+	DegradedComponent,
 } from "./types.js";
 
 /**
  * Create a new RequestTelemetry object from request context.
  */
 export function createTelemetry(opts: {
-  requestId: string;
-  tenantId?: string;
-  client?: string;
-  model: string;
-  messageCount: number;
-  toolCount: number;
-  stream: boolean;
+	requestId: string;
+	tenantId?: string;
+	client?: string;
+	model: string;
+	messageCount: number;
+	toolCount: number;
+	stream: boolean;
 }): RequestTelemetry {
-  return {
-    requestId: opts.requestId,
-    tenantId: opts.tenantId ?? "default",
-    client: opts.client ?? "unknown",
-    model: opts.model,
-    messageCount: opts.messageCount,
-    toolCount: opts.toolCount,
-    injectedTools: 0,
-    toolCallsExecuted: 0,
-    retrievalHits: 0,
-    stream: opts.stream,
-    providerLatencyMs: 0,
-    fallbackReason: undefined,
-    skippedComponents: [],
-    createdAt: new Date(),
-  };
+	return {
+		requestId: opts.requestId,
+		tenantId: opts.tenantId ?? "default",
+		client: opts.client ?? "unknown",
+		model: opts.model,
+		messageCount: opts.messageCount,
+		toolCount: opts.toolCount,
+		injectedTools: 0,
+		toolCallsExecuted: 0,
+		retrievalHits: 0,
+		stream: opts.stream,
+		providerLatencyMs: 0,
+		fallbackReason: undefined,
+		skippedComponents: [],
+		createdAt: new Date(),
+	};
 }
 
 /**
@@ -50,16 +50,16 @@ export function createTelemetry(opts: {
  * Sets both the skippedComponents list and a human-readable fallbackReason.
  */
 export function recordDegradation(
-  telemetry: RequestTelemetry,
-  component: DegradedComponent,
-  reason: string,
+	telemetry: RequestTelemetry,
+	component: DegradedComponent,
+	reason: string,
 ): void {
-  if (!telemetry.skippedComponents.includes(component)) {
-    telemetry.skippedComponents.push(component);
-  }
-  telemetry.fallbackReason = telemetry.fallbackReason
-    ? `${telemetry.fallbackReason}; ${reason}`
-    : reason;
+	if (!telemetry.skippedComponents.includes(component)) {
+		telemetry.skippedComponents.push(component);
+	}
+	telemetry.fallbackReason = telemetry.fallbackReason
+		? `${telemetry.fallbackReason}; ${reason}`
+		: reason;
 }
 
 /**
@@ -67,10 +67,10 @@ export function recordDegradation(
  * In future: push to a metrics pipeline, write to a telemetry table, etc.
  */
 export function emitTelemetry(
-  telemetry: RequestTelemetry,
-  log: FastifyBaseLogger,
+	telemetry: RequestTelemetry,
+	log: FastifyBaseLogger,
 ): void {
-  log.info({ telemetry }, "request completed");
+	log.info({ telemetry }, "request completed");
 }
 
 /**
@@ -78,13 +78,13 @@ export function emitTelemetry(
  * (useful for in-band response headers, e.g. x-gateway-telemetry).
  */
 export function telemetrySummary(telemetry: RequestTelemetry): string {
-  const parts: string[] = [
-    `lat=${telemetry.providerLatencyMs}ms`,
-    `retrieval=${telemetry.retrievalHits}`,
-    `tools=${telemetry.toolCallsExecuted}`,
-  ];
-  if (telemetry.skippedComponents.length > 0) {
-    parts.push(`degraded=${telemetry.skippedComponents.join(",")}`);
-  }
-  return parts.join(" ");
+	const parts: string[] = [
+		`lat=${telemetry.providerLatencyMs}ms`,
+		`retrieval=${telemetry.retrievalHits}`,
+		`tools=${telemetry.toolCallsExecuted}`,
+	];
+	if (telemetry.skippedComponents.length > 0) {
+		parts.push(`degraded=${telemetry.skippedComponents.join(",")}`);
+	}
+	return parts.join(" ");
 }
