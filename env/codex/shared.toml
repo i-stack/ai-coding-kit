@@ -1,0 +1,32 @@
+# Shared Codex config — synced into BOTH:
+#   - ~/.codex/config.toml                              (Codex CLI)
+#   - ~/Library/Developer/Xcode/CodingAssistant/codex/config.toml  (Xcode Coding Assistant)
+#
+# Edit fields here; mcp-sync/sync_mcp.py regenerates the `# BEGIN/END CODEX SHARED`
+# block in each target config. Content outside that block is left untouched.
+#
+# Do NOT put host-specific config here (developer_instructions / xcode-tools MCP /
+# sandbox / plugins / personality / notify / ...). Keep those in the per-host
+# config.toml, outside the SHARED block.
+
+model = "gpt-5.5"
+# model_provider = "custom"
+model_reasoning_effort = "medium"
+
+[model_providers.custom]
+name = "dataeyes"
+base_url = "https://cloud.dataeyes.ai/v1"
+env_key = "DATAEYES_API_KEY"
+wire_api = "responses"
+
+[features]
+skills = true
+multi_agent = true
+js_repl = false
+default_mode_request_user_input = true
+
+[projects."/Users/song/Desktop/iOS/bajoseekios"]
+trust_level = "trusted"
+
+[projects."/Users/song/Desktop/iOS/STBaseProject"]
+trust_level = "trusted"

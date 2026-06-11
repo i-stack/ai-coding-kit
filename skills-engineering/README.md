@@ -360,17 +360,17 @@ bash install-hooks.sh
 1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor`，以及可选的 `~/Library/Developer/Xcode/CodingAssistant/codex` 和 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig` skill 缓存（按 `SYNC_*` 门控与排除规则）。
 2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写各端 preamble 托管块，并按 `sync-manifest` 的 `skill:*` 生成 `.cursor/rules/*.mdc`。
 3. `skills-engineering/scripts/verify-sync.sh` —— 断言各已启用缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
-4. `mcp-sync/sync_all.sh` —— 把 MCP 配置同步到 Cursor / Codex / Claude / Xcode（来自 `mcp-sync` subtree，与本守卫并存）。
+4. `sync/sync_all.sh` —— 把 MCP / Codex 共享配置同步到 Cursor / Codex / Claude / Xcode（来自 `sync/` subtree，与本守卫并存）。
 
 任何一步失败都会 `exit 1` 并阻止 `git push`，保证远端指向的版本与本地 Agent 正在加载的版本一致。  
-例外：若仅缺少本地 `mcp-sync/mcp-servers.json`，`mcp-sync/sync_all.sh` 会按“未配置本地密钥文件”处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
+例外：若仅缺少本地 `mcp/servers.json`，`sync/sync_all.sh` 会按“未配置本地密钥文件”处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
 
 ### 紧急绕过
 
 ```bash
-SKILL_BYPASS=1 git commit ...        # 跳过 pre-commit + pre-push 中的 skill-sync 段（仍会跑 mcp-sync）
+SKILL_BYPASS=1 git commit ...        # 跳过 pre-commit + pre-push 中的 skill-sync 段（仍会跑 sync/sync_all.sh）
 SKILL_BYPASS=1 git push ...
-git push --no-verify                 # 跳过整个 pre-push（含 mcp-sync）
+git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all.sh）
 ```
 
 绕过只应用于无法走完整流程的紧急修复，并应在 commit message / PR 里说明原因。
