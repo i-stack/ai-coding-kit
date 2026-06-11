@@ -332,6 +332,70 @@ The gateway is useful only if these can be demonstrated:
 - If Qdrant is stopped, the same request still reaches the provider and telemetry records the fallback.
 - Cache hit rate, retrieval latency, and tool-call success rate are measured rather than assumed.
 
+## Getting Started
+
+### 启动 gateway
+
+```bash
+cd gateway
+npm install          # 首次运行需要安装依赖
+npm run dev          # tsx watch 模式启动，文件变化自动重启
+```
+
+> 启动前确保 [`gateway/.env`](../gateway/.env) 已配置必要环境变量（至少需要 `OPENAI_API_KEY`）。
+
+### 验证启动成功
+
+```bash
+# 终端 1：检查健康状态
+curl http://localhost:3000/health
+# 预期: {"status":"ok","timestamp":"2025-..."}
+
+# 终端 2：检查 MCP SSE 端点是否可达（会保持连接，Ctrl+C 退出）
+curl -N http://localhost:3000/mcp/sse
+
+# 终端 3：列出 gateway 发布的 MCP 工具
+curl -X POST http://localhost:3000/mcp/message?sessionId=test \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list"}'
+# 预期: 返回 Gateway 注册的 tools.json 中的工具列表
+```
+
+### 外部平台连接
+
+启动后，Codex、Claude Code、Cursor 等外部 MCP 客户端通过 [`mcp/servers.json`](../mcp/servers.json) 中的 `gateway` 条目连接：
+
+```json
+"gateway": {
+    "url": "http://localhost:3000/mcp/sse",
+    "headers": {}
+}
+```
+
+该条目由各平台自行读取连接，gateway 启动时**不消费**这份配置。
+
+### 架构关系
+
+```text
+gateway/src/index.ts  ───┐
+                         │ 启动 Fastify HTTP 服务
+                         ├── /mcp/sse  (MCP SSE 端点)
+                         ├── /mcp/message (JSON-RPC 消息路由)
+                         ├── /v1/chat/completions (LLM 路由)
+                         ├── /health
+                         └── /metrics
+                              │
+                 ┌────────────┴────────────┐
+                 ▼                         ▼
+          tools.json 声明工具      mcp/servers.json (外部平台读取)
+          ┌───────────────┐       ┌─────────────────────┐
+          │ get_current_time│      │ gateway → localhost:3000/mcp/sse│
+          │ lookup_http    │      │ github               │
+          │ get_definition │      │ filesystem           │
+          └───────────────┘       │ XcodeBuildMCP        │
+                                  └─────────────────────┘
+```
+
 ## Relationship To This Repository
 
 This repo already solves adjacent distribution problems:
