@@ -14,6 +14,7 @@
 | [mcp](mcp/) | MCP server 清单（`servers.json`）——本地密钥文件、gitignored；以 `servers.json.example` 为模板。 |
 | [env](env/) | 统一配置源目录：`env/codex/shared.toml`（Codex 通用配置——`model` / `model_provider` / `features` / `projects` 等 CLI 与 Xcode Coding Assistant 共享字段）、`env/claude/settings.shared.json`（Claude Code 环境变量）。 |
 | [sync](sync/README.md) | 把 `mcp/servers.json`、`env/codex/shared.toml`、`env/claude/settings.shared.json` 同步到 Cursor、Codex、Claude Code 与 Xcode Coding Assistant 等路径。详见该目录 [README](sync/README.md)。 |
+| [docs](docs/universal-rag-gateway.md) | 通用型自学习 RAG Gateway 架构草案：把多端协议适配、混合检索、声明式工具、自学习慢循环拆成可落地的 MVP 与验收条件。 |
 
 ## 认知拓展
 
