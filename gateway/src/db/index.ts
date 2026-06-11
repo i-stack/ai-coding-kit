@@ -72,6 +72,57 @@ export async function migrateSchema(): Promise<void> {
         await client.query(
             `CREATE INDEX IF NOT EXISTS idx_conversation_tenant_started ON conversation(tenant_id, started_at DESC);`
         );
+
+        // ── entity (GraphRAG) ───────────────────────────────────────────
+        await client.query(
+            `CREATE TABLE IF NOT EXISTS entity (
+                id          UUID PRIMARY KEY,
+                tenant_id   TEXT NOT NULL DEFAULT 'default',
+                project_id  TEXT,
+                type        TEXT NOT NULL,
+                name        TEXT NOT NULL,
+                properties  JSONB NOT NULL DEFAULT '{}',
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+            );`
+        );
+
+        // ── entity_edge (GraphRAG) ──────────────────────────────────────
+        await client.query(
+            `CREATE TABLE IF NOT EXISTS entity_edge (
+                id              UUID PRIMARY KEY,
+                tenant_id       TEXT NOT NULL DEFAULT 'default',
+                project_id      TEXT,
+                from_entity_id  UUID NOT NULL REFERENCES entity(id) ON DELETE CASCADE,
+                to_entity_id    UUID NOT NULL REFERENCES entity(id) ON DELETE CASCADE,
+                relation        TEXT NOT NULL,
+                properties      JSONB NOT NULL DEFAULT '{}',
+                created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+            );`
+        );
+
+        // ── GraphRAG indexes ────────────────────────────────────────────
+        await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_entity_name ON entity(name);`
+        );
+        await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_entity_type ON entity(type);`
+        );
+        await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_entity_tenant ON entity(tenant_id);`
+        );
+        await client.query(
+            `CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_name_tenant ON entity(name, tenant_id);`
+        );
+        await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_entity_edge_from ON entity_edge(from_entity_id);`
+        );
+        await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_entity_edge_to ON entity_edge(to_entity_id);`
+        );
+        await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_entity_edge_relation ON entity_edge(relation);`
+        );
+
         await client.query("COMMIT");
     } catch (err) {
         await client.query("ROLLBACK");

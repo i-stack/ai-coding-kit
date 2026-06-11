@@ -11,6 +11,7 @@ import { QdrantStore } from "./vector/qdrant.js";
 import { VectorStore } from "./vector/store.js";
 import { ToolRegistry } from "./tool/registry.js";
 import { ToolExecutorEngine } from "./tool/executor.js";
+import { EntityStore } from "./entity/store.js";
 import { metricsCollector } from "./metrics.js";
 import { McpClientManager } from "./mcp/client.js";
 import { loadMcpServerConfigs } from "./mcp/config.js";
@@ -70,6 +71,26 @@ async function main() {
 		app.log.info("QDRANT_URL not set — semantic memory disabled");
 	}
 
+	// ── Entity store / GraphRAG (optional — requires DB + config flag) ─
+	let entityStore: EntityStore | undefined;
+	if (config.databaseUrl && config.graphRagEnabled) {
+		try {
+			entityStore = new EntityStore(config);
+			app.log.info("GraphRAG entity store ready");
+		} catch (err) {
+			const msg = (err as Error).message;
+			app.log.warn({ err }, "GraphRAG unavailable — entity extraction disabled");
+			startupDegradations.push("entity-extraction");
+			metricsCollector.recordDegradation("entity-extraction", msg);
+		}
+	} else {
+		app.log.info(
+			config.graphRagEnabled
+				? "DATABASE_URL not set — GraphRAG disabled"
+				: "GRAPH_RAG_ENABLED not set — GraphRAG disabled",
+		);
+	}
+
 	// ── Declarative tool registry ───────────────────────────────────────
 	const toolRegistry = new ToolRegistry();
 	toolRegistry.loadFromFile();
@@ -104,7 +125,7 @@ async function main() {
 	const provider = new OpenAIProvider(config);
 
 	// ── Routes ──────────────────────────────────────────────────────────
-	registerChatRoutes(app, provider, config, vectorStore, toolRegistry, toolExecutor);
+	registerChatRoutes(app, provider, config, vectorStore, entityStore, toolRegistry, toolExecutor);
 	registerMcpServer(app, toolRegistry, toolExecutor);
 
 	// ── Start ───────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import type { OpenAIProvider } from "../provider/openai.js";
 import type { GatewayConfig } from "../config.js";
 import type { VectorStore } from "../vector/store.js";
+import type { EntityStore } from "../entity/store.js";
 import type { ToolRegistry } from "../tool/registry.js";
 import type { ToolExecutorEngine } from "../tool/executor.js";
 import { getSimplifiedSchema } from "../tool/simplify.js";
@@ -234,6 +235,7 @@ export function registerChatRoutes(
     provider: OpenAIProvider,
     config: GatewayConfig,
     vectorStore?: VectorStore,
+    entityStore?: EntityStore,
     toolRegistry?: ToolRegistry,
     toolExecutor?: ToolExecutorEngine,
 ): void {
@@ -305,58 +307,89 @@ export function registerChatRoutes(
                 request.log.debug({ trimmedCount }, "history trimmed by budget");
             }
 
-            // ── Step 2: Retrieve relevant memories from Qdrant ─────────────
+            // ── Step 2: Retrieve relevant memories from Qdrant + Graph ─────
             let retrievedContext: string | undefined;
-            if (vectorStore && retrievalConstraint.maxResults > 0) {
+            let graphContext: string | undefined;
+            let lastUserMsg: string | undefined;
+
+            // Find the last user message once, used by both retrievals
+            const lastUserMsgObj = [...flattenMessages]
+                .reverse()
+                .find((m) => m.role === "user");
+            lastUserMsg = lastUserMsgObj?.content as string | undefined;
+
+            // Qdrant semantic search
+            if (vectorStore && retrievalConstraint.maxResults > 0 && lastUserMsg) {
                 try {
-                    const lastUserMsg = [...flattenMessages]
-                        .reverse()
-                        .find((m) => m.role === "user");
-                    if (lastUserMsg?.content) {
-                        // Fetch slightly more than limit so we can filter by score
-                        const searchLimit = Math.min(retrievalConstraint.maxResults * 2, 20);
-                        const results = await vectorStore.search(lastUserMsg.content, {
-                            limit: searchLimit,
-                            tenantId: "default",
-                        });
-                        // Filter by score threshold derived from budget
-                        const filteredResults = results.filter(
-                            (r) => r.score >= retrievalConstraint.scoreThreshold,
-                        );
-                        // Apply final count limit
-                        const cappedResults = filteredResults.slice(0, retrievalConstraint.maxResults);
-                        if (cappedResults.length > 0) {
-                            retrievedContext = cappedResults
-                                .map(
-                                    (r) => `[memory (relevance=${r.score.toFixed(2)})] ${r.payload.text}`,
-                                )
-                                .join("\n\n");
-                            telemetry.retrievalHits = cappedResults.length;
-                            metricsCollector.recordRetrievalHits(cappedResults.length);
-                        }
-                        request.log.debug(
-                            {
-                                searchResults: results.length,
-                                filteredByScore: filteredResults.length,
-                                finalCapped: cappedResults.length,
-                                threshold: retrievalConstraint.scoreThreshold,
-                            },
-                            "retrieval constrained by budget",
-                        );
+                    // Fetch slightly more than limit so we can filter by score
+                    const searchLimit = Math.min(retrievalConstraint.maxResults * 2, 20);
+                    const results = await vectorStore.search(lastUserMsg, {
+                        limit: searchLimit,
+                        tenantId: "default",
+                    });
+                    // Filter by score threshold derived from budget
+                    const filteredResults = results.filter(
+                        (r) => r.score >= retrievalConstraint.scoreThreshold,
+                    );
+                    // Apply final count limit
+                    const cappedResults = filteredResults.slice(0, retrievalConstraint.maxResults);
+                    if (cappedResults.length > 0) {
+                        retrievedContext = cappedResults
+                            .map(
+                                (r) => `[memory (relevance=${r.score.toFixed(2)})] ${r.payload.text}`,
+                            )
+                            .join("\n\n");
+                        telemetry.retrievalHits = cappedResults.length;
+                        metricsCollector.recordRetrievalHits(cappedResults.length);
                     }
+                    request.log.debug(
+                        {
+                            searchResults: results.length,
+                            filteredByScore: filteredResults.length,
+                            finalCapped: cappedResults.length,
+                            threshold: retrievalConstraint.scoreThreshold,
+                        },
+                        "retrieval constrained by budget",
+                    );
                 } catch (err) {
                     recordDegradation(telemetry, "memory-retrieval", (err as Error).message);
                     console.error("Qdrant search error:", (err as Error).message);
                 }
             }
 
-            // ── Step 3: Inject tools from the registry ─────────────────────
+            // Graph (entity-relationship) search
+            if (entityStore && lastUserMsg) {
+                try {
+                    const graphResults = await entityStore.searchGraph(
+                        lastUserMsg,
+                        "default",
+                        { limit: retrievalConstraint.maxResults },
+                    );
+                    if (graphResults.length > 0) {
+                        const contextLines = entityStore.formatContext(graphResults);
+                        graphContext = contextLines.join("\n");
+                        telemetry.retrievalHits += graphResults.length;
+                        request.log.debug(
+                            { graphHits: graphResults.length },
+                            "graph-enhanced retrieval",
+                        );
+                    }
+                } catch (err) {
+                    recordDegradation(telemetry, "memory-retrieval", (err as Error).message);
+                    console.error("Graph search error:", (err as Error).message);
+                }
+            }
+
+            // ── Step 3: Inject tools + retrieved context from Qdrant and Graph ─
             let enrichedMessages: any[] = trimmedMessages;
-            if (retrievedContext) {
+            const memoryContext = [retrievedContext, graphContext]
+                .filter(Boolean)
+                .join("\n\n");
+            if (memoryContext) {
                 enrichedMessages = [
                     {
                         role: "system" as const,
-                        content: `Relevant context from previous conversations:\n\n${retrievedContext}`,
+                        content: `Relevant context from previous conversations:\n\n${memoryContext}`,
                     },
                     ...trimmedMessages,
                 ];
@@ -525,6 +558,20 @@ export function registerChatRoutes(
                     streaming: true,
                 });
                 indexToQdrant(vectorStore, requestId, model, flattenMessages, fullContent);
+
+                // Fire-and-forget: entity extraction (GraphRAG)
+                if (entityStore) {
+                    const conversationText = [
+                        ...flattenMessages.map((m) => m.content),
+                        fullContent,
+                    ]
+                        .filter(Boolean)
+                        .join("\n\n");
+                    entityStore.extractAndStore(conversationText, "default").catch((err: Error) => {
+                        console.error("Entity extraction failed:", err.message);
+                        recordDegradation(telemetry, "entity-extraction", err.message);
+                    });
+                }
             } else {
                 // ── Non-streaming: support tool call roundtrip ─────────────
                 const options = {
@@ -631,6 +678,20 @@ export function registerChatRoutes(
                     flattenMessages,
                     result.content,
                 );
+
+                // Fire-and-forget: entity extraction (GraphRAG)
+                if (entityStore) {
+                    const conversationText = [
+                        ...flattenMessages.map((m) => m.content),
+                        result.content,
+                    ]
+                        .filter(Boolean)
+                        .join("\n\n");
+                    entityStore.extractAndStore(conversationText, "default").catch((err: Error) => {
+                        console.error("Entity extraction failed:", err.message);
+                        recordDegradation(telemetry, "entity-extraction", err.message);
+                    });
+                }
 
                 return {
                     id: result.id,

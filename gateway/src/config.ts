@@ -8,6 +8,7 @@ export interface GatewayConfig {
 	openaiDefaultModel: string;
 	databaseUrl?: string;
 	qdrantUrl?: string;
+	graphRagEnabled: boolean;
 }
 
 function requireEnv(key: string): string {
@@ -31,5 +32,6 @@ export function loadConfig(): GatewayConfig {
 		openaiDefaultModel: optionalEnv("OPENAI_DEFAULT_MODEL", "gpt-4o"),
 		databaseUrl: optionalEnv("DATABASE_URL", ""),
 		qdrantUrl: optionalEnv("QDRANT_URL", ""),
+		graphRagEnabled: process.env.GRAPH_RAG_ENABLED === "true",
 	};
 }

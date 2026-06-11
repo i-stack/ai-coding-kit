@@ -21,6 +21,7 @@ export interface MetricsSnapshot {
     latencyHistogramMs: HistogramBuckets;
     toolCallsTotal: number;
     retrievalHitsTotal: number;
+    entitiesExtractedTotal: number;
     degradationCount: number;
     recentDegradations: Array<{ component: string; reason: string; time: string }>;
 }
@@ -41,6 +42,7 @@ class MetricsCollector {
     private latencySamples: number[] = [];
     private toolCallsTotal = 0;
     private retrievalHitsTotal = 0;
+    private entitiesExtractedTotal = 0;
     private recentDegradations: Array<{ component: string; reason: string; time: string }> = [];
 
     recordRequest(model: string, latencyMs: number, status: string): void {
@@ -60,6 +62,10 @@ class MetricsCollector {
 
     recordRetrievalHits(count: number): void {
         this.retrievalHitsTotal += count;
+    }
+
+    recordEntityExtraction(count: number): void {
+        this.entitiesExtractedTotal += count;
     }
 
     recordDegradation(component: string, reason: string): void {
@@ -82,6 +88,7 @@ class MetricsCollector {
             latencyHistogramMs: this.computeHistogram(this.latencySamples),
             toolCallsTotal: this.toolCallsTotal,
             retrievalHitsTotal: this.retrievalHitsTotal,
+            entitiesExtractedTotal: this.entitiesExtractedTotal,
             degradationCount: this.recentDegradations.length,
             recentDegradations: [...this.recentDegradations],
         };

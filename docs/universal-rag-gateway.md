@@ -235,16 +235,38 @@ The first implementation should be deliberately narrow:
 5. ✅ **Static declarative tool registry loaded from JSON** — [`tool/`](../gateway/src/tool/) 模块：[`types.ts`](../gateway/src/tool/types.ts) 定义 `ToolSpec` 和 `HttpRequestExecutor` / `StaticTemplateExecutor` 等类型；[`registry.ts`](../gateway/src/tool/registry.ts) 从 `tools.json` 加载并按模型+状态过滤；[`executor.ts`](../gateway/src/tool/executor.ts) 支持声明式执行（HTTP 请求带 allowlist+超时、静态模板带 `{{args}}`/`{{env}}` 替换）。示例工具见 [`tools.json`](../gateway/tools.json)（当前包含：`get_current_time`、`lookup_http_status`、`get_definition`）。
 6. ✅ **Tool injection with per-model compatibility flags** — [`types.ts`](../gateway/src/tool/types.ts) 新增 `toolChoicePolicy` / `schemaSimplifyFor` / `disableForModels`；[`registry.ts`](../gateway/src/tool/registry.ts) 新增 `resolveToolChoicePolicy()` / `shouldInjectTool()`，支持 glob 模式匹配；新增 [`simplify.ts`](../gateway/src/tool/simplify.ts) 实现按模型阶段简化 schema；[`chat.ts`](../gateway/src/routes/chat.ts) 集成去重合并、per-model tool_choice 链式解析（client→policy→auto→undefined）、模型/工具数量上限。
 7. ✅ **Observability** — 新增 [`telemetry.ts`](../gateway/src/telemetry.ts) 集中管理遥测工厂/降级追踪/结构化 LogEmitter；新增 [`metrics.ts`](../gateway/src/metrics.ts) 提供进程内内存指标采集 + `GET /metrics` JSON 端点（请求计数、延迟直方图、工具调用统计、检索命中、降级事件）；[`index.ts`](../gateway/src/index.ts) 全局使用 Fastify/pino logger；每次请求结束后通过 `emitTelemetry()` 输出结构化遥测日志；provider 错误、数据库/Qdrant 不可用时自动记录降级原因。
-
-Defer these until the MVP is stable:
-
-- GraphRAG beyond simple relational edges.
-- Automated candidate tool promotion.
-- LLM-Lingua or local compression service.
-- Multi-provider cost optimizer.
 8. ✅ **Full MCP server implementation** — 双向 MCP 支持：
     - **出站（outbound `mcp_call`）** — [`mcp/config.ts`](../gateway/src/mcp/config.ts) 定义 `McpServerConfig` 并加载 `mcp/servers.json`（支持 command+args 和 url+headers 两种模式）；[`mcp/client.ts`](../gateway/src/mcp/client.ts) `McpClientManager` 管理生命周期，通过 `StdioClientTransport` / `SSEClientTransport` 连接外部 MCP 服务器并缓存工具列表；[`executor.ts`](../gateway/src/tool/executor.ts) 实现 `mcp_call` case，合并 args 与 executor 默认值，调用 `client.callTool()` 并解析返回的 `ContentBlock[]`；启动时自动连接 8 个已配置 MCP 服务器（成功 5 个，降级 3 个），连接失败通过 `metricsCollector` 记录降级事件。
     - **入站（inbound protocol adapter）** — [`mcp/server.ts`](../gateway/src/mcp/server.ts) 在 Fastify 上注册 `GET /mcp/sse`（建立 SSE 流）和 `POST /mcp/message?sessionId=xxx`（接收 JSON-RPC 消息），通过 `SSEServerTransport` 暴露 `tools/list` 和 `tools/call` 端点，将所有 `ToolRegistry` 中的工具以 MCP 格式暴露给 MCP 原生客户端（Cursor、VS Code 等）。
+9. ✅ **Context Budget Planner with intent-based allocation** — [`planner/`](../gateway/src/planner/) 模块，在每次请求的处理管线第一步执行：
+    - **[`intent.ts`](../gateway/src/planner/intent.ts)** — 基于关键词/模式匹配的意图检测器，从最后一条用户消息推断请求类型（`coding-edit` / `debug` / `design` / `qa` / `unknown`），按模式命中数量输出 `high / medium / low` 置信度。无第三方依赖，支持后续升级为 ML 分类器。
+    - **[`budget.ts`](../gateway/src/planner/budget.ts)** — `BudgetPlanner` 类根据意图查找 token 分配 profile（详见下方 profile 表），并根据消息长度和数量动态调整；输出可审计的 `BudgetDecision`（含意图标签、置信度、调整原因、原始 profile）。
+    - **下游约束函数**（同一文件导出）：`computeRetrievalConstraints()` 将 `ragTokens` 转为 `maxResults` + `scoreThreshold`；`computeToolBudgetLimit()` 将 `toolSchemaTokens` 转为最大工具注入数（~300 tokens/tool 估算）；`computeOutputBudget()` 从 `reserveTokens` 推导 provider `max_tokens`；`computeMessageTrimBudget()` 将 `recentHistoryTokens` 转为消息保留长度。
+    - **集成到 [`chat.ts`](../gateway/src/routes/chat.ts)**：Step 0 执行 `planner.plan()` → 预算决策写入 telemetry + debug 日志；Step 1 用 `computeRetrievalConstraints` 约束检索（动态 top-k + score 阈值过滤）；Step 2 用 `toolBudgetLimit` 与模型上限取 min 裁剪工具列表；Step 3 用 `computeMessageTrimBudget` 从尾部裁剪消息历史、用 `computeOutputBudget` 设置 provider `max_tokens`。所有 constraint 变更均通过 `request.log.debug` 输出，支持运行时诊断。
+
+    | Profile | maxContext | staticPrefix | rag | history | tools |
+    |---|---|---|---|---|---|
+    | coding-edit | 16K | 4K | 2K (0.65) | 6K | 2K |
+    | debug | 24K | 4K | 8K (0.55) | 6K | 3K |
+    | design | 32K | 6K | 12K (0.35) | 8K | 3K |
+    | qa | 20K | 4K | 6K (0.45) | 5K | 3K |
+    | unknown | 16K | 4K | 4K (0.55) | 5K | 2K |
+
+    rag 列括号内为对应 `scoreThreshold`，小预算选更严格的阈值。
+
+10. ✅ **GraphRAG — Entity-Relationship Memory** — [`entity/`](../gateway/src/entity/) + [`db/graph.ts`](../gateway/src/db/graph.ts) 模块，在 Qdrant 语义搜索之上，使用 PostgreSQL entity/entity_edge 表存储结构化关系图：
+    - **[`db/graph.ts`](../gateway/src/db/graph.ts)** — PostgreSQL CRUD：`upsertEntities()` 基于唯一索引 `(name, tenant_id)` 去重合并，`insertEdges()` 批量写入，`searchEntities()` 对用户查询做 token 化 ILIKE 匹配（过滤停用词），`getSubgraph()` 做 1-2 hop 图遍历（应用层循环查询），`getEntitiesByType()` 按类型过滤。
+    - **[`entity/extractor.ts`](../gateway/src/entity/extractor.ts)** — `EntityExtractor` 类，复用同一 `OpenAI` 客户端（`openaiApiKey` / `openaiBaseUrl`），使用 `response_format: { type: "json_object" }` + `temperature: 0.1` 做结构化实体/关系提取。预定义实体类型池（`project` / `api` / `service` / `database` / `technology` / `decision` 等）和关系类型池（`uses` / `depends_on` / `implements` / `references` 等）。
+    - **[`entity/store.ts`](../gateway/src/entity/store.ts)** — `EntityStore` 编排器：`extractAndStore()` 在每次响应后 fire-and-forget 调用 LLM 提取 → 批量 upsert entities → insert edges；`searchGraph()` 在 Step 2 检索中并行查询实体子图；`formatContext()` 将结果格式化为 `[entity-relationship] "A" —[uses]→ "B"` 注入 system prompt。
+    - **集成到 [`chat.ts`](../gateway/src/routes/chat.ts)**：Step 2 在图检索后合并 Qdrant + Graph 上下文；Step 3 统一注入；响应后在 `indexToQdrant()` 之后 fire-and-forget 调用 `extractAndStore()`。
+    - **配置与降级**：环境变量 `GRAPH_RAG_ENABLED=true` 启用；需要 `DATABASE_URL` 存在 + 配置标志；DB 不可用或提取失败时记录 `"entity-extraction"` 降级事件，chat 请求不受影响。
+    - **指标**：`/metrics` 端点新增 `entitiesExtractedTotal` 计数器。
+
+Defer these until the MVP is stable:
+
+- Automated candidate tool promotion.
+- LLM-Lingua or local compression service.
+- Multi-provider cost optimizer.
 
 ## Acceptance Criteria
 
@@ -253,8 +275,11 @@ The gateway is useful only if these can be demonstrated:
 - ✅ [已验证] A client can send an OpenAI-compatible request through the gateway and receive a streamed model response.
 - ✅ [已验证] The gateway stores the transcript in PostgreSQL (fire-and-forget, DB unavailable → graceful degradation with telemetry).
 - ✅ [已验证] Semantic memory via Qdrant: previous messages are indexed as vector chunks, and relevant memories are retrieved and injected as context in subsequent requests.
+- ✅ [已验证] Context Budget Planner: intent-based token allocation profiles are applied on every request, producing auditable BudgetDecision; retrieval results, tool injection count, message history, and provider max_tokens are all constrained by the budget — each with debug-log visibility.
 - The gateway stores the transcript and retrieves a relevant prior memory in a later request.
 - ✅ [已验证] Tool schemas are injected only when policy and budget allow. The model calls the tool and the result is fed back in a second roundtrip.
+- ✅ [已验证] GraphRAG entity extraction: after a chat response, entities and relationships are extracted via LLM, stored in PostgreSQL entity/entity_edge tables, and persisted across conversations.
+- ✅ [已验证] Graph-enhanced retrieval: a follow-up query matching stored entity names triggers subgraph traversal; structured `[entity-relationship]` context is injected alongside Qdrant chunks, enabling the model to answer cross-conversation relation questions ("What APIs does MyApp use?").
 - A declarative HTTP tool can run with mocked credentials in tests.
 - If Qdrant is stopped, the same request still reaches the provider and telemetry records the fallback.
 - Cache hit rate, retrieval latency, and tool-call success rate are measured rather than assumed.
