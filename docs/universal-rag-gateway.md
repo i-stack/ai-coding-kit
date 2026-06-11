@@ -267,6 +267,48 @@ The first implementation should be deliberately narrow:
     - **配置与降级**：环境变量 `GRAPH_RAG_ENABLED=true` 启用；需要 `DATABASE_URL` 存在 + 配置标志；DB 不可用或提取失败时记录 `"entity-extraction"` 降级事件，chat 请求不受影响。
     - **指标**：`/metrics` 端点新增 `entitiesExtractedTotal` 计数器。
 
+11. ✅ **Multi-level tenant → project isolation** — 2025-06 将全链路 `"default"` 硬编码重构为真正的多级隔离结构：
+
+    **隔离层级：**
+    ```text
+    tenant (组织/团队) ─── 安全墙，所有搜索按 tenant 强制过滤
+        └── project (代码库/产品) ─── 可选搜索范围，不传则跨 project 搜索
+    ```
+
+    **存储层：**
+    - Qdrant 单 collection `memory_chunks` + payload 字段 `tenantId` / `projectId` / `conversationId`
+    - 已创建 **payload indexes**（`tenantId` + `projectId`），确保 Qdrant 走 **pre-filter** 模式（先过滤出 tenant 子集再 ANN 搜索，非 post-filter）
+    - PG `conversation`, `entity`, `entity_edge` 表均有 `tenant_id` / `project_id` 列 + 复合索引 `(tenant_id, project_id)`
+
+    **请求入口 ([`ChatCompletionRequest`](../gateway/src/routes/chat.ts#L133))：**
+    ```typescript
+    interface ChatCompletionRequest {
+        // ... 原有字段
+        tenant_id?: string;   // 组织/团队，不传 fallback "default"（向后兼容）
+        project_id?: string;  // 代码库/产品，可选
+    }
+    ```
+
+    **搜索隔离逻辑：**
+    | 组件 | tenantId | projectId |
+    |------|----------|-----------|
+    | Qdrant vector search | ✅ 必选过滤 | ✅ 可选过滤 |
+    | GraphRAG `searchEntities` | ✅ 必选过滤 | ✅ 可选过滤（缩小初始匹配范围） |
+    | GraphRAG 2-hop 子图遍历 | ✅ 必选过滤 | ❌ 跨 project（实体关系本身就是跨项目的知识连接） |
+    | PG transcript | ✅ 携带写入 | ✅ 携带写入 |
+
+    **调用链（以 streaming 路径为例）：**
+    ```text
+    POST body.tenant_id, body.project_id
+      → storeTranscript({ tenantId, projectId, ... })       // PG 存储
+      → vectorStore.search(query, { tenantId, projectId })  // Qdrant 搜索
+      → entityStore.searchGraph(query, tenantId, { projectId }) // GraphRAG
+      → indexToQdrant(..., tenantId, projectId)             // Qdrant 索引
+      → entityStore.extractAndStore(..., tenantId, projectId) // 实体抽取存储
+    ```
+
+    **硬编码移除：** 10 处 `"default"` 全部替换为运行时参数传递（入口保留 `?? "default"` 向后兼容 fallback）。涉及文件：[qdrant.ts](../gateway/src/vector/qdrant.ts) / [store.ts](../gateway/src/vector/store.ts) / [graph.ts](../gateway/src/db/graph.ts) / [store.ts](../gateway/src/entity/store.ts) / [index.ts](../gateway/src/db/index.ts) / [index.ts](../gateway/src/index.ts) / [chat.ts](../gateway/src/routes/chat.ts)。
+
 Defer these until the MVP is stable:
 
 - Automated candidate tool promotion.

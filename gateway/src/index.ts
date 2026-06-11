@@ -59,6 +59,7 @@ async function main() {
 			const embedding = new EmbeddingService(config);
 			const qdrant = new QdrantStore(config.qdrantUrl);
 			await qdrant.ensureCollection();
+			await qdrant.ensurePayloadIndexes();
 			vectorStore = new VectorStore(embedding, qdrant);
 			app.log.info("Qdrant semantic memory ready");
 		} catch (err) {

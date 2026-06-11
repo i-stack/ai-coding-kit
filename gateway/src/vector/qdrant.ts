@@ -107,6 +107,27 @@ export class QdrantStore {
 	}
 
 	/**
+	 * Ensure payload indexes exist for filterable fields (tenantId, projectId).
+	 *
+	 * Without these, Qdrant does a full scan of all points when filtering,
+	 * which degrades to O(n) per search.
+	 */
+	async ensurePayloadIndexes(): Promise<void> {
+		const indexDefs = [
+			{ field_name: "tenantId", field_type: "keyword" },
+			{ field_name: "projectId", field_type: "keyword" },
+		];
+		for (const idx of indexDefs) {
+			try {
+				await this.request("PUT", `/collections/${this.collectionName}/index`, idx);
+				console.log(`📦 Qdrant payload index "${idx.field_name}" created`);
+			} catch {
+				// Index already exists — fine
+			}
+		}
+	}
+
+	/**
 	 * Search for similar vectors by query vector.
 	 */
 	async search(
@@ -114,17 +135,23 @@ export class QdrantStore {
 		options?: {
 			limit?: number;
 			tenantId?: string;
+			projectId?: string;
 		},
 	): Promise<QdrantSearchResult[]> {
-		const filter: Record<string, unknown> = {};
+		const must: Array<Record<string, unknown>> = [];
 		if (options?.tenantId) {
-			filter.must = [
-				{
-					key: "tenantId",
-					match: { value: options.tenantId },
-				},
-			];
+			must.push({
+				key: "tenantId",
+				match: { value: options.tenantId },
+			});
 		}
+		if (options?.projectId) {
+			must.push({
+				key: "projectId",
+				match: { value: options.projectId },
+			});
+		}
+		const filter = must.length > 0 ? { must } : undefined;
 
 		const result = await this.request<{
 			id: string;
@@ -133,7 +160,7 @@ export class QdrantStore {
 		}[]>("POST", `/collections/${this.collectionName}/points/search`, {
 			vector,
 			limit: options?.limit ?? 5,
-			filter: Object.keys(filter).length > 0 ? filter : undefined,
+			filter,
 			with_payload: true,
 		});
 

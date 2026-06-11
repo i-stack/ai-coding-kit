@@ -149,12 +149,14 @@ export class VectorStore {
         options?: {
             limit?: number;
             tenantId?: string;
+            projectId?: string;
         },
     ): Promise<QdrantSearchResult[]> {
         const vector = await this.embedding.embed(query);
         return this.qdrant.search(vector, {
             limit: options?.limit ?? 5,
             tenantId: options?.tenantId,
+            projectId: options?.projectId,
         });
     }
 }

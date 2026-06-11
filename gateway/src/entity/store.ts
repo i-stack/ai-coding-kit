@@ -115,7 +115,7 @@ export class EntityStore {
 	async searchGraph(
 		query: string,
 		tenantId: string,
-		options?: { limit?: number },
+		options?: { limit?: number; projectId?: string },
 	): Promise<GraphSearchResult[]> {
 		if (!this.enabled) return [];
 		if (!query || query.length === 0) return [];
@@ -124,6 +124,7 @@ export class EntityStore {
 			// Step 1: Find matching entities by name/type ILIKE
 			const entities = await graphDb.searchEntities(query, tenantId, {
 				limit: options?.limit ?? 5,
+				projectId: options?.projectId,
 			});
 
 			if (entities.length === 0) return [];
@@ -205,7 +206,7 @@ export class EntityStore {
 function createPlaceholderEntity(id: string): GraphEntity {
 	return {
 		id,
-		tenantId: "default",
+		tenantId: "unknown",
 		type: "unknown",
 		name: id,
 		properties: {},

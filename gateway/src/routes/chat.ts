@@ -7,7 +7,6 @@ import type { ToolRegistry } from "../tool/registry.js";
 import type { ToolExecutorEngine } from "../tool/executor.js";
 import { getSimplifiedSchema } from "../tool/simplify.js";
 import { BudgetPlanner } from "../planner/budget.js";
-import type { BudgetDecision } from "../planner/budget.js";
 import {
     computeRetrievalConstraints,
     computeToolBudgetLimit,
@@ -36,6 +35,8 @@ type OpenAICompatibleTool = {
 // ── Optional transcript storage ────────────────────────────────────
 interface TranscriptStore {
     requestId: string;
+    tenantId: string;
+    projectId?: string;
     model: string;
     messages: Array<{ role: string; content: string | null }>;
     responseContent: string | null;
@@ -60,7 +61,8 @@ async function storeTranscript(store: TranscriptStore): Promise<void> {
 
         await insertConversation({
             id: conversationId,
-            tenantId: "default",
+            tenantId: store.tenantId,
+            projectId: store.projectId,
             client: "unknown",
             model: store.model,
             startedAt: now,
@@ -98,6 +100,8 @@ async function indexToQdrant(
     _model: string,
     userMessages: Array<{ role: string; content: string | null }>,
     responseContent: string | null,
+    tenantId: string,
+    projectId?: string,
 ): Promise<void> {
     if (!vectorStore) return;
 
@@ -108,7 +112,8 @@ async function indexToQdrant(
                 id: crypto.randomUUID(),
                 text: msg.content,
                 kind: "user_message",
-                tenantId: "default",
+                tenantId,
+                projectId,
                 sourceMessageId: crypto.randomUUID(),
                 conversationId: requestId,
             });
@@ -119,7 +124,8 @@ async function indexToQdrant(
                 id: crypto.randomUUID(),
                 text: responseContent,
                 kind: "assistant_message",
-                tenantId: "default",
+                tenantId,
+                projectId,
                 sourceMessageId: crypto.randomUUID(),
                 conversationId: requestId,
             });
@@ -151,6 +157,8 @@ interface ChatCompletionRequest {
     stream?: boolean;
     max_tokens?: number;
     temperature?: number;
+    tenant_id?: string;
+    project_id?: string;
 }
 
 // ── Tool deduplication: client tools win, gateway tools fill gaps ──
@@ -251,9 +259,12 @@ export function registerChatRoutes(
         const model = body.model ?? config.openaiDefaultModel;
         const messages = body.messages;
         const stream = body.stream ?? false;
+        const tenantId = body.tenant_id ?? "default";
+        const projectId = body.project_id;
 
         const telemetry = createTelemetry({
             requestId,
+            tenantId,
             model,
             messageCount: messages.length,
             toolCount: body.tools?.length ?? 0,
@@ -325,7 +336,8 @@ export function registerChatRoutes(
                     const searchLimit = Math.min(retrievalConstraint.maxResults * 2, 20);
                     const results = await vectorStore.search(lastUserMsg, {
                         limit: searchLimit,
-                        tenantId: "default",
+                        tenantId,
+                        projectId,
                     });
                     // Filter by score threshold derived from budget
                     const filteredResults = results.filter(
@@ -362,8 +374,8 @@ export function registerChatRoutes(
                 try {
                     const graphResults = await entityStore.searchGraph(
                         lastUserMsg,
-                        "default",
-                        { limit: retrievalConstraint.maxResults },
+                        tenantId,
+                        { limit: retrievalConstraint.maxResults, projectId },
                     );
                     if (graphResults.length > 0) {
                         const contextLines = entityStore.formatContext(graphResults);
@@ -551,13 +563,15 @@ export function registerChatRoutes(
                 emitTelemetry(telemetry, request.log);
                 storeTranscript({
                     requestId,
+                    tenantId,
+                    projectId,
                     model,
                     messages: flattenMessages,
                     responseContent: fullContent,
                     totalTokens,
                     streaming: true,
                 });
-                indexToQdrant(vectorStore, requestId, model, flattenMessages, fullContent);
+                indexToQdrant(vectorStore, requestId, model, flattenMessages, fullContent, tenantId, projectId);
 
                 // Fire-and-forget: entity extraction (GraphRAG)
                 if (entityStore) {
@@ -567,7 +581,7 @@ export function registerChatRoutes(
                     ]
                         .filter(Boolean)
                         .join("\n\n");
-                    entityStore.extractAndStore(conversationText, "default").catch((err: Error) => {
+                    entityStore.extractAndStore(conversationText, tenantId, projectId).catch((err: Error) => {
                         console.error("Entity extraction failed:", err.message);
                         recordDegradation(telemetry, "entity-extraction", err.message);
                     });
@@ -665,6 +679,8 @@ export function registerChatRoutes(
                 emitTelemetry(telemetry, request.log);
                 storeTranscript({
                     requestId,
+                    tenantId,
+                    projectId,
                     model,
                     messages: flattenMessages,
                     responseContent: result.content,
@@ -677,6 +693,8 @@ export function registerChatRoutes(
                     model,
                     flattenMessages,
                     result.content,
+                    tenantId,
+                    projectId,
                 );
 
                 // Fire-and-forget: entity extraction (GraphRAG)
@@ -687,7 +705,7 @@ export function registerChatRoutes(
                     ]
                         .filter(Boolean)
                         .join("\n\n");
-                    entityStore.extractAndStore(conversationText, "default").catch((err: Error) => {
+                    entityStore.extractAndStore(conversationText, tenantId, projectId).catch((err: Error) => {
                         console.error("Entity extraction failed:", err.message);
                         recordDegradation(telemetry, "entity-extraction", err.message);
                     });

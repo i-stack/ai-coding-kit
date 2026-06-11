@@ -114,6 +114,9 @@ export async function migrateSchema(): Promise<void> {
             `CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_name_tenant ON entity(name, tenant_id);`
         );
         await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_entity_tenant_project ON entity(tenant_id, project_id);`
+        );
+        await client.query(
             `CREATE INDEX IF NOT EXISTS idx_entity_edge_from ON entity_edge(from_entity_id);`
         );
         await client.query(
@@ -121,6 +124,9 @@ export async function migrateSchema(): Promise<void> {
         );
         await client.query(
             `CREATE INDEX IF NOT EXISTS idx_entity_edge_relation ON entity_edge(relation);`
+        );
+        await client.query(
+            `CREATE INDEX IF NOT EXISTS idx_edge_tenant_project ON entity_edge(tenant_id, project_id);`
         );
 
         await client.query("COMMIT");

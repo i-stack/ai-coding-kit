@@ -162,7 +162,7 @@ export async function insertEdges(edges: StoreEdge[]): Promise<void> {
 export async function searchEntities(
 	query: string,
 	tenantId: string,
-	options?: { limit?: number },
+	options?: { limit?: number; projectId?: string },
 ): Promise<GraphEntity[]> {
 	const pool = getPool();
 	const limit = options?.limit ?? 5;
@@ -179,15 +179,31 @@ export async function searchEntities(
 	// Build a combined ILIKE pattern for each token
 	const patterns = tokens.map((t) => `%${t}%`);
 
-	const result = await pool.query(
-		`SELECT id, tenant_id, project_id, type, name, properties, created_at
-		 FROM entity
-		 WHERE tenant_id = $1
-		   AND (name ILIKE ANY($2::text[]) OR type ILIKE ANY($2::text[]))
-		 ORDER BY name
-		 LIMIT $3`,
-		[tenantId, patterns, limit],
-	);
+	let sql: string;
+	const params: unknown[] = [tenantId];
+
+	if (options?.projectId) {
+		params.push(options.projectId);
+		params.push(patterns);
+		params.push(limit);
+		sql = `SELECT id, tenant_id, project_id, type, name, properties, created_at
+			 FROM entity
+			 WHERE tenant_id = $1 AND project_id = $2
+			   AND (name ILIKE ANY($3::text[]) OR type ILIKE ANY($3::text[]))
+			 ORDER BY name
+			 LIMIT $4`;
+	} else {
+		params.push(patterns);
+		params.push(limit);
+		sql = `SELECT id, tenant_id, project_id, type, name, properties, created_at
+			 FROM entity
+			 WHERE tenant_id = $1
+			   AND (name ILIKE ANY($2::text[]) OR type ILIKE ANY($2::text[]))
+			 ORDER BY name
+			 LIMIT $3`;
+	}
+
+	const result = await pool.query(sql, params);
 
 	return result.rows.map(rowToEntity);
 }
