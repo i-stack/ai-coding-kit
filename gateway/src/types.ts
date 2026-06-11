@@ -95,6 +95,12 @@ export interface RequestTelemetry {
 	providerLatencyMs: number;
 	fallbackReason?: string;
 	skippedComponents: DegradedComponent[];
+	budget?: {
+		intent: string;
+		maxContextTokens: number;
+		ragTokens: number;
+		reserveTokens: number;
+	};
 	createdAt: Date;
 }
 
