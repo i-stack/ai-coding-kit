@@ -92,7 +92,7 @@ async function main() {
 	app.log.info(`Tool registry: ${toolRegistry.count} tools loaded`);
 
 	// -- Tool executor ------------------------------------------------
-	const toolExecutor = new ToolExecutorEngine(undefined);
+	const toolExecutor = new ToolExecutorEngine();
 
 	// -- Health check -------------------------------------------------------
 	app.get("/health", async () => {

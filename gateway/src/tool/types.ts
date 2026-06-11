@@ -26,14 +26,7 @@ export interface StaticTemplateExecutor {
     contentType?: string;
 }
 
-export interface McpCallExecutor {
-    type: "mcp_call";
-    server: string;
-    method: string;
-    args?: Record<string, unknown>;
-}
-
-export type ToolExecutor = HttpRequestExecutor | StaticTemplateExecutor | McpCallExecutor;
+export type ToolExecutor = HttpRequestExecutor | StaticTemplateExecutor;
 
 // ── Tool spec ─────────────────────────────────────────────────────
 

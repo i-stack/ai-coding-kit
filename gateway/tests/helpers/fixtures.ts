@@ -9,7 +9,7 @@ import type {
     GatewayRequest,
     RequestTelemetry,
 } from "../../src/types.js";
-import type { ToolSpec, HttpRequestExecutor, StaticTemplateExecutor, McpCallExecutor } from "../../src/tool/types.js";
+import type { ToolSpec, HttpRequestExecutor, StaticTemplateExecutor } from "../../src/tool/types.js";
 import type { BudgetProfile, RetrievalConstraints } from "../../src/planner/budget.js";
 
 // ── Messages ────────────────────────────────────────────────────────────
@@ -124,23 +124,6 @@ export const templateToolSpec: ToolSpec = {
         type: "static_template",
         template: "Current time: {{env.NOW}}",
     } as StaticTemplateExecutor,
-};
-
-export const mcpToolSpec: ToolSpec = {
-    name: "query_filesystem",
-    description: "Query the filesystem via MCP.",
-    input_schema: {
-        type: "object",
-        properties: {
-            path: { type: "string", description: "File path" },
-        },
-        required: ["path"],
-    },
-    executor: {
-        type: "mcp_call",
-        server: "filesystem",
-        method: "read",
-    } as McpCallExecutor,
 };
 
 export const modelFilteredTool: ToolSpec = {

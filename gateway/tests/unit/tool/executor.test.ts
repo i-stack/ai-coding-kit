@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
 import { ToolExecutorEngine } from "../../../src/tool/executor.js";
-import { McpClientManager } from "../../../src/mcp/client.js";
 import type { ToolSpec } from "../../../src/tool/types.js";
 
 describe("ToolExecutorEngine", () => {
@@ -12,7 +11,6 @@ describe("ToolExecutorEngine", () => {
         vi.stubGlobal("fetch", fetchMock);
         engine = new ToolExecutorEngine(
             ["api.github.com", "httpbin.org", "jsonplaceholder.typicode.com"],
-            undefined,
         );
     });
 
@@ -158,35 +156,6 @@ describe("ToolExecutorEngine", () => {
         const result = await engine.execute(tool, "call-t3", {});
         expect(result.content).toBe("Value: test_value");
         delete process.env.TEST_VAR;
-    });
-
-    // ── mcp_call tests ──────────────────────────────────────────────────
-
-    it("should return error when McpClientManager is not configured", async () => {
-        const mcpTool: ToolSpec = {
-            name: "mcp_tool",
-            description: "MCP tool",
-            input_schema: { type: "object", properties: {} },
-            executor: { type: "mcp_call", server: "nonexistent", method: "test" },
-        };
-        const simpleEngine = new ToolExecutorEngine();
-        const result = await simpleEngine.execute(mcpTool, "call-m1", {});
-        expect(result.success).toBe(false);
-        expect(result.error).toContain("McpClientManager not available");
-    });
-
-    it("should return error when MCP server is not connected", async () => {
-        const mcpTool: ToolSpec = {
-            name: "mcp_tool",
-            description: "MCP tool",
-            input_schema: { type: "object", properties: {} },
-            executor: { type: "mcp_call", server: "disconnected-server", method: "test" },
-        };
-        const mcpManager = new McpClientManager();
-        const engineWithMcp = new ToolExecutorEngine(undefined, mcpManager);
-        const result = await engineWithMcp.execute(mcpTool, "call-m2", {});
-        expect(result.success).toBe(false);
-        expect(result.error).toContain("not available");
     });
 
     // ── Unknown executor type ───────────────────────────────────────────

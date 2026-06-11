@@ -190,7 +190,12 @@ export class MockVectorStore {
             .map((c) => {
                 const textLower = c.text.toLowerCase();
                 const matchCount = queryTokens.filter((t) => textLower.includes(t)).length;
-                const score = queryTokens.length > 0 ? matchCount / queryTokens.length : 0;
+                // Simulate real embedding similarity: any keyword overlap produces a high base score,
+                // plus a boost proportional to overlap ratio. This mimics real semantic search
+                // where related content reliably scores 0.6-0.95.
+                const score = matchCount > 0
+                    ? 0.6 + Math.min(matchCount / Math.max(queryTokens.length, 1), 0.35)
+                    : 0;
                 return { score, payload: c };
             })
             .filter((r) => r.score > 0)

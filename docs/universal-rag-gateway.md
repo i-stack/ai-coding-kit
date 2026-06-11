@@ -183,7 +183,7 @@ Supported executor types should start small:
 
 - `http_request` with allowlisted hosts, methods, headers, and timeouts.
 - `sql_query` with read-only connections, parameterized queries, and row limits.
-- `mcp_call` with allowlisted server and method names.
+- `mcp_call` with allowlisted server and method names (future — currently unimplemented in MVP).
 - `static_template` for deterministic snippets or checklists.
 
 Do not add shell execution to the self-learning path unless it is separately permissioned, audited, and isolated.
@@ -240,9 +240,7 @@ The first implementation should be deliberately narrow:
 5. ✅ **Static declarative tool registry loaded from JSON** — [`tool/`](../gateway/src/tool/) 模块：[`types.ts`](../gateway/src/tool/types.ts) 定义 `ToolSpec` 和 `HttpRequestExecutor` / `StaticTemplateExecutor` 等类型；[`registry.ts`](../gateway/src/tool/registry.ts) 从 `tools.json` 加载并按模型+状态过滤；[`executor.ts`](../gateway/src/tool/executor.ts) 支持声明式执行（HTTP 请求带 allowlist+超时、静态模板带 `{{args}}`/`{{env}}` 替换）。示例工具见 [`tools.json`](../gateway/tools.json)（当前包含：`get_current_time`、`lookup_http_status`、`get_definition`）。
 6. ✅ **Tool injection with per-model compatibility flags** — [`types.ts`](../gateway/src/tool/types.ts) 新增 `toolChoicePolicy` / `schemaSimplifyFor` / `disableForModels`；[`registry.ts`](../gateway/src/tool/registry.ts) 新增 `resolveToolChoicePolicy()` / `shouldInjectTool()`，支持 glob 模式匹配；新增 [`simplify.ts`](../gateway/src/tool/simplify.ts) 实现按模型阶段简化 schema；[`chat.ts`](../gateway/src/routes/chat.ts) 集成去重合并、per-model tool_choice 链式解析（client→policy→auto→undefined）、模型/工具数量上限。
 7. ✅ **Observability** — 新增 [`telemetry.ts`](../gateway/src/telemetry.ts) 集中管理遥测工厂/降级追踪/结构化 LogEmitter；新增 [`metrics.ts`](../gateway/src/metrics.ts) 提供进程内内存指标采集 + `GET /metrics` JSON 端点（请求计数、延迟直方图、工具调用统计、检索命中、降级事件）；[`index.ts`](../gateway/src/index.ts) 全局使用 Fastify/pino logger；每次请求结束后通过 `emitTelemetry()` 输出结构化遥测日志；provider 错误、数据库/Qdrant 不可用时自动记录降级原因。
-8. ✅ **Full MCP server implementation** — 双向 MCP 支持：
-    - **出站（outbound `mcp_call`）** — [`mcp/config.ts`](../gateway/src/mcp/config.ts) 定义 `McpServerConfig` 并加载 `mcp/servers.json`（支持 command+args 和 url+headers 两种模式）；[`mcp/client.ts`](../gateway/src/mcp/client.ts) `McpClientManager` 管理生命周期，通过 `StdioClientTransport` / `SSEClientTransport` 连接外部 MCP 服务器并缓存工具列表；[`executor.ts`](../gateway/src/tool/executor.ts) 实现 `mcp_call` case，合并 args 与 executor 默认值，调用 `client.callTool()` 并解析返回的 `ContentBlock[]`；启动时自动连接 8 个已配置 MCP 服务器（成功 5 个，降级 3 个），连接失败通过 `metricsCollector` 记录降级事件。
-    - **入站（inbound protocol adapter）** — [`mcp/server.ts`](../gateway/src/mcp/server.ts) 在 Fastify 上注册 `GET /mcp/sse`（建立 SSE 流）和 `POST /mcp/message?sessionId=xxx`（接收 JSON-RPC 消息），通过 `SSEServerTransport` 暴露 `tools/list` 和 `tools/call` 端点，将所有 `ToolRegistry` 中的工具以 MCP 格式暴露给 MCP 原生客户端（Cursor、VS Code 等）。
+8. ✅ **Inbound MCP server** — 入站 MCP 协议适配器（gateway 对外暴露的 MCP 服务端角色，不包含出站 `mcp_call` 执行器）。[`mcp/server.ts`](../gateway/src/mcp/server.ts) 在 Fastify 上注册 `GET /mcp/sse`（建立 SSE 流）和 `POST /mcp/message?sessionId=xxx`（接收 JSON-RPC 消息），通过 `SSEServerTransport` 暴露 `tools/list` 和 `tools/call` 端点，将所有 `ToolRegistry` 中的工具以 MCP 格式暴露给 MCP 原生客户端（Cursor、VS Code 等）。
 9. ✅ **Context Budget Planner with intent-based allocation** — [`planner/`](../gateway/src/planner/) 模块，在每次请求的处理管线第一步执行：
     - **[`intent.ts`](../gateway/src/planner/intent.ts)** — 基于关键词/模式匹配的意图检测器，从最后一条用户消息推断请求类型（`coding-edit` / `debug` / `design` / `qa` / `unknown`），按模式命中数量输出 `high / medium / low` 置信度。无第三方依赖，支持后续升级为 ML 分类器。
     - **[`budget.ts`](../gateway/src/planner/budget.ts)** — `BudgetPlanner` 类根据意图查找 token 分配 profile（详见下方 profile 表），并根据消息长度和数量动态调整；输出可审计的 `BudgetDecision`（含意图标签、置信度、调整原因、原始 profile）。

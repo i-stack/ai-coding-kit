@@ -1,5 +1,4 @@
 import type { ToolSpec, ToolExecutor } from "./types.js";
-import type { McpClientManager } from "../mcp/client.js";
 
 export interface ToolExecutionResult {
     toolCallId: string;
@@ -15,25 +14,21 @@ export interface ToolExecutionResult {
  * For MVP, supports:
  *   - http_request (allowlisted hosts only)
  *   - static_template (deterministic snippet substitution)
- *   - mcp_call (outbound MCP server call via McpClientManager)
  *
  * Security rules:
  *   - http_request: only https://, only allowlisted hosts, timeout enforced
  *   - static_template: no exec/shell, only {{args.X}} and {{env.Y}} substitution
- *   - mcp_call: delegates to McpClientManager, which manages lifecycle
  */
 export class ToolExecutorEngine {
     private allowedHosts: string[];
-    private mcpManager: McpClientManager | undefined;
 
-    constructor(allowedHosts?: string[], mcpManager?: McpClientManager) {
+    constructor(allowedHosts?: string[]) {
         // Default: block everything except documented demo/test hosts
         this.allowedHosts = allowedHosts ?? [
             "api.github.com",
             "httpbin.org",
             "jsonplaceholder.typicode.com",
         ];
-        this.mcpManager = mcpManager;
     }
 
     /**
@@ -50,8 +45,6 @@ export class ToolExecutorEngine {
                     return await this.executeHttp(spec, toolCallId, args);
                 case "static_template":
                     return this.executeTemplate(spec, toolCallId, args);
-                case "mcp_call":
-                    return await this.executeMcpCall(spec, toolCallId, args);
                 default:
                     return {
                         toolCallId,
@@ -98,68 +91,6 @@ export class ToolExecutorEngine {
     }
 
     // ── Private ────────────────────────────────────────────────────
-
-    private async executeMcpCall(
-        spec: ToolSpec,
-        toolCallId: string,
-        args: Record<string, unknown>,
-    ): Promise<ToolExecutionResult> {
-        const executor = spec.executor as Extract<ToolExecutor, { type: "mcp_call" }>;
-
-        if (!this.mcpManager) {
-            return {
-                toolCallId,
-                name: spec.name,
-                content: "MCP client manager not configured",
-                success: false,
-                error: "McpClientManager not available",
-            };
-        }
-
-        const client = this.mcpManager.getClient(executor.server);
-        if (!client) {
-            return {
-                toolCallId,
-                name: spec.name,
-                content: `MCP server "${executor.server}" is not connected`,
-                success: false,
-                error: `MCP server "${executor.server}" not available (state: ${this.mcpManager.getState(executor.server)})`,
-            };
-        }
-
-        try {
-            // Merge incoming args with executor defaults; incoming wins
-            const mergedArgs = { ...(executor.args ?? {}), ...args } as Record<string, unknown>;
-
-            const result = await client.callTool({
-                name: executor.method,
-                arguments: mergedArgs,
-            });
-
-            const contentItems = result.content as unknown as Array<{ type?: string; text?: string }> | undefined;
-            const textContent = contentItems
-                ? contentItems
-                    .map((c) => (c.type === "text" ? (c.text ?? "") : JSON.stringify(c)))
-                    .join("\n")
-                : "";
-
-            return {
-                toolCallId,
-                name: spec.name,
-                content: textContent,
-                success: !result.isError,
-                error: result.isError ? "Tool returned error" : undefined,
-            };
-        } catch (err) {
-            return {
-                toolCallId,
-                name: spec.name,
-                content: `MCP call failed: ${(err as Error).message}`,
-                success: false,
-                error: (err as Error).message,
-            };
-        }
-    }
 
     private async executeHttp(
         spec: ToolSpec,
