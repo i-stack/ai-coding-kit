@@ -11,9 +11,8 @@
 | 目录 | 说明 |
 |------|------|
 | [skills-engineering](skills-engineering/README.md) | 维护、同步与演进工程化 Skill（当前主技能 `ios-engineer`）；含 `SKILL.md`、references、演进提案与校验、同步到各 Agent skills 目录与 preamble。详见该目录 [README](skills-engineering/README.md)。 |
-| [mcp](mcp/) | MCP server 清单（`servers.json`）——本地密钥文件、gitignored；以 `servers.json.example` 为模板。 |
-| [env](env/) | 统一配置源目录：`env/codex/shared.toml`（Codex 通用配置——`model` / `model_provider` / `features` / `projects` 等 CLI 与 Xcode Coding Assistant 共享字段）、`env/claude/settings.shared.json`（Claude Code 环境变量）。 |
-| [sync](sync/README.md) | 把 `mcp/servers.json`、`env/codex/shared.toml`、`env/claude/settings.shared.json` 同步到 Cursor、Codex、Claude Code 与 Xcode Coding Assistant 等路径。详见该目录 [README](sync/README.md)。 |
+| [env](env/) | 唯一配置源目录：`env/config.json`（gitignored，本机密钥与平台配置）与 `env/config.json.example`（可提交模板）。 |
+| [sync](sync/README.md) | 把 `env/config.json` 渲染并同步到 Cursor、Codex、Claude Code 与 Xcode Coding Assistant 等路径。详见该目录 [README](sync/README.md)。 |
 | [docs](docs/universal-rag-gateway.md) | 通用型自学习 RAG Gateway 架构草案：把多端协议适配、混合检索、声明式工具、自学习慢循环拆成可落地的 MVP 与验收条件。 |
 
 ## 认知拓展
@@ -33,9 +32,9 @@
 ## 快速开始
 
 - **技能与 preamble**：在 `skills-engineering` 下按 [skills-engineering/README.md](skills-engineering/README.md) 的「快速开始」执行 `./scripts/sync-skills.sh` 等。
-- **MCP / Codex / Claude 共享**：编辑 `mcp/servers.json`（从 `mcp/servers.json.example` 复制）、`env/codex/shared.toml` 或 `env/claude/settings.shared.json`，然后执行 `bash sync/sync_all.sh`。详见 [sync/README.md](sync/README.md)。
+- **MCP / Codex / Claude / Gateway 共享**：复制并编辑 `env/config.json`，然后执行 `bash sync/sync_all.sh`。详见 [sync/README.md](sync/README.md)。
 
-**忽略规则**：敏感文件与本机配置由仓库根目录 [`.gitignore`](.gitignore) 统一管理（例如 `mcp/servers.json`、`skills-engineering/scripts/config.local.sh`）。
+**忽略规则**：敏感文件与本机配置由仓库根目录 [`.gitignore`](.gitignore) 统一管理（例如 `env/config.json`、`skills-engineering/scripts/config.local.sh`）。
 
 ## Git 钩子
 
@@ -48,7 +47,7 @@ bash install-hooks.sh
 会把 `core.hooksPath` 指向 `.githooks/`：
 
 - [`.githooks/pre-commit`](.githooks/pre-commit)：拦截 `skills-engineering/ios-engineer/SKILL.md` 与 `references/*.md` 的未治理变更（必须同 commit 绑定 evolution proposal + approval）。
-- [`.githooks/pre-push`](.githooks/pre-push)：推送前依次跑 skills-engineering 同步链（`sync-skills.sh` → `sync-agent-preamble.sh` → `verify-sync.sh`），再跑 [`sync/sync_all.sh`](sync/sync_all.sh)；默认任一失败中止 push（例外：`mcp/servers.json` 缺失时，`sync_all.sh` 会跳过并退出 `0`，不阻断 push）。
+- [`.githooks/pre-push`](.githooks/pre-push)：推送前依次跑 skills-engineering 同步链（`sync-skills.sh` → `sync-agent-preamble.sh` → `verify-sync.sh`），再跑 [`sync/sync_all.sh`](sync/sync_all.sh)；默认任一失败中止 push（例外：`env/config.json` 缺失时，`sync_all.sh` 会跳过并退出 `0`，不阻断 push）。
 
 紧急绕过：
 

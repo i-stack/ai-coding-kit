@@ -281,16 +281,48 @@ export class AnthropicProvider implements Provider {
         // Accumulated text content (for potential tool_use blocks found during streaming)
         let textContent = "";
 
+        // Track tool_use blocks during streaming
+        const toolUseAccumulators = new Map<number, {
+            id: string;
+            name: string;
+            input: string; // accumulated partial_json
+        }>();
+
         try {
             for await (const event of stream) {
-                if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-                    textContent += event.delta.text;
-                    yield {
-                        type: "delta",
-                        delta: event.delta.text,
-                    };
-                } else if (event.type === "message_delta") {
-                    // Final message event — includes usage and stop_reason
+                // content_block_start: captures tool_use block header (id + name)
+                if (event.type === "content_block_start") {
+                    if (event.content_block.type === "tool_use") {
+                        const block = event.content_block;
+                        toolUseAccumulators.set(event.index, {
+                            id: block.id,
+                            name: block.name,
+                            input: "",
+                        });
+                    }
+                    continue;
+                }
+
+                // content_block_delta: accumulates text deltas and input_json deltas
+                if (event.type === "content_block_delta") {
+                    if (event.delta.type === "text_delta") {
+                        textContent += event.delta.text;
+                        yield {
+                            type: "delta",
+                            delta: event.delta.text,
+                        };
+                    } else if (event.delta.type === "input_json_delta") {
+                        // Accumulate partial JSON arguments for tool_use blocks
+                        const acc = toolUseAccumulators.get(event.index);
+                        if (acc) {
+                            acc.input += event.delta.partial_json;
+                        }
+                    }
+                    continue;
+                }
+
+                // message_delta: final event with stop_reason and usage
+                if (event.type === "message_delta") {
                     const usage = event.usage
                         ? {
                             promptTokens: event.usage.input_tokens ?? 0,
@@ -299,11 +331,29 @@ export class AnthropicProvider implements Provider {
                         }
                         : undefined;
 
+                    // Build toolCalls from accumulators if stop_reason is "tool_use"
+                    let toolCalls: ProviderResult["toolCalls"] | undefined;
+                    if (event.delta.stop_reason === "tool_use" && toolUseAccumulators.size > 0) {
+                        toolCalls = [];
+                        for (const [, acc] of toolUseAccumulators) {
+                            toolCalls.push({
+                                id: acc.id,
+                                type: "function",
+                                function: {
+                                    name: acc.name,
+                                    arguments: acc.input,
+                                },
+                            });
+                        }
+                    }
+
                     yield {
                         type: "done",
                         finishReason: this.mapFinishReason(event.delta.stop_reason),
                         usage,
+                        toolCalls,
                     };
+                    continue;
                 }
             }
         } finally {

@@ -535,6 +535,35 @@ export function registerChatRoutes(
                             ],
                         };
                         reply.raw.write(`data: ${JSON.stringify(sseData)}\n\n`);
+                    } else if (chunk.type === "done" && chunk.toolCalls) {
+                        // ── Streaming tool calls: emit tool_calls in final delta ──
+                        telemetry.toolCallsExecuted += chunk.toolCalls.length;
+                        metricsCollector?.recordToolCall(chunk.toolCalls.length);
+                        const sseData = {
+                            id: requestId,
+                            object: "chat.completion.chunk",
+                            created: Math.floor(Date.now() / 1000),
+                            model,
+                            choices: [
+                                {
+                                    index: 0,
+                                    delta: {
+                                        tool_calls: chunk.toolCalls.map((tc, i) => ({
+                                            index: i,
+                                            id: tc.id,
+                                            type: tc.type,
+                                            function: tc.function,
+                                        })),
+                                    },
+                                    finish_reason: "tool_calls",
+                                },
+                            ],
+                        };
+                        reply.raw.write(`data: ${JSON.stringify(sseData)}\n\n`);
+                        // Note: streaming path does NOT execute server-side tool
+                        // roundtrip — the client is expected to execute tools and
+                        // submit a new request with tool_results, per OpenAI
+                        // streaming protocol convention.
                     } else if (chunk.type === "done" && chunk.usage && !usageEmitted) {
                         usageEmitted = true;
                         totalTokens = chunk.usage?.totalTokens ?? 0;

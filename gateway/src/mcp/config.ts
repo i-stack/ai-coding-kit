@@ -1,7 +1,8 @@
 /**
  * MCP server configuration types and loader.
  *
- * Reads the same format as `mcp/servers.json`:
+ * Reads any JSON file with an `mcpServers` object.
+ * The canonical local source is `env/config.json`:
  *
  *   {
  *     "mcpServers": {
