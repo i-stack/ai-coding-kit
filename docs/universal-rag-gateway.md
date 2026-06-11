@@ -228,9 +228,9 @@ Every degradation should emit telemetry, because silent fallback can hide that t
 
 The first implementation should be deliberately narrow:
 
-1. Fastify gateway with one OpenAI-compatible endpoint.
-2. Request normalization and pass-through to one configured provider.
-3. PostgreSQL transcript storage.
+1. ✅ **Fastify gateway with one OpenAI-compatible endpoint** — [`gateway/`](../gateway/) 目录，Fastify 5 + OpenAI SDK，支持 `stream: true/false`，SSE 输出。[/v1/chat/completions](../gateway/src/routes/chat.ts) + [/health](../gateway/src/index.ts#L25-L28) + [/v1/models](../gateway/src/routes/chat.ts#L181-L194)。
+2. ✅ **Request normalization and pass-through to one configured provider** — [`types.ts`](../gateway/src/types.ts) 定义了 `GatewayRequest`、`NormalizedMessage`、`ContextBudget` 等内部类型；[`provider/openai.ts`](../gateway/src/provider/openai.ts) 封装 OpenAI SDK 流式/非流式；`.env` 配置上游 provider（当前为 `platform.shuyanai.com`）。
+3. ✅ **PostgreSQL transcript storage** — [`db/`](../gateway/src/db/) 模块，启动时自动建表（conversation + message），每次请求结束后 fire-and-forget 保存 transcript，DB 不可用时降级跳过。
 4. Qdrant semantic memory for message chunks.
 5. Static declarative tool registry loaded from PostgreSQL or local JSON.
 6. Tool injection with per-model compatibility flags.
@@ -248,7 +248,8 @@ Defer these until the MVP is stable:
 
 The gateway is useful only if these can be demonstrated:
 
-- A client can send an OpenAI-compatible request through the gateway and receive a streamed model response.
+- ✅ [已验证] A client can send an OpenAI-compatible request through the gateway and receive a streamed model response.
+- ✅ [已验证] The gateway stores the transcript in PostgreSQL (fire-and-forget, DB unavailable → graceful degradation with telemetry).
 - The gateway stores the transcript and retrieves a relevant prior memory in a later request.
 - Tool schemas are injected only when policy and budget allow.
 - A declarative HTTP tool can run with mocked credentials in tests.
