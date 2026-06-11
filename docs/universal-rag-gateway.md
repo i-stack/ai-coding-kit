@@ -229,7 +229,12 @@ Every degradation should emit telemetry, because silent fallback can hide that t
 The first implementation should be deliberately narrow:
 
 1. ✅ **Fastify gateway with one OpenAI-compatible endpoint** — [`gateway/`](../gateway/) 目录，Fastify 5 + OpenAI SDK，支持 `stream: true/false`，SSE 输出。[/v1/chat/completions](../gateway/src/routes/chat.ts) + [/health](../gateway/src/index.ts#L25-L28) + [/v1/models](../gateway/src/routes/chat.ts#L181-L194)。
-2. ✅ **Request normalization and pass-through to one configured provider** — [`types.ts`](../gateway/src/types.ts) 定义了 `GatewayRequest`、`NormalizedMessage`、`ContextBudget` 等内部类型；[`provider/openai.ts`](../gateway/src/provider/openai.ts) 封装 OpenAI SDK 流式/非流式；`.env` 配置上游 provider（当前为 `platform.shuyanai.com`）。
+2. ✅ **Multi-provider request routing** — [`types.ts`](../gateway/src/types.ts) 定义了 `GatewayRequest`、`NormalizedMessage`、`ContextBudget` 等内部类型；[`provider/`](../gateway/src/provider/) 模块实现了多 Provider 路由架构：
+    - **[`types.ts`](../gateway/src/provider/types.ts)** — 定义了 `Provider` 接口（`chat` / `chatStreaming`），输入统一使用 `NormalizedMessage[]` / `NormalizedTool` / `ToolChoice`，所有 Provider 实现此接口。
+    - **[`openai.ts`](../gateway/src/provider/openai.ts)** — `OpenAIProvider` 实现 Provider 接口，封装 OpenAI SDK 流式/非流式，内部将 Normalized 类型转换为 OpenAI SDK 类型。
+    - **[`anthropic.ts`](../gateway/src/provider/anthropic.ts)** — `AnthropicProvider` 实现 Provider 接口，连接 Anthropic Messages API，包含完整的格式适配（system 提取、`tool` 角色 → `tool_result` 转换、`tool_calls` → `tool_use` 转换、`stop_reason` 映射、`@anthropic-ai/sdk` 流式事件包装为 AsyncGenerator）。
+    - **[`router.ts`](../gateway/src/provider/router.ts)** — `ProviderRouter` 自身实现 `Provider` 接口（委托模式），根据模型名前缀路由：`claude-*` → Anthropic，其余 → OpenAI；Anthropic 调用失败时自动 fallback 到 OpenAI；支持请求级 `X-Provider` 头部覆盖路由。
+    - 配置：`.env` 中 `ANTHROPIC_API_KEY` / `ANTHROPIC_BASE_URL` 可选设置，未配置时只注册 OpenAIProvider。
 3. ✅ **PostgreSQL transcript storage** — [`db/`](../gateway/src/db/) 模块，启动时自动建表（conversation + message），每次请求结束后 fire-and-forget 保存 transcript，DB 不可用时降级跳过。
 4. ✅ **Qdrant semantic memory for message chunks** — [`vector/`](../gateway/src/vector/) 模块：[`embedding.ts`](../gateway/src/vector/embedding.ts) 用同上游 provider 的 `bge-m3` 模型生成 256 维向量；[`qdrant.ts`](../gateway/src/vector/qdrant.ts) 基于原生 fetch 的 REST 客户端（集合创建 / upsert / search）；[`store.ts`](../gateway/src/vector/store.ts) 在消息后自动 chunk 并索引。启动时 index.ts 初始化 Qdrant 连接并创建集合，chat route 中在响应后 fire-and-forget 索引本次对话内容，下次相似请求自动注入相关记忆到 system message。
 5. ✅ **Static declarative tool registry loaded from JSON** — [`tool/`](../gateway/src/tool/) 模块：[`types.ts`](../gateway/src/tool/types.ts) 定义 `ToolSpec` 和 `HttpRequestExecutor` / `StaticTemplateExecutor` 等类型；[`registry.ts`](../gateway/src/tool/registry.ts) 从 `tools.json` 加载并按模型+状态过滤；[`executor.ts`](../gateway/src/tool/executor.ts) 支持声明式执行（HTTP 请求带 allowlist+超时、静态模板带 `{{args}}`/`{{env}}` 替换）。示例工具见 [`tools.json`](../gateway/tools.json)（当前包含：`get_current_time`、`lookup_http_status`、`get_definition`）。
@@ -266,7 +271,7 @@ Defer these until the MVP is stable:
 
 - Automated candidate tool promotion.
 - LLM-Lingua or local compression service.
-- Multi-provider cost optimizer.
+- ~~Multi-provider cost optimizer.~~ ✅ **Multi-provider request routing** — 已实现 `ProviderRouter` 根据模型名前缀自动路由，支持 Anthropic / OpenAI-compatible 后端切换，含 Anthropic 失败 fallback 链。成本优化（权重/成本感知路由）仍为 defer 项。
 
 ## Acceptance Criteria
 
@@ -280,6 +285,7 @@ The gateway is useful only if these can be demonstrated:
 - ✅ [已验证] Tool schemas are injected only when policy and budget allow. The model calls the tool and the result is fed back in a second roundtrip.
 - ✅ [已验证] GraphRAG entity extraction: after a chat response, entities and relationships are extracted via LLM, stored in PostgreSQL entity/entity_edge tables, and persisted across conversations.
 - ✅ [已验证] Graph-enhanced retrieval: a follow-up query matching stored entity names triggers subgraph traversal; structured `[entity-relationship]` context is injected alongside Qdrant chunks, enabling the model to answer cross-conversation relation questions ("What APIs does MyApp use?").
+- ✅ [已验证] Multi-provider routing: model name `claude-*` routes to AnthropicProvider (if `ANTHROPIC_API_KEY` set) or falls back to OpenAIProvider; `gpt-*`/`deepseek-*` routes to OpenAIProvider; `X-Provider` header allows per-request override.
 - A declarative HTTP tool can run with mocked credentials in tests.
 - If Qdrant is stopped, the same request still reaches the provider and telemetry records the fallback.
 - Cache hit rate, retrieval latency, and tool-call success rate are measured rather than assumed.

@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { OpenAIProvider } from "../provider/openai.js";
+import type { Provider } from "../provider/types.js";
 import type { GatewayConfig } from "../config.js";
 import type { VectorStore } from "../vector/store.js";
 import type { EntityStore } from "../entity/store.js";
@@ -232,7 +232,7 @@ function trimMessagesByBudget(
 
 export function registerChatRoutes(
     app: FastifyInstance,
-    provider: OpenAIProvider,
+    provider: Provider,
     config: GatewayConfig,
     vectorStore?: VectorStore,
     entityStore?: EntityStore,
@@ -732,16 +732,42 @@ export function registerChatRoutes(
 
     // ── GET /v1/models ─────────────────────────────────────────────────
     app.get("/v1/models", async (_request, _reply) => {
-        return {
-            object: "list",
-            data: [
+        const models: Array<{ id: string; object: string; created: number; owned_by: string }> = [
+            {
+                id: config.openaiDefaultModel,
+                object: "model",
+                created: Math.floor(Date.now() / 1000),
+                owned_by: "system",
+            },
+        ];
+
+        // Add Anthropic models if that provider is configured
+        if (config.anthropicApiKey) {
+            models.push(
                 {
-                    id: config.openaiDefaultModel,
+                    id: "claude-sonnet-4-20250514",
                     object: "model",
                     created: Math.floor(Date.now() / 1000),
-                    owned_by: "system",
+                    owned_by: "anthropic",
                 },
-            ],
+                {
+                    id: "claude-3-5-haiku-20241022",
+                    object: "model",
+                    created: Math.floor(Date.now() / 1000),
+                    owned_by: "anthropic",
+                },
+                {
+                    id: "claude-opus-4-20250514",
+                    object: "model",
+                    created: Math.floor(Date.now() / 1000),
+                    owned_by: "anthropic",
+                },
+            );
+        }
+
+        return {
+            object: "list",
+            data: models,
         };
     });
 }

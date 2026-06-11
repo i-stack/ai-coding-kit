@@ -6,6 +6,8 @@ export interface GatewayConfig {
 	openaiApiKey: string;
 	openaiBaseUrl: string;
 	openaiDefaultModel: string;
+	anthropicApiKey: string;
+	anthropicBaseUrl: string;
 	databaseUrl?: string;
 	qdrantUrl?: string;
 	graphRagEnabled: boolean;
@@ -30,6 +32,8 @@ export function loadConfig(): GatewayConfig {
 		openaiApiKey: requireEnv("OPENAI_API_KEY"),
 		openaiBaseUrl: optionalEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
 		openaiDefaultModel: optionalEnv("OPENAI_DEFAULT_MODEL", "gpt-4o"),
+		anthropicApiKey: optionalEnv("ANTHROPIC_API_KEY", ""),
+		anthropicBaseUrl: optionalEnv("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
 		databaseUrl: optionalEnv("DATABASE_URL", ""),
 		qdrantUrl: optionalEnv("QDRANT_URL", ""),
 		graphRagEnabled: process.env.GRAPH_RAG_ENABLED === "true",
