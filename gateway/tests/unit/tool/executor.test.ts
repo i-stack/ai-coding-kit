@@ -87,7 +87,6 @@ describe("ToolExecutorEngine", () => {
     it("should enforce timeout via AbortController", async () => {
         fetchMock.mockImplementation(
             () => new Promise((_, reject) => {
-                // This will be rejected by timeout, but we just check AbortSignal is passed
                 setTimeout(() => reject(new Error("timeout")), 100);
             }),
         );
@@ -96,7 +95,6 @@ describe("ToolExecutorEngine", () => {
             executor: { type: "http_request", method: "GET", url: "https://httpbin.org/status/200", timeoutMs: 10 },
         };
         const result = await engine.execute(fastTool, "call-5", { code: "200" });
-        // Timeout results in an error (not success)
         expect(result.success).toBe(false);
     });
 
@@ -125,32 +123,31 @@ describe("ToolExecutorEngine", () => {
 
     // ── static_template tests ───────────────────────────────────────────
 
-    it("should execute static_template with {{args.xxx}} substitution", () => {
+    it("should execute static_template with {{args.xxx}} substitution", async () => {
         const tool: ToolSpec = {
             name: "greet",
             description: "Greet someone",
             input_schema: { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
             executor: { type: "static_template", template: "Hello, {{args.name}}!" },
         };
-        const result = engine.execute(tool, "call-t1", { name: "Alice" });
-        // synchronous, no await needed
+        const result = await engine.execute(tool, "call-t1", { name: "Alice" });
         expect(result.success).toBe(true);
         expect(result.content).toBe("Hello, Alice!");
     });
 
-    it("should execute static_template with {{env.NOW}} substitution", () => {
+    it("should execute static_template with {{env.NOW}} substitution", async () => {
         const tool: ToolSpec = {
             name: "time",
             description: "Get time",
             input_schema: { type: "object", properties: {} },
             executor: { type: "static_template", template: "Time: {{env.NOW}}" },
         };
-        const result = engine.execute(tool, "call-t2", {});
+        const result = await engine.execute(tool, "call-t2", {});
         expect(result.success).toBe(true);
         expect(result.content).toMatch(/Time: \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:/);
     });
 
-    it("should substitute environment variables via {{env.VAR}}", () => {
+    it("should substitute environment variables via {{env.VAR}}", async () => {
         process.env.TEST_VAR = "test_value";
         const tool: ToolSpec = {
             name: "env_test",
@@ -158,7 +155,7 @@ describe("ToolExecutorEngine", () => {
             input_schema: { type: "object", properties: {} },
             executor: { type: "static_template", template: "Value: {{env.TEST_VAR}}" },
         };
-        const result = engine.execute(tool, "call-t3", {});
+        const result = await engine.execute(tool, "call-t3", {});
         expect(result.content).toBe("Value: test_value");
         delete process.env.TEST_VAR;
     });
@@ -175,7 +172,7 @@ describe("ToolExecutorEngine", () => {
         const simpleEngine = new ToolExecutorEngine();
         const result = await simpleEngine.execute(mcpTool, "call-m1", {});
         expect(result.success).toBe(false);
-        expect(result.error).toContain("MCP client manager");
+        expect(result.error).toContain("McpClientManager not available");
     });
 
     it("should return error when MCP server is not connected", async () => {
@@ -189,19 +186,19 @@ describe("ToolExecutorEngine", () => {
         const engineWithMcp = new ToolExecutorEngine(undefined, mcpManager);
         const result = await engineWithMcp.execute(mcpTool, "call-m2", {});
         expect(result.success).toBe(false);
-        expect(result.error).toContain("not connected");
+        expect(result.error).toContain("not available");
     });
 
     // ── Unknown executor type ───────────────────────────────────────────
 
-    it("should return error for unknown executor type", () => {
+    it("should return error for unknown executor type", async () => {
         const badTool: ToolSpec = {
             name: "bad",
             description: "Bad tool",
             input_schema: { type: "object", properties: {} },
             executor: { type: "unknown_executor" as any },
         };
-        const result = engine.execute(badTool, "call-u1", {});
+        const result = await engine.execute(badTool, "call-u1", {});
         expect(result.success).toBe(false);
         expect(result.error).toContain("Unknown executor type");
     });

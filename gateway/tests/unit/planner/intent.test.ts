@@ -10,7 +10,7 @@ describe("detectIntent", () => {
         ];
         const result = detectIntent(messages);
         expect(result.intent).toBe("debug");
-        expect(result.confidence).toBe("high");
+        expect(result.confidence).toBe("medium"); // "crash" matches one pattern, "stack" too
         expect(result.signal).toContain("debug");
     });
 

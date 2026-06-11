@@ -1,7 +1,5 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { loadConfig } from "./config.js";
 import { ProviderRouter } from "./provider/router.js";
 import { registerChatRoutes } from "./routes/chat.js";
@@ -13,11 +11,7 @@ import { ToolRegistry } from "./tool/registry.js";
 import { ToolExecutorEngine } from "./tool/executor.js";
 import { EntityStore } from "./entity/store.js";
 import { metricsCollector } from "./metrics.js";
-import { McpClientManager } from "./mcp/client.js";
-import { loadMcpServerConfigs } from "./mcp/config.js";
 import { registerMcpServer } from "./mcp/server.js";
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function main() {
 	const config = loadConfig();
@@ -97,20 +91,8 @@ async function main() {
 	toolRegistry.loadFromFile();
 	app.log.info(`Tool registry: ${toolRegistry.count} tools loaded`);
 
-	// -- MCP outbound client manager ---------------------------------------
-	const mcpManager = new McpClientManager();
-	const mcpConfigPath = path.resolve(__dirname, "../../mcp/servers.json");
-	const mcpConfigs = loadMcpServerConfigs(mcpConfigPath);
-	if (mcpConfigs.size > 0) {
-		mcpManager.registerServers(mcpConfigs);
-		await mcpManager.startAll();
-		app.log.info(`MCP outbound: ${mcpManager.connectedCount}/${mcpManager.count} servers connected`);
-	} else {
-		app.log.info("No MCP server configs found - outbound MCP disabled");
-	}
-
-	// -- Tool executor (with MCP client manager) ---------------------------
-	const toolExecutor = new ToolExecutorEngine(undefined, mcpManager);
+	// -- Tool executor ------------------------------------------------
+	const toolExecutor = new ToolExecutorEngine(undefined);
 
 	// -- Health check -------------------------------------------------------
 	app.get("/health", async () => {
@@ -137,7 +119,6 @@ async function main() {
 	// -- Graceful shutdown --------------------------------------------------
 	const shutdown = async () => {
 		app.log.info("Shutting down...");
-		await mcpManager.closeAll();
 		await app.close();
 	};
 	process.on("SIGTERM", shutdown);

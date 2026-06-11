@@ -126,16 +126,16 @@ vi.mock("@modelcontextprotocol/sdk/types.js", () => {
 
 // ── Mock node:fs for ToolRegistry / config loading tests ───────────────
 vi.mock("node:fs", () => {
-    const mockFs = {
-        existsSync: vi.fn(() => false),
-        readFileSync: vi.fn(() => ""),
-        writeFileSync: vi.fn(),
-        mkdirSync: vi.fn(),
-    };
+    const mockExistsSync = vi.fn(() => false);
+    const mockReadFileSync = vi.fn(() => "");
 
     return {
-        default: mockFs,
-        ...mockFs,
+        default: {
+            existsSync: mockExistsSync,
+            readFileSync: mockReadFileSync,
+        },
+        existsSync: mockExistsSync,
+        readFileSync: mockReadFileSync,
     };
 });
 
