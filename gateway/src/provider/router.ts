@@ -74,7 +74,7 @@ export class ProviderRouter implements Provider {
         messages: NormalizedMessage[],
         options?: ProviderChatOptions,
     ): Promise<ProviderResult> {
-        const provider = this.resolveProvider(model);
+        const provider = this.resolveProvider(model, options?.providerOverride);
         try {
             return await provider.chat(model, messages, options);
         } catch (err) {
@@ -95,7 +95,7 @@ export class ProviderRouter implements Provider {
         messages: NormalizedMessage[],
         options?: ProviderChatOptions,
     ): AsyncGenerator<ProviderStreamChunk> {
-        const provider = this.resolveProvider(model);
+        const provider = this.resolveProvider(model, options?.providerOverride);
         try {
             yield* provider.chatStreaming(model, messages, options);
         } catch (err) {
@@ -105,6 +105,7 @@ export class ProviderRouter implements Provider {
                 );
                 const fallback = this.providers.get("openai")!;
                 yield* fallback.chatStreaming(model, messages, options);
+                return; // fallback completed successfully — don't throw original error
             }
             throw err;
         }

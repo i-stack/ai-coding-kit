@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import type { Provider } from "../provider/types.js";
+import type { Provider, ProviderChatOptions } from "../provider/types.js";
 import type { GatewayConfig } from "../config.js";
 import type { VectorStore } from "../vector/store.js";
 import type { EntityStore } from "../entity/store.js";
@@ -261,6 +261,7 @@ export function registerChatRoutes(
         const stream = body.stream ?? false;
         const tenantId = body.tenant_id ?? "default";
         const projectId = body.project_id;
+        const providerOverride = (request.headers["x-provider"] as string | undefined) || undefined;
 
         const telemetry = createTelemetry({
             requestId,
@@ -495,7 +496,8 @@ export function registerChatRoutes(
                     temperature: body.temperature,
                     tools: finalTools && finalTools.length > 0 ? finalTools : undefined,
                     toolChoice: resolvedToolChoice ?? (finalTools && finalTools.length > 0 ? "auto" : undefined),
-                };
+                    providerOverride,
+                } satisfies ProviderChatOptions;
 
                 reply.raw.writeHead(200, {
                     "Content-Type": "text/event-stream",
@@ -617,6 +619,7 @@ export function registerChatRoutes(
                     temperature: body.temperature,
                     tools: finalTools && finalTools.length > 0 ? finalTools : undefined,
                     toolChoice: resolvedToolChoice ?? (finalTools && finalTools.length > 0 ? "auto" : undefined),
+                    providerOverride,
                 };
 
                 // First call to the model
@@ -693,6 +696,7 @@ export function registerChatRoutes(
                         temperature: body.temperature,
                         tools: finalTools,
                         toolChoice: resolvedToolChoice ?? ("auto" as any),
+                        providerOverride,
                     });
                 }
 

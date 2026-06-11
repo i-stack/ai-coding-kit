@@ -39,6 +39,12 @@ export interface ProviderChatOptions {
     temperature?: number;
     tools?: NormalizedTool[];
     toolChoice?: ToolChoice;
+    /**
+     * Request-level provider override.
+     * When set (e.g. "openai", "anthropic"), the router bypasses model-based routing.
+     * Propagated via X-Provider request header.
+     */
+    providerOverride?: string;
 }
 
 // ── Provider interface ────────────────────────────────────────────────

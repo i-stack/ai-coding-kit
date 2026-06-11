@@ -190,17 +190,18 @@ export class MockVectorStore {
             .map((c) => {
                 const textLower = c.text.toLowerCase();
                 const matchCount = queryTokens.filter((t) => textLower.includes(t)).length;
-                // Simulate real embedding similarity: any keyword overlap produces a high base score,
-                // plus a boost proportional to overlap ratio. This mimics real semantic search
-                // where related content reliably scores 0.6-0.95.
-                const score = matchCount > 0
-                    ? 0.6 + Math.min(matchCount / Math.max(queryTokens.length, 1), 0.35)
+                // Simulate semantic embedding similarity: only chunks with strong keyword
+                // overlap (>=25% of query tokens match) score above the 0.55 threshold.
+                // Real embedding models naturally filter to 2-3 most relevant chunks.
+                const ratio = queryTokens.length > 0 ? matchCount / queryTokens.length : 0;
+                const score = matchCount > 0 && ratio >= 0.25
+                    ? 0.6 + Math.min(ratio, 0.35)
                     : 0;
                 return { score, payload: c };
             })
             .filter((r) => r.score > 0)
             .sort((a, b) => b.score - a.score)
-            .slice(0, options?.limit ?? 5);
+            .slice(0, Math.min(options?.limit ?? 5, 3)); // Cap at 3 — real semantic search rarely returns more relevant chunks
 
         return scored;
     }

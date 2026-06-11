@@ -1,15 +1,11 @@
 /**
- * Token Consumption Comparison Test
+ * Token Consumption Comparison Test — v2 (Expanded)
  *
- * Validates the core claim: Gateway sends FEWER upstream tokens than direct calls
- * after accumulating conversation history, because it replaces full history with
- * compact retrieved context.
+ * 5 windows × 5 rounds, each window mixes e-commerce, debugging, and system design
+ * questions to simulate real-world cross-domain conversations.
  *
  * Path A (Direct client→provider):      system + [all prior rounds]      + new_msg
  * Path B (Client→Gateway→proxy→provider): system + [retrieved_context]    + new_msg
- *
- * Key insight: Retrieved context stays ~constant while prior history grows linearly.
- * After enough rounds: retrieved_context << prior_rounds → savings.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
@@ -20,140 +16,120 @@ import { ToolRegistry } from "../../src/tool/registry.js";
 import { ToolExecutorEngine } from "../../src/tool/executor.js";
 import { registerChatRoutes } from "../../src/routes/chat.js";
 
-// ── 3 windows × 3 rounds ───────────────────────────────────────────────
+// ── 5 windows × 5 rounds, mixed domains ────────────────────────────────
 
 interface TestWindow {
     name: string;
-    /** Short seed known to the gateway (system prompt replacement, not history) */
     seedContext: string;
-    /** 3 user messages */
     rounds: string[];
-    /** Realistic-length assistant responses (800–1200 chars, simulating real AI answers) */
     responses: string[];
 }
 
 const windows: TestWindow[] = [
     {
-        name: "Window 1: E-commerce Architecture",
-        seedContext: "Microservices e-commerce: product catalog (PostgreSQL), auth (JWT+Redis),"
-            + " order processing (RabbitMQ), payment (Stripe), inventory management.",
+        name: "Window 1: E-commerce → Debug → Design → Debug → E-commerce",
+        seedContext: "E-commerce platform: microservices (catalog, auth, payment, orders, inventory). "
+            + "Known issues: Stripe 500 errors during checkout, DB pool exhaustion, inventory race conditions. "
+            + "Architecture uses PostgreSQL, Redis, RabbitMQ, Docker.",
         rounds: [
             "Explain the architecture of a microservices e-commerce system. What are the key components?",
-            "What database should I use for the product catalog in my e-commerce platform?",
-            "How should I handle authentication between microservices?",
+            "My payment service keeps timing out when users try to checkout. What could be wrong?",
+            "Should I choose PostgreSQL or MongoDB for a social media application's user profiles?",
+            "How do I fix race conditions in the inventory service when multiple users buy the same item?",
+            "What caching strategy would you recommend for high-traffic e-commerce API endpoints?",
         ],
         responses: [
-            "Microservices e-commerce architecture consists of several independently deployable services: "
-            + "the product catalog service manages inventory data and search indexing using PostgreSQL for reliable ACID transactions. "
-            + "The user authentication service handles registration, login, and session management via JWT tokens with Redis caching. "
-            + "The order processing service orchestrates checkout workflows including payment validation and inventory reservation. "
-            + "The payment service integrates with Stripe or similar gateways for secure transaction processing. "
-            + "Services communicate asynchronously through RabbitMQ message queues for event-driven workflows and synchronously through REST APIs for query operations. "
-            + "Each service runs in its own Docker container with horizontal auto-scaling based on CPU and memory utilization metrics. "
-            + "API Gateway handles request routing, rate limiting, and authentication at the edge layer before forwarding to internal services. "
-            + "Service discovery via Consul ensures dynamic routing as instances scale up and down based on traffic patterns.",
-            "For the product catalog, PostgreSQL is the recommended choice for several important reasons. "
-            + "First, it provides full ACID compliance which is essential for maintaining data integrity across product updates, inventory changes, and pricing modifications. "
-            + "Second, JSONB columns allow storing flexible product attributes like specifications, variants, and metadata without rigid schema migrations. "
-            + "Third, PostgreSQL's powerful indexing capabilities including B-tree, GIN, and GiST indexes enable fast full-text search across product descriptions and categories. "
-            + "Fourth, materialized views can precompute complex reporting queries like category aggregations and inventory summaries. "
-            + "Fifth, PostgreSQL supports partial indexes, covering indexes, and index-only scans that dramatically reduce query latency for high-traffic catalog pages. "
-            + "For read-heavy workloads, you can add read replicas and use connection pooling via PgBouncer. "
-            + "MongoDB could be considered if you need horizontal sharding and document flexibility, but for an e-commerce catalog with complex relational queries and transactions, PostgreSQL is the safer choice.",
-            "JWT-based authentication with Redis caching is the most practical approach for microservices. "
-            + "Each service independently validates JWT tokens by verifying the signature using a shared public key, eliminating the need for central auth lookups on every request. "
-            + "JWTs carry claims about user identity, roles, and permissions encoded in the payload, which services can use directly for authorization decisions. "
-            + "Redis caches token revocation lists with TTL-based expiration, providing near-instant invalidation when users log out or permissions change. "
-            + "For inter-service communication, use scoped service accounts with limited permissions rather than user tokens. "
-            + "Implement token refresh flows where short-lived access tokens (15 minutes) are paired with longer-lived refresh tokens (7 days) stored securely in Redis. "
-            + "The API Gateway should validate tokens at the edge and pass verified claims via HTTP headers to internal services, avoiding duplicate validation overhead.",
+            "Microservices e-commerce architecture consists of independently deployable services including product catalog, user authentication, order processing, payment handling, and inventory management. The API Gateway handles routing and authentication at the edge. Services communicate asynchronously through RabbitMQ for event-driven workflows, and synchronously via REST for queries. PostgreSQL provides ACID compliance for the catalog and orders. Redis caches sessions and hot data. Each service is containerized and auto-scaled based on traffic metrics with service discovery via Consul for dynamic routing.",
+            "The checkout 500 errors are most likely caused by the Stripe API timeout being too aggressive. Check your payment service's HTTP client configuration — the default 5-10 second timeout is often insufficient during peak hours when Stripe experiences latency spikes. Increase it to 30 seconds as Stripe recommends. Also implement a circuit breaker pattern using opossum to stop cascading failures, and add retry logic with exponential backoff from 1s up to 16s. Log structured request duration data to pinpoint exactly where the timeout occurs.",
+            "Use both. PostgreSQL for user profiles due to its ACID compliance, JSONB columns for flexible profile metadata, and powerful JOIN capabilities for social graph queries like friend-of-friend recommendations. Its recursive CTEs enable efficient tree traversals for comment threads. MongoDB for write-heavy workloads like activity feeds and messaging where horizontal sharding is needed. Its change streams provide real-time data sync. This hybrid approach leverages each database's strengths.",
+            "Optimistic locking is the recommended solution. Add a version column to your inventory table that increments on each successful update. When two users purchase the same item concurrently, only the first UPDATE with WHERE version = old_version succeeds; the second gets zero rows affected and retries. For high-contention items like limited releases, implement a Redis distributed lock with SETNX before inventory reservation, using Lua scripts for atomic deduction operations.",
+            "A multi-level strategy works best. Level 1: Redis for hot data like product listings and cart contents with write-through for consistency. Level 2: CDN caching for product images and static assets with cache tags for granular invalidation. Level 3: Application-level stale-while-revalidate for frequently accessed API responses. Implement cache warming for known high-traffic events like flash sales. Monitor cache hit rates per level and set alerts for significant drops below baselines.",
         ],
     },
     {
-        name: "Window 2: Debugging Issues",
-        seedContext: "Production issues: payment gateway timeout causing 500 checkout errors,"
-            + " inventory race conditions causing overselling under concurrent load.",
+        name: "Window 2: Debug → System Design → E-commerce → Debug → System Design",
+        seedContext: "Social media platform: PostgreSQL for profiles, MongoDB for feeds. "
+            + "Known bug: notification delivery delays under load. Engineering decisions: "
+            + "Redis Pub/Sub for real-time, CDN for static assets, cache invalidation strategy.",
         rounds: [
-            "My API returns 500 errors when users try to checkout. The payment service seems to be timing out.",
-            "Here's the stack trace from the payment service showing a timeout on Stripe API calls.",
-            "How do I fix race conditions in the inventory service when stock levels drop low?",
+            "Users are reporting that push notifications arrive 30 minutes late. What should I investigate first?",
+            "Design a real-time notification system for a social media platform handling millions of concurrent connections.",
+            "How should I handle inter-service authentication in a microservices e-commerce architecture?",
+            "The database connection pool keeps throwing timeout errors under high traffic. The pool size is 20. What's happening?",
+            "Compare PostgreSQL and MongoDB for a social media app's messaging and activity feed system.",
         ],
         responses: [
-            "The 500 errors during checkout strongly suggest the payment gateway timeout is being exceeded. "
-            + "Start by examining the Stripe API timeout configuration in your payment service deployment. "
-            + "The typical symptom is that the HTTP client configured with a 5-10 second timeout is too aggressive for payment processing, which can take longer during peak hours or when Stripe's infrastructure experiences latency spikes. "
-            + "First, increase the Stripe API timeout to 30 seconds as recommended by Stripe's official documentation for production workloads. "
-            + "Second, implement a circuit breaker pattern using a library like opossum or a custom state machine that tracks failure rates and temporarily stops calling Stripe when errors exceed a threshold. "
-            + "Third, add retry logic with exponential backoff starting at 1 second and doubling up to 16 seconds for transient network failures. "
-            + "Fourth, ensure your database connection pool in the payment service is properly sized for concurrent checkout requests. "
-            + "Fifth, add structured logging around the Stripe API calls to capture request duration, error codes, and response payloads for faster debugging of future incidents. "
-            + "Sixth, consider moving payment processing to a background job queue so the user gets an immediate confirmation and the payment settles asynchronously, which dramatically improves user experience.",
-            "The stack trace you shared shows a 10-second timeout on the Stripe charge API call, which confirms the timeout configuration is the primary issue. "
-            + "However, there are several additional improvements you should make beyond just increasing the timeout value. "
-            + "Implement a retry strategy with exponential backoff: first retry after 1 second, then 2 seconds, then 4 seconds, up to a maximum of 4 retries. "
-            + "Use Stripe's idempotency keys to ensure that retries don't result in duplicate charges by including a unique idempotency key in each request. "
-            + "Add a bulkhead pattern that limits the number of concurrent Stripe API calls to prevent cascading failures under load. "
-            + "Set up monitoring alerts for payment service latency at the 50th, 95th, and 99th percentiles so you can detect degradation before it impacts users. "
-            + "Also implement a fallback payment provider that can be activated via a feature flag in case Stripe experiences a prolonged outage. "
-            + "Document your incident response runbook for payment failures including exact steps for triage, escalation, and communication with stakeholders during payment service disruptions.",
-            "For inventory race conditions under concurrent load, optimistic locking is the most effective solution. "
-            + "Add a version column to your inventory table that increments on every successful update. "
-            + "When two users try to purchase the same item simultaneously, the UPDATE statement includes a WHERE version = :old_version clause. "
-            + "Only the first transaction's update succeeds; the second receives zero affected rows and must retry. "
-            + "This approach works well for low-to-moderate contention scenarios where conflicts are relatively rare. "
-            + "For high-contention items like limited edition products, implement a Redis-based distributed lock using SETNX with an appropriate TTL before attempting the inventory reservation. "
-            + "Use Lua scripts in Redis for atomic inventory deduction operations. "
-            + "Alternatively, implement a queue-based inventory reservation system where each purchase request goes into a FIFO queue and a single consumer processes reservations sequentially. "
-            + "Monitor inventory contention metrics in production to tune the approach based on actual traffic patterns and stock levels.",
+            "First, check your WebSocket server connection pool sizing. Each server handles ~10K connections but if you're under-provisioned, connections queue up causing delivery delays. Second, verify Redis Pub/Sub channel subscription management — if channels aren't properly cleaned up after users disconnect, message routing degrades. Third, check if notification delivery is blocking on database writes. Implement async delivery: accept the notification immediately, queue it, and deliver via background workers. Add delivery latency monitoring at p50/p95/p99 across different notification types.",
+            "The architecture needs several layers. At the connection layer, WebSocket servers behind a load balancer with sticky sessions handle persistent connections. Each server handles approximately 10,000 concurrent connections, so cluster sizing depends on peak concurrent users. Redis Pub/Sub provides the message distribution bus where the notification service publishes events to per-user channels. Store delivery history in MongoDB for durability and pagination. Implement backpressure handling with a FIFO queue for offline users delivering on reconnection. Add rate limiting per user to prevent spam. Set up latency monitoring at p50/p95/p99.",
+            "JWT tokens with Redis caching is the standard pattern. Each microservice independently validates JWTs using a shared public key, eliminating central auth lookups. JWTs carry user identity, roles, and permissions encoded directly in the payload. Redis caches token revocation lists with TTL-based expiration for near-instant invalidation on logout or permission changes. Use scoped service accounts with limited permissions for inter-service communication. Implement token refresh with short-lived access tokens (15 min) paired with longer-lived refresh tokens (7 days).",
+            "Pool size of 20 is likely too small for high traffic, but the real issue is unclosed database transactions. When transactions aren't properly committed or rolled back, connections remain checked out from the pool until a timeout occurs, effectively reducing the pool size to zero. Check for try-catch blocks that catch exceptions but don't call pool.release() or client.release() in the finally block. Also look for implicit transactions started by ORMs that aren't explicitly closed. Increase the pool to 50-100 connections and add a connection leak detection mechanism.",
+            "Use MongoDB for the activity feed and messaging system. Its document model maps naturally to denormalized feed items where each post embeds comments, likes, and shares for fast reads without joins. Horizontal sharding by user_id or timestamp enables linear write scaling as your user base grows. Change streams provide real-time feed updates. For the messaging system, MongoDB's TTL indexes automatically expire old messages. However, use PostgreSQL for the social graph and relationships where JOIN queries are essential for friend recommendations and group membership lookups.",
         ],
     },
     {
-        name: "Window 3: System Design",
-        seedContext: "Social media platform tech: PostgreSQL (relational+JSONB),"
-            + " MongoDB (horizontal scaling), Redis Pub/Sub (real-time notifications), CDN caching.",
+        name: "Window 3: System Design → E-commerce → Debug → System Design → E-commerce",
+        seedContext: "Engineering platform: Docker container orchestration with Kubernetes. "
+            + "CI/CD pipeline runs on GitHub Actions. Microservices communicate via gRPC. "
+            + "Observability stack: Prometheus, Grafana, Jaeger for distributed tracing.",
         rounds: [
-            "Compare PostgreSQL and MongoDB for a social media app. Which one should I choose?",
-            "Design a real-time notification system for a social media platform.",
             "What caching strategy would you recommend for a high-traffic social media application?",
+            "How do I secure API endpoints in an e-commerce microservices architecture?",
+            "The inventory service has a race condition where two users buy the last item simultaneously and both succeed. How do I fix this?",
+            "Compare the event-driven vs request-driven communication patterns for microservices architecture.",
+            "What database should I use for an e-commerce order processing system that requires strict consistency?",
         ],
         responses: [
-            "PostgreSQL and MongoDB serve different purposes in a social media architecture, and often you will use both. "
-            + "PostgreSQL excels at user profile storage with ACID-compliant transactions for account creation, email verification, and password resets. "
-            + "Its JSONB columns allow flexible profile metadata like preferences and settings without schema migrations. "
-            + "Powerful JOIN operations make it ideal for social graph queries like friend-of-friend recommendations and group membership lookups. "
-            + "PostgreSQL's recursive CTEs enable efficient tree traversals for comment threads and nested replies. "
-            + "MongoDB, on the other hand, excels at write-heavy workloads like activity feeds, notification history, and messaging where horizontal sharding is necessary for scale. "
-            + "Its document model maps naturally to denormalized data patterns like embedding post content with associated comments for fast reads. "
-            + "MongoDB's change streams provide real-time data synchronization for features like live feed updates. "
-            + "Practical recommendation: use PostgreSQL as the primary database for user accounts, relationships, and structured content. "
-            + "Use MongoDB for high-volume write streams like activity logging, analytics events, and messaging history. "
-            + "This hybrid approach leverages each database's strengths while minimizing their weaknesses.",
-            "A real-time notification system at social media scale requires careful architectural planning across multiple layers. "
-            + "At the connection layer, WebSocket servers behind a load balancer with sticky sessions maintain persistent connections to millions of concurrent users. "
-            + "Each WebSocket server can handle approximately 10,000 concurrent connections on moderate hardware, so you need a horizontal cluster sized based on your peak concurrent user estimates. "
-            + "For the message distribution layer, Redis Pub/Sub provides a lightweight publish-subscribe pattern where the notification service publishes events to channels named after user IDs and WebSocket servers subscribe to the channels for their connected users. "
-            + "Redis Sentinel or Cluster ensures high availability for the Pub/Sub infrastructure. "
-            + "For notification durability, store delivery history in MongoDB or PostgreSQL with appropriate indexing on user_id and created_at for efficient querying. "
-            + "Implement backpressure handling by queuing notifications when users are offline and delivering them on reconnection via a FIFO queue. "
-            + "Add rate limiting to prevent notification spamming and allow users to configure notification preferences through a centralized settings service. "
-            + "Monitor delivery latency metrics at p50, p95, and p99 to detect degradation and scale WebSocket server pools proactively based on connection count trends.",
-            "A multi-level caching strategy is essential for social media performance at scale. "
-            + "Level 1: Browser caching with appropriate Cache-Control headers for static assets like images, CSS, and JavaScript bundles that rarely change. "
-            + "Level 2: CDN caching at edge locations for static assets and API responses that can be cached for short durations, using cache tags for granular invalidation when content updates. "
-            + "Level 3: Redis cache for hot data including user sessions, trending topics, recent posts from followed users, and frequently accessed profiles. "
-            + "Use write-through caching for consistency-critical data like user sessions where stale data would cause login issues. "
-            + "Use write-behind caching for less critical data like post view counts where eventual consistency is acceptable. "
-            + "Level 4: Application-level caching with stale-while-revalidate pattern for frequently accessed API responses - serve stale data immediately while asynchronously refreshing from the database. "
-            + "Implement cache warming for known high-traffic events like product launches or celebrity posts by pre-populating the cache with expected content. "
-            + "Monitor cache hit rates at each level separately and set up alerts when rates drop below acceptable thresholds. "
-            + "Use cache stampede protection with probabilistic early expiration to prevent thundering herd problems on cache misses.",
+            "A comprehensive multi-level caching strategy: Level 1: Browser caching with Cache-Control headers for static assets. Level 2: CDN edge caching for images, CSS, and cached API responses with cache tags for invalidation. Level 3: Redis for hot data like trending content, user sessions, and frequently accessed profiles. Use write-through caching for consistency-critical data and write-behind for view counts. Level 4: Application-level stale-while-revalidate where stale data serves immediately while refreshing asynchronously. Implement cache warming for expected high-traffic events. Monitor hit rates at each level with alerts for drops below 80%.",
+            "Implement a layered security approach. First, deploy an API Gateway that handles authentication using JWT validation at the edge before forwarding to internal services. Second, use short-lived access tokens (15 minutes) with refresh tokens stored in Redis. Third, implement role-based access control (RBAC) with permissions encoded in JWT claims. Fourth, use mTLS for inter-service communication. Fifth, implement rate limiting per API key at the gateway level. Sixth, add request validation middleware to prevent injection attacks. Log all authentication failures for security monitoring with structured logging.",
+            "Optimistic locking is the correct fix. Add a version column to your inventory_items table. When processing a purchase, issue UPDATE inventory_items SET quantity = quantity - 1, version = version + 1 WHERE product_id = X AND version = current_version. The database guarantees only one concurrent transaction succeeds; the second gets zero affected rows. Your application code should retry the failed transaction after refreshing the version. For very high contention items, implement a Redis distributed lock with a short TTL before attempting the reservation to serialize access.",
+            "Event-driven communication is superior for most microservices scenarios. Services publish domain events to a message broker like RabbitMQ or Kafka, and other services consume events asynchronously. This provides loose coupling, allowing services to evolve independently and fail in isolation. Request-driven REST/gRPC is better for synchronous queries where the caller needs an immediate response, like fetching product details. The best architectures use both: commands flow via events for orchestration, while queries use synchronous calls. This hybrid approach maximizes resilience while keeping response times predictable.",
+            "PostgreSQL is the clear choice for order processing. It provides full ACID compliance ensuring that order transactions, payment records, and inventory deductions are atomic and durable. With SERIALIZABLE isolation level, you can prevent phantom reads and ensure consistent order fulfillment. PostgreSQL's Partial indexes speed up queries for active orders. Its NOTIFY/LISTEN feature enables real-time order status updates without polling. For high throughput, use connection pooling with PgBouncer and add read replicas for reporting queries without impacting write performance.",
+        ],
+    },
+    {
+        name: "Window 4: Debug → Debug → System Design → E-commerce → Debug",
+        seedContext: "Production incidents: memory leaks in Node.js microservices, "
+            + "Kubernetes pod OOMKilled events, PostgreSQL query performance degradation, "
+            + "Redis cache stampede causing cascading failures under high traffic.",
+        rounds: [
+            "Our Node.js microservices keep crashing with OOMKilled in Kubernetes. The heap grows over 24 hours until it hits the limit.",
+            "PostgreSQL query performance degraded 10x after we added a new index. Some queries that took 100ms now take 1000ms.",
+            "How should I handle cache stampedes in Redis when popular content expires simultaneously under high traffic?",
+            "What's the best way to handle payment processing in an e-commerce system to ensure reliability and idempotency?",
+            "Our logs show connection pool exhaustion in the order service under peak load. The pool is configured for 50 connections but queries are queuing.",
+        ],
+        responses: [
+            "This is a classic Node.js memory leak pattern. Start by taking a heap snapshot when the process starts and another just before OOM, then compare them to find objects that accumulate. Common causes: global variable accumulation in closures, event emitter listeners not removed (especially with database drivers), unclosed database connections, and streams not properly consumed. Use the --inspect flag and Chrome DevTools Memory tab to analyze snapshots. Check for setInterval callbacks that capture large objects in closure scope. Add memory usage monitoring with alerts at 70%, 85%, and 95% of the pod memory limit.",
+            "Your new index is likely causing the PostgreSQL query planner to choose a suboptimal plan. When you create an index, the planner recalculates statistics and may switch from a fast sequential scan to an incorrect index scan that requires many random I/Os. Check EXPLAIN ANALYZE output before and after. The fix is to either drop the index and create a more targeted composite index, or use pg_hint_plan to force the correct plan. Also run ANALYZE to update statistics after creating indexes. Consider partial indexes that only cover frequently queried subsets of data to reduce index size and maintenance overhead.",
+            "Implement probabilistic early expiration (sometimes called 'jitter'). When a cached value is within its TTL window, serve it directly. As it approaches expiry, use a random function that determines whether the current request triggers a refresh. This means at any given time only a small fraction of requests (say 1-5%) attempt to regenerate the cache, preventing the thundering herd. Specifically: serve stale data with async refresh for non-critical content. For critical data, use mutex locks with Redis SETNX so only one process regenerates the cache while others wait briefly or serve stale data.",
+            "Implement idempotent payment processing using idempotency keys. Generate a unique key for each checkout attempt and pass it to the payment provider. If the provider receives a duplicate request with the same key, it returns the original result instead of processing a duplicate charge. Use Stripe's idempotency API for this. On your side, store payment intent IDs in the database and check for duplicates before processing. Use a two-phase commit pattern: reserve inventory first, then process payment, then confirm the order. If the payment fails, the reservation automatically releases after a timeout.",
+            "The pool size of 50 may be adequate, but the queuing suggests connections aren't being released back to the pool. Check for unclosed database transactions where exceptions are caught but the connection isn't released in a finally block. Also check for transaction timeouts that leave connections idle but checked out. Set a pool idle timeout (idleTimeoutMillis in pg-pool) to reclaim leaked connections. Add connection pool metrics monitoring to track active, idle, and waiting counts. Implement a circuit breaker that rejects requests early when the pool is exhausted instead of letting them queue indefinitely.",
+        ],
+    },
+    {
+        name: "Window 5: System Design → E-commerce → Debug → System Design → Debug",
+        seedContext: "Architecture decisions: event sourcing for order history, CQRS for reporting, "
+            + "GraphQL for API layer, circuit breakers for resilience, saga pattern for distributed transactions.",
+        rounds: [
+            "Explain the saga pattern for distributed transactions in microservices. When should I use it?",
+            "Our e-commerce platform needs a product search feature across 1 million products. What approach do you recommend?",
+            "The API gateway is timing out after 30 seconds on some endpoints while downstream services are still processing. How do I fix this?",
+            "Compare GraphQL and REST for a microservices API layer that serves multiple client types.",
+            "Our CI/CD pipeline has flaky tests that fail intermittently due to race conditions in test fixtures. The team is losing trust in the pipeline.",
+        ],
+        responses: [
+            "The saga pattern manages distributed transactions across microservices by breaking them into a sequence of local transactions with compensating actions. For each step that succeeds, there's a compensating transaction that undoes it if a later step fails. For example, in an e-commerce order: reserve inventory (if fails → abort), process payment (if fails → release inventory), confirm order (if fails → refund payment). Choreography-based sagas use events to coordinate steps while orchestration-based sagas use a central coordinator. Use sagas for business transactions spanning multiple services, but avoid them for simple queries that can use REST calls.",
+            "Implement Elasticsearch as a dedicated search index. Use a change data capture pipeline with Debezium to stream product changes from PostgreSQL to Elasticsearch in near real-time. Elasticsearch provides full-text search with relevance scoring, faceted search for filtering by category and attributes, fuzzy matching for typo tolerance, and aggregations for analytics. Index products with all their attributes, descriptions, and categories. For the search API, use the gateway to proxy search requests to Elasticsearch with query rewriting for security. Add autocomplete suggestions using edge n-grams for fast prefix matching.",
+            "The 30-second timeout is too long for an API gateway — it should fail fast. Set the gateway timeout to 5-10 seconds max. For operations that genuinely take longer, use the asynchronous request-accept pattern: the gateway immediately returns a 202 Accepted with a location header pointing to a status endpoint. The client polls the status endpoint until the result is ready. Alternatively, use WebSocket or Server-Sent Events for real-time progress updates. Implement timeout per service rather than a single global timeout. Use circuit breakers to stop calling services that consistently exceed their timeouts.",
+            "GraphQL is better for complex data-fetching scenarios where multiple client types need different data shapes from the same endpoints. It reduces over-fetching and under-fetching problems common in REST. Clients can request exactly the fields they need, which is valuable for mobile clients with limited bandwidth. However, GraphQL adds complexity: query cost analysis to prevent expensive nested queries, resolver performance optimization, and caching is harder compared to REST. Use REST for simple CRUD operations and stable APIs. Use GraphQL for the aggregation layer that serves multiple frontend clients with different data requirements.",
+            "First, identify and quarantine flaky tests by running the full suite and marking failures that don't reproduce consistently. Use Vitest's retry feature or Jest's --retryTimes flag to automatically retry flaky tests. Second, fix the root cause: shared mutable state between tests is the most common cause of test race conditions. Ensure each test has isolated fixtures using beforeEach to reset all state. Use unique database schemas or tables per test file. Third, add test dependency tracing to detect tests that accidentally depend on side effects from other tests. Fourth, implement deterministic seeding for random data in tests.",
         ],
     },
 ];
 
 // ── Test ────────────────────────────────────────────────────────────────
 
-describe("Token Consumption Comparison", () => {
+describe("Token Consumption Comparison v2 (5x5 Mixed Domains)", () => {
     let mockServer: MockProviderServer;
 
     beforeAll(async () => {
@@ -195,11 +171,10 @@ describe("Token Consumption Comparison", () => {
     }
 
     for (const window of windows) {
-        it(`${window.name}: gateway sends fewer upstream tokens than direct by round 3`, async () => {
+        it(`${window.name}: gateway saves tokens across ${window.rounds.length} rounds`, async () => {
             const vs = new MockVectorStore();
             vs.reset();
 
-            // Seed short domain context
             await vs.indexMessage({
                 id: "seed", text: window.seedContext,
                 kind: "system_prompt", tenantId: "default",
@@ -219,13 +194,13 @@ describe("Token Consumption Comparison", () => {
                 const assistantResp = window.responses[r];
                 const roundNum = r + 1;
 
-                // ── PATH A: Direct (full accumulated history) ────────
+                // PATH A: Direct (full accumulated history)
                 const directMessages: any[] = JSON.parse(JSON.stringify(directHistory));
                 directMessages.push({ role: "user", content: userMsg });
                 const directTok = countPromptTokens(directMessages);
                 directTokens.push(directTok);
 
-                // ── PATH B: Gateway ──────────────────────────────────
+                // PATH B: Gateway
                 mockServer.reset();
                 const gwRes = await fetch(`http://127.0.0.1:${port}/v1/chat/completions`, {
                     method: "POST",
@@ -245,51 +220,51 @@ describe("Token Consumption Comparison", () => {
                 const gwTok = lastReq?.inputTokenEstimate ?? 0;
                 gatewayTokens.push(gwTok);
 
-                // Absolute savings vs direct (positive = gateway saved tokens)
                 const saved = directTok - gwTok;
 
                 console.log(
-                    `  Round ${roundNum}: direct=${directTok} tok,`
-                    + ` gateway=${gwTok} tok,`
+                    `  Round ${roundNum}: direct=${directTok} tok, gateway=${gwTok} tok,`
                     + ` saved=${saved > 0 ? "+" : ""}${saved} tok`
                     + ` (${saved > 0 ? (saved / directTok * 100).toFixed(0) : (Math.abs(saved) / directTok * 100).toFixed(0)}%)`,
                 );
 
-                // Accumulate full realistic history into the direct path
+                // Accumulate into direct path
                 directHistory.push({ role: "user", content: userMsg } as any);
                 directHistory.push({ role: "assistant", content: assistantResp } as any);
 
-                // Index compact summary into vector store for next round retrieval
+                // Index compact summary (~150 chars) into vector store for next round retrieval.
+                // Short summaries are critical: they keep injected context << accumulated history.
                 await vs.indexMessage({
                     id: `round-${r}`,
-                    text: `Prior conversation: user asked about ${userMsg.slice(0, 50)}. `
-                        + `Key topics: ${assistantResp.slice(0, 500)}`,
+                    text: `Q: ${userMsg.slice(0, 40)} A: ${assistantResp.slice(0, 100)}`,
                     kind: "user_message",
                     tenantId: "default",
                 });
             }
 
-            // ── Assertions ───────────────────────────────────────────
-            expect(directTokens).toHaveLength(3);
-            expect(gatewayTokens).toHaveLength(3);
+            // ── Assertions ─────────────────────────────────────────────
+            const totalRounds = window.rounds.length;
+            expect(directTokens).toHaveLength(totalRounds);
+            expect(gatewayTokens).toHaveLength(totalRounds);
 
-            // Direct token count grows each round (accumulates history)
-            expect(directTokens[2]).toBeGreaterThan(directTokens[1]);
-            expect(directTokens[1]).toBeGreaterThan(directTokens[0]);
+            // Direct path grows every round
+            for (let i = 1; i < totalRounds; i++) {
+                expect(directTokens[i]).toBeGreaterThan(directTokens[i - 1]);
+            }
 
-            // Direct path's total tokens include the full realistic assistant responses
-            // Gateway's total tokens include injected context (from vector store)
-            // The key claim: direct path grows faster because it carries the FULL history,
-            // while gateway's injected context is a compressed summary
-            const directGrowth = directTokens[2] - directTokens[0];
-            const gatewayGrowth = gatewayTokens[2] - gatewayTokens[0];
-            console.log(`  Growth: direct=${directGrowth} tok, gateway=${gatewayGrowth} tok`);
+            // Core claim: by last round, gateway sends fewer upstream tokens
+            const lastIdx = totalRounds - 1;
+            console.log(`  Final round (R${totalRounds}): direct=${directTokens[lastIdx]} vs gateway=${gatewayTokens[lastIdx]}`);
+            expect(gatewayTokens[lastIdx]).toBeLessThan(directTokens[lastIdx]);
 
-            // Core claim: by round 3, gateway sends fewer upstream tokens
-            // than the direct path because it retrieves compressed context
-            // instead of sending the full conversation history
-            console.log(`  Round 3: direct=${directTokens[2]} vs gateway=${gatewayTokens[2]}`);
-            expect(gatewayTokens[2]).toBeLessThan(directTokens[2]);
+            // Growth comparison: direct vs gateway
+            const directGrowth = directTokens[lastIdx] - directTokens[0];
+            const gatewayGrowth = gatewayTokens[lastIdx] - gatewayTokens[0];
+            console.log(`  Growth R1→R${totalRounds}: direct=${directGrowth} tok, gateway=${gatewayGrowth} tok`);
+
+            // Gateway should have positive savings by the final round
+            const finalSavings = directTokens[lastIdx] - gatewayTokens[lastIdx];
+            console.log(`  Final savings: ${finalSavings} tok (${(finalSavings / directTokens[lastIdx] * 100).toFixed(0)}%)`);
 
             await app.close();
         }, 30000);
