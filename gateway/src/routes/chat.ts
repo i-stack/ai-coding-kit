@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import type { OpenAIProvider } from "../provider/openai.js";
 import type { GatewayConfig } from "../config.js";
+import type { VectorStore } from "../vector/store.js";
 import crypto from "node:crypto";
 
 // ── Optional transcript storage ────────────────────────────────────
@@ -13,20 +14,16 @@ interface TranscriptStore {
   streaming: boolean;
 }
 
-async function storeTranscript(
-  store: TranscriptStore,
-): Promise<void> {
+async function storeTranscript(store: TranscriptStore): Promise<void> {
   try {
-    const { insertConversation, insertMessage, finalizeConversation, generateId } = await import(
-      "../db/transcript.js"
-    );
+    const { insertConversation, insertMessage, finalizeConversation, generateId } =
+      await import("../db/transcript.js");
     const { getPool } = await import("../db/index.js");
 
-    // Check if pool is available without throwing
     try {
       getPool();
     } catch {
-      return; // DB not initialized, skip silently
+      return;
     }
 
     const conversationId = store.requestId;
@@ -40,7 +37,6 @@ async function storeTranscript(
       startedAt: now,
     });
 
-    // Store each user message
     for (let i = 0; i < store.messages.length; i++) {
       const msg = store.messages[i];
       await insertMessage({
@@ -52,7 +48,6 @@ async function storeTranscript(
       });
     }
 
-    // Store assistant response
     await insertMessage({
       id: generateId(),
       conversationId,
@@ -63,14 +58,52 @@ async function storeTranscript(
 
     await finalizeConversation(conversationId, store.totalTokens);
   } catch (err) {
-    // Transcript storage is best-effort — never fail the request
     console.error("Failed to store transcript:", (err as Error).message);
+  }
+}
+
+// ── Optional Qdrant indexing ───────────────────────────────────────
+async function indexToQdrant(
+  vectorStore: VectorStore | undefined,
+  requestId: string,
+  _model: string,
+  userMessages: Array<{ role: string; content: string | null }>,
+  responseContent: string | null,
+): Promise<void> {
+  if (!vectorStore) return;
+
+  try {
+    // Index each user message as a chunk
+    for (const msg of userMessages) {
+      if (!msg.content) continue;
+      await vectorStore.indexMessage({
+        id: crypto.randomUUID(),
+        text: msg.content,
+        kind: "user_message",
+        tenantId: "default",
+        sourceMessageId: crypto.randomUUID(),
+        conversationId: requestId,
+      });
+    }
+
+    // Index assistant response
+    if (responseContent) {
+      await vectorStore.indexMessage({
+        id: crypto.randomUUID(),
+        text: responseContent,
+        kind: "assistant_message",
+        tenantId: "default",
+        sourceMessageId: crypto.randomUUID(),
+        conversationId: requestId,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to index to Qdrant:", (err as Error).message);
   }
 }
 
 /**
  * Schema for the incoming OpenAI-compatible chat completion request.
- * We only validate the fields we need; extra fields are passed through.
  */
 interface ChatCompletionRequest {
   model?: string;
@@ -99,6 +132,7 @@ export function registerChatRoutes(
   app: FastifyInstance,
   provider: OpenAIProvider,
   config: GatewayConfig,
+  vectorStore?: VectorStore,
 ): void {
   // ── POST /v1/chat/completions ──────────────────────────────────────
   app.post("/v1/chat/completions", async (request, reply) => {
@@ -107,12 +141,10 @@ export function registerChatRoutes(
 
     const body = request.body as ChatCompletionRequest;
 
-    // 1. Normalize: extract fields with sensible defaults
     const model = body.model ?? config.openaiDefaultModel;
     const messages = body.messages;
     const stream = body.stream ?? false;
 
-    // Telemetry snapshot (before processing)
     const telemetry = {
       requestId,
       tenantId: "default",
@@ -123,16 +155,15 @@ export function registerChatRoutes(
       stream,
       providerLatencyMs: 0,
       createdAt: new Date(),
+      retrievalHits: 0,
     };
 
-    // Ensure content is a string for transcript storage
     const flattenMessages = messages.map((m) => ({
       role: m.role,
       content:
         typeof m.content === "string" ? m.content : JSON.stringify(m.content),
     }));
 
-    // Map tool_choice (OpenAI-compatible format → SDK format)
     const toolChoice = body.tool_choice as any;
 
     const options = {
@@ -143,6 +174,45 @@ export function registerChatRoutes(
     };
 
     try {
+      // ── Optional: retrieve relevant memories from Qdrant ─────────────
+      let retrievedContext: string | undefined;
+      if (vectorStore) {
+        try {
+          // Use the last user message as the query
+          const lastUserMsg = [...flattenMessages]
+            .reverse()
+            .find((m) => m.role === "user");
+          if (lastUserMsg?.content) {
+            const results = await vectorStore.search(lastUserMsg.content, {
+              limit: 3,
+              tenantId: "default",
+            });
+            if (results.length > 0) {
+              retrievedContext = results
+                .map(
+                  (r) => `[memory (relevance=${r.score.toFixed(2)})] ${r.payload.text}`,
+                )
+                .join("\n\n");
+              telemetry.retrievalHits = results.length;
+            }
+          }
+        } catch (err) {
+          console.error("Qdrant search error:", (err as Error).message);
+        }
+      }
+
+      // ── Build enriched messages ─────────────────────────────────────
+      let enrichedMessages = messages;
+      if (retrievedContext) {
+        enrichedMessages = [
+          {
+            role: "system" as const,
+            content: `Relevant context from previous conversations:\n\n${retrievedContext}`,
+          },
+          ...messages,
+        ];
+      }
+
       if (stream) {
         // ── Streaming path ──────────────────────────────────────────
         reply.raw.writeHead(200, {
@@ -152,7 +222,11 @@ export function registerChatRoutes(
           "x-request-id": requestId,
         });
 
-        const chunkIter = provider.chatStreaming(model, messages as any, options);
+        const chunkIter = provider.chatStreaming(
+          model,
+          enrichedMessages as any,
+          options,
+        );
         let usageEmitted = false;
         const contentParts: string[] = [];
         let totalTokens = 0;
@@ -192,8 +266,11 @@ export function registerChatRoutes(
               usage: chunk.usage,
             };
             reply.raw.write(`data: ${JSON.stringify(sseData)}\n\n`);
-          } else if (chunk.type === "done" && chunk.finishReason && !usageEmitted) {
-            // Final chunk with finish reason but no usage
+          } else if (
+            chunk.type === "done" &&
+            chunk.finishReason &&
+            !usageEmitted
+          ) {
             const sseData = {
               id: requestId,
               object: "chat.completion.chunk",
@@ -214,22 +291,28 @@ export function registerChatRoutes(
         reply.raw.write("data: [DONE]\n\n");
         reply.raw.end();
 
-        // Store transcript after stream ends (fire-and-forget)
+        // Fire-and-forget: transcript + Qdrant index
+        const fullContent = contentParts.join("");
         storeTranscript({
           requestId,
           model,
           messages: flattenMessages,
-          responseContent: contentParts.join(""),
+          responseContent: fullContent,
           totalTokens,
           streaming: true,
         });
+        indexToQdrant(vectorStore, requestId, model, flattenMessages, fullContent);
       } else {
         // ── Non-streaming path ──────────────────────────────────────
-        const result = await provider.chat(model, messages as any, options);
+        const result = await provider.chat(
+          model,
+          enrichedMessages as any,
+          options,
+        );
 
         telemetry.providerLatencyMs = Date.now() - startTime;
 
-        // Store transcript (fire-and-forget)
+        // Fire-and-forget: transcript + Qdrant index
         storeTranscript({
           requestId,
           model,
@@ -238,6 +321,13 @@ export function registerChatRoutes(
           totalTokens: result.usage?.totalTokens ?? 0,
           streaming: false,
         });
+        indexToQdrant(
+          vectorStore,
+          requestId,
+          model,
+          flattenMessages,
+          result.content,
+        );
 
         return {
           id: result.id,
@@ -262,7 +352,6 @@ export function registerChatRoutes(
       const err = error as Error;
       console.error(`[${requestId}] provider error:`, err.message);
 
-      // Do NOT return raw error details to client (avoid leaking API keys)
       const statusCode = err.message.includes("401") ? 502 : 502;
       return reply.status(statusCode).send({
         error: {
@@ -274,7 +363,7 @@ export function registerChatRoutes(
     }
   });
 
-  // ── GET /v1/models (informational, returns configured model) ──────
+  // ── GET /v1/models ─────────────────────────────────────────────────
   app.get("/v1/models", async (_request, _reply) => {
     return {
       object: "list",

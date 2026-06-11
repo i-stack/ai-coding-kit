@@ -231,7 +231,7 @@ The first implementation should be deliberately narrow:
 1. ✅ **Fastify gateway with one OpenAI-compatible endpoint** — [`gateway/`](../gateway/) 目录，Fastify 5 + OpenAI SDK，支持 `stream: true/false`，SSE 输出。[/v1/chat/completions](../gateway/src/routes/chat.ts) + [/health](../gateway/src/index.ts#L25-L28) + [/v1/models](../gateway/src/routes/chat.ts#L181-L194)。
 2. ✅ **Request normalization and pass-through to one configured provider** — [`types.ts`](../gateway/src/types.ts) 定义了 `GatewayRequest`、`NormalizedMessage`、`ContextBudget` 等内部类型；[`provider/openai.ts`](../gateway/src/provider/openai.ts) 封装 OpenAI SDK 流式/非流式；`.env` 配置上游 provider（当前为 `platform.shuyanai.com`）。
 3. ✅ **PostgreSQL transcript storage** — [`db/`](../gateway/src/db/) 模块，启动时自动建表（conversation + message），每次请求结束后 fire-and-forget 保存 transcript，DB 不可用时降级跳过。
-4. Qdrant semantic memory for message chunks.
+4. ✅ **Qdrant semantic memory for message chunks** — [`vector/`](../gateway/src/vector/) 模块：[`embedding.ts`](../gateway/src/vector/embedding.ts) 用同上游 provider 的 `bge-m3` 模型生成 256 维向量；[`qdrant.ts`](../gateway/src/vector/qdrant.ts) 基于原生 fetch 的 REST 客户端（集合创建 / upsert / search）；[`store.ts`](../gateway/src/vector/store.ts) 在消息后自动 chunk 并索引。启动时 index.ts 初始化 Qdrant 连接并创建集合，chat route 中在响应后 fire-and-forget 索引本次对话内容，下次相似请求自动注入相关记忆到 system message。
 5. Static declarative tool registry loaded from PostgreSQL or local JSON.
 6. Tool injection with per-model compatibility flags.
 7. Observability: request id, retrieval hits, injected tools, fallback reason, provider latency.
@@ -250,6 +250,7 @@ The gateway is useful only if these can be demonstrated:
 
 - ✅ [已验证] A client can send an OpenAI-compatible request through the gateway and receive a streamed model response.
 - ✅ [已验证] The gateway stores the transcript in PostgreSQL (fire-and-forget, DB unavailable → graceful degradation with telemetry).
+- ✅ [已验证] Semantic memory via Qdrant: previous messages are indexed as vector chunks, and relevant memories are retrieved and injected as context in subsequent requests.
 - The gateway stores the transcript and retrieves a relevant prior memory in a later request.
 - Tool schemas are injected only when policy and budget allow.
 - A declarative HTTP tool can run with mocked credentials in tests.

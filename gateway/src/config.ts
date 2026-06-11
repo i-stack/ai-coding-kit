@@ -7,6 +7,7 @@ export interface GatewayConfig {
   openaiBaseUrl: string;
   openaiDefaultModel: string;
   databaseUrl?: string;
+  qdrantUrl?: string;
 }
 
 function requireEnv(key: string): string {
@@ -29,5 +30,6 @@ export function loadConfig(): GatewayConfig {
     openaiBaseUrl: optionalEnv("OPENAI_BASE_URL", "https://api.openai.com/v1"),
     openaiDefaultModel: optionalEnv("OPENAI_DEFAULT_MODEL", "gpt-4o"),
     databaseUrl: optionalEnv("DATABASE_URL", ""),
+    qdrantUrl: optionalEnv("QDRANT_URL", ""),
   };
 }
