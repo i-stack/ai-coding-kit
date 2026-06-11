@@ -319,6 +319,7 @@ export function registerChatRoutes(
             }
 
             // ── Step 2: Retrieve relevant memories from Qdrant + Graph ─────
+            let memorySnippets: Array<{ relevance: string; preview: string }> | undefined;
             let retrievedContext: string | undefined;
             let graphContext: string | undefined;
             let lastUserMsg: string | undefined;
@@ -353,6 +354,10 @@ export function registerChatRoutes(
                             .join("\n\n");
                         telemetry.retrievalHits = cappedResults.length;
                         metricsCollector.recordRetrievalHits(cappedResults.length);
+                        memorySnippets = cappedResults.map((r) => ({
+                            relevance: r.score.toFixed(2),
+                            preview: r.payload.text.slice(0, 200),
+                        }));
                     }
                     request.log.debug(
                         {
@@ -381,6 +386,13 @@ export function registerChatRoutes(
                         const contextLines = entityStore.formatContext(graphResults);
                         graphContext = contextLines.join("\n");
                         telemetry.retrievalHits += graphResults.length;
+                        if (!memorySnippets) memorySnippets = [];
+                        for (const r of graphResults) {
+                            memorySnippets.push({
+                                relevance: "0.50",
+                                preview: r.entity.name.slice(0, 200),
+                            });
+                        }
                         request.log.debug(
                             { graphHits: graphResults.length },
                             "graph-enhanced retrieval",
@@ -394,6 +406,17 @@ export function registerChatRoutes(
 
             // ── Step 3: Inject tools + retrieved context from Qdrant and Graph ─
             let enrichedMessages: any[] = trimmedMessages;
+            // Deduplicate memory snippets by lowercased preview (graph extraction
+            // may store same entity under different casing, Qdrant + graph may overlap)
+            if (memorySnippets) {
+                const seen = new Set<string>();
+                memorySnippets = memorySnippets.filter((s) => {
+                    const key = s.preview.toLowerCase();
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            }
             const memoryContext = [retrievedContext, graphContext]
                 .filter(Boolean)
                 .join("\n\n");
@@ -479,6 +502,7 @@ export function registerChatRoutes(
                     "Cache-Control": "no-cache",
                     Connection: "keep-alive",
                     "x-request-id": requestId,
+                    "x-gateway-retrieval-hits": String(telemetry.retrievalHits),
                 });
 
                 const chunkIter = provider.chatStreaming(
@@ -728,6 +752,12 @@ export function registerChatRoutes(
                     ],
                     usage: result.usage,
                     _telemetrySumary: telemetrySummary(telemetry),
+                    _memoryContext: memorySnippets
+                        ? {
+                              hitCount: telemetry.retrievalHits,
+                              snippets: memorySnippets,
+                          }
+                        : null,
                 };
             }
         } catch (error) {

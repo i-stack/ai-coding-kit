@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { metricsCollector } from "../../../src/metrics.js";
+import { metricsCollector } from "../../src/metrics.js";
 
 describe("MetricsCollector", () => {
     beforeEach(() => {
