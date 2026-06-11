@@ -30,6 +30,8 @@ export interface ProviderStreamChunk {
     delta?: string;
     finishReason?: string | null;
     usage?: ProviderResult["usage"];
+    /** Tool calls detected at end of streaming (finish_reason === "tool_calls"). */
+    toolCalls?: ProviderResult["toolCalls"];
 }
 
 // ── Chat options with normalized types ────────────────────────────────

@@ -74,23 +74,33 @@ export class EntityStore {
 				})
 				.filter((e): e is NonNullable<typeof e> => e !== null);
 
+			let persistedIds: Map<string, string> | undefined;
 			if (entities.length > 0) {
-				await graphDb.upsertEntities(entities);
+				persistedIds = await graphDb.upsertEntities(entities);
+			}
+
+			// Merge persisted IDs so ON CONFLICT-updated entities use their real DB id,
+			// preventing FK violations when the in-memory id was discarded by ON CONFLICT.
+			const resolvedNameToId = new Map(nameToId);
+			if (persistedIds) {
+				for (const [name, id] of persistedIds) {
+					resolvedNameToId.set(name, id);
+				}
 			}
 
 			// Insert edges only where both endpoints are resolved in this batch
 			const edges = result.relationships
 				.filter((r) => {
-					const fromId = nameToId.get(r.from.trim());
-					const toId = nameToId.get(r.to.trim());
+					const fromId = resolvedNameToId.get(r.from.trim());
+					const toId = resolvedNameToId.get(r.to.trim());
 					return fromId && toId && r.relation && r.relation.length > 0;
 				})
 				.map((r) => ({
 					id: crypto.randomUUID(),
 					tenantId,
 					projectId,
-					fromEntityId: nameToId.get(r.from.trim())!,
-					toEntityId: nameToId.get(r.to.trim())!,
+					fromEntityId: resolvedNameToId.get(r.from.trim())!,
+					toEntityId: resolvedNameToId.get(r.to.trim())!,
 					relation: r.relation,
 					properties: r.properties,
 				}));

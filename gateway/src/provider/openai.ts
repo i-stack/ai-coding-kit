@@ -149,6 +149,22 @@ export class OpenAIProvider implements Provider {
 
         for await (const chunk of stream) {
             const choice = chunk.choices?.[0];
+
+            // Accumulate tool call deltas per index
+            if (choice?.delta?.tool_calls) {
+                for (const tc of choice.delta.tool_calls) {
+                    if (tc.index === undefined) continue;
+                    let acc = this.toolCallAccumulators.get(tc.index);
+                    if (!acc) {
+                        acc = { id: "", type: "function", function: { name: "", arguments: "" } };
+                        this.toolCallAccumulators.set(tc.index, acc);
+                    }
+                    if (tc.id) acc.id = tc.id;
+                    if (tc.function?.name) acc.function.name = tc.function.name;
+                    if (tc.function?.arguments) acc.function.arguments += tc.function.arguments;
+                }
+            }
+
             if (choice?.delta?.content) {
                 yield {
                     type: "delta",
@@ -156,9 +172,26 @@ export class OpenAIProvider implements Provider {
                     finishReason: choice.finish_reason ?? null,
                 };
             } else if (choice?.finish_reason) {
+                // Build accumulated toolCalls if finish_reason is "tool_calls"
+                let toolCalls: ProviderResult["toolCalls"] | undefined;
+                if (choice.finish_reason === "tool_calls" && this.toolCallAccumulators.size > 0) {
+                    toolCalls = [];
+                    for (const [, acc] of this.toolCallAccumulators) {
+                        toolCalls.push({
+                            id: acc.id,
+                            type: "function",
+                            function: {
+                                name: acc.function.name,
+                                arguments: acc.function.arguments,
+                            },
+                        });
+                    }
+                }
+
                 yield {
                     type: "done",
                     finishReason: choice.finish_reason,
+                    toolCalls,
                 };
             }
 
@@ -176,4 +209,10 @@ export class OpenAIProvider implements Provider {
             }
         }
     }
-}
+
+    // Accumulate tool call deltas per index across streaming chunks
+    private toolCallAccumulators = new Map<number, {
+        id: string;
+        type: string;
+        function: { name: string; arguments: string };
+    }>();

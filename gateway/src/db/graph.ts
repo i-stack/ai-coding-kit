@@ -37,16 +37,19 @@ export interface StoreEdge {
 
 /**
  * Upsert a single entity by (name, tenant_id).
- * If an entity with the same name + tenant exists, its type and properties are updated.
+ * If an entity with the same name + tenant exists, its type, project_id, and properties are updated.
+ * Returns the real persisted ID (the existing one when a conflict occurs).
  */
-export async function upsertEntity(entity: StoreEntity): Promise<void> {
+export async function upsertEntity(entity: StoreEntity): Promise<string> {
 	const pool = getPool();
-	await pool.query(
+	const result = await pool.query(
 		`INSERT INTO entity (id, tenant_id, project_id, type, name, properties)
 		 VALUES ($1, $2, $3, $4, $5, $6)
 		 ON CONFLICT (name, tenant_id) DO UPDATE SET
 		   type = COALESCE(NULLIF($4, ''), entity.type),
-		   properties = entity.properties || $6`,
+		   project_id = COALESCE(NULLIF($3, ''), entity.project_id),
+		   properties = entity.properties || $6
+		 RETURNING id`,
 		[
 			entity.id,
 			entity.tenantId,
@@ -56,27 +59,34 @@ export async function upsertEntity(entity: StoreEntity): Promise<void> {
 			JSON.stringify(entity.properties),
 		],
 	);
+	return result.rows[0].id as string;
 }
 
 /**
- * Batch upsert entities.
- * Each entity that shares (name, tenant_id) with an existing row updates it.
+ * Batch upsert entities and return a map of name → persisted ID.
+ *
+ * Each entity that shares (name, tenant_id) with an existing row updates it
+ * and returns the real (existing) ID. New entities return their inserted ID.
+ * The returned map allows callers to build foreign-key references with the
+ * correct IDs rather than in-memory-generated IDs that ON CONFLICT discarded.
  */
-export async function upsertEntities(entities: StoreEntity[]): Promise<void> {
-	if (entities.length === 0) return;
+export async function upsertEntities(entities: StoreEntity[]): Promise<Map<string, string>> {
+	if (entities.length === 0) return new Map();
 
 	const pool = getPool();
-	// Use individual inserts within a transaction for reliability
 	const client = await pool.connect();
+	const nameToId = new Map<string, string>();
 	try {
 		await client.query("BEGIN");
 		for (const e of entities) {
-			await client.query(
+			const result = await client.query(
 				`INSERT INTO entity (id, tenant_id, project_id, type, name, properties)
 				 VALUES ($1, $2, $3, $4, $5, $6)
 				 ON CONFLICT (name, tenant_id) DO UPDATE SET
 				   type = COALESCE(NULLIF($4, ''), entity.type),
-				   properties = entity.properties || $6`,
+				   project_id = COALESCE(NULLIF($3, ''), entity.project_id),
+				   properties = entity.properties || $6
+				 RETURNING id, name`,
 				[
 					e.id,
 					e.tenantId,
@@ -86,6 +96,8 @@ export async function upsertEntities(entities: StoreEntity[]): Promise<void> {
 					JSON.stringify(e.properties),
 				],
 			);
+			const row = result.rows[0];
+			nameToId.set(row.name as string, row.id as string);
 		}
 		await client.query("COMMIT");
 	} catch (err) {
@@ -94,6 +106,7 @@ export async function upsertEntities(entities: StoreEntity[]): Promise<void> {
 	} finally {
 		client.release();
 	}
+	return nameToId;
 }
 
 /**
