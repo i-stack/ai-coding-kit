@@ -28,29 +28,23 @@
     }
   },
   "env": {
-    "shared": {}
+    "shared": {
+      "OPENAI_API_KEY": "",
+      "OPENAI_BASE_URL": "",
+      "ANTHROPIC_API_KEY": "",
+      "ANTHROPIC_BASE_URL": ""
+    }
   },
   "platforms": {
     "gateway": {
       "env": {
-        "OPENAI_API_KEY": "",
-        "OPENAI_BASE_URL": "",
         "OPENAI_DEFAULT_MODEL": "",
-        "ANTHROPIC_API_KEY": "",
-        "ANTHROPIC_AUTH_TOKEN": "",
-        "ANTHROPIC_BASE_URL": "",
-        "ANTHROPIC_DEFAULT_OPUS_MODEL": "",
-        "ANTHROPIC_DEFAULT_SONNET_MODEL": "",
-        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "",
-        "CLAUDE_CODE_EFFORT_LEVEL": "",
         "DATAEYES_API_KEY": ""
       }
     },
     "claude": {
       "env": {
-        "ANTHROPIC_API_KEY": "",
-        "ANTHROPIC_AUTH_TOKEN": "",
-        "ANTHROPIC_BASE_URL": "",
+        "ANTHROPIC_MODEL": "",
         "ANTHROPIC_DEFAULT_OPUS_MODEL": "",
         "ANTHROPIC_DEFAULT_SONNET_MODEL": "",
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": "",
@@ -61,7 +55,6 @@
       "model": "",
       "modelProvider": null,
       "modelReasoningEffort": "medium",
-      "openaiBaseUrl": "",
       "providerName": "shuyanai",
       "wireApi": "responses",
       "envKey": "OPENAI_API_KEY",
@@ -72,17 +65,12 @@
         "default_mode_request_user_input": true
       },
       "projects": {
-        "/Users/song/Desktop/iOS/bajoseekios": {
+        "～/Desktop/iOS/bajoseekios": {
           "trust_level": "trusted"
         },
-        "/Users/song/Desktop/iOS/STBaseProject": {
+        "～/Desktop/iOS/STBaseProject": {
           "trust_level": "trusted"
         }
-      },
-      "env": {
-        "OPENAI_API_KEY": "",
-        "OPENAI_BASE_URL": "",
-        "OPENAI_DEFAULT_MODEL": ""
       }
     }
   }

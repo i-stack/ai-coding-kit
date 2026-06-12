@@ -68,8 +68,6 @@ def generate_codex_shared_toml(data: dict[str, Any]) -> str:
     use_custom_provider = isinstance(model_provider, str) and model_provider != ""
 
     model = codex.get("model")
-    if use_custom_provider and not model:
-        model = codex_env.get("OPENAI_DEFAULT_MODEL")
 
     base_url = codex.get("openaiBaseUrl") or codex_env.get("OPENAI_BASE_URL")
     provider_name = codex.get("providerName", model_provider or "custom")
