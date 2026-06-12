@@ -1,5 +1,23 @@
 # Universal RAG Gateway Architecture
 
+> **目录**
+>
+> - [Goal](#goal)
+> - [Corrections To The Raw Proposal](#corrections-to-the-raw-proposal)
+> - [Architecture](#architecture)
+> - [Core Components](#core-components)
+>   - [Protocol Adapters](#protocol-adapters)
+>   - [Context Budget Planner](#context-budget-planner)
+>   - [Hybrid Retrieval](#hybrid-retrieval)
+>   - [Prompt Assembly](#prompt-assembly)
+>   - [Declarative Tool Runtime](#declarative-tool-runtime)
+>   - [Slow Loop](#slow-loop)
+> - [Failure Modes](#failure-modes)
+> - [MVP Scope](#mvp-scope)
+> - [Acceptance Criteria](#acceptance-criteria)
+> - [Getting Started](#getting-started)
+> - [Relationship To This Repository](#relationship-to-this-repository)
+
 This note turns the pasted V2.0 idea into a repository-level design target. It is intentionally implementation-oriented, but it is not yet a claim that the components below already exist in this repo.
 
 ## Goal

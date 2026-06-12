@@ -13,7 +13,8 @@
 | [skills-engineering](skills-engineering/README.md) | 维护、同步与演进工程化 Skill（当前主技能 `ios-engineer`）；含 `SKILL.md`、references、演进提案与校验、同步到各 Agent skills 目录与 preamble。详见该目录 [README](skills-engineering/README.md)。 |
 | [env](env/) | 唯一配置源目录：`env/config.json`（gitignored，本机密钥与平台配置）与 `env/config.json.example`（可提交模板）。 |
 | [sync](sync/README.md) | 把 `env/config.json` 渲染并同步到 Cursor、Codex、Claude Code 与 Xcode Coding Assistant 等路径。详见该目录 [README](sync/README.md)。 |
-| [docs](docs/universal-rag-gateway.md) | 通用型自学习 RAG Gateway 架构草案：把多端协议适配、混合检索、声明式工具、自学习慢循环拆成可落地的 MVP 与验收条件。 |
+| [docs](docs/) | 仓库文档与架构设计。 |
+| ↳ [universal-rag-gateway.md](docs/universal-rag-gateway.md) | 通用型自学习 RAG Gateway 架构草案：多端协议适配、混合检索、声明式工具、自学习慢循环，含 MVP 范围与验收条件。[目录](docs/universal-rag-gateway.md#目录) |
 
 ## 认知拓展
 
@@ -27,7 +28,10 @@
 
 **同步**：`cd skills-engineering && ./scripts/sync-skill-full.sh`（先 `sync-skills.sh` 全文，再 `sync-agent-preamble.sh` 写入 preamble 加载指令与 Cursor `.mdc`）。新增 skill 时在 `agent-preamble.md.tmpl` 的 `sync-manifest` 加 `skill:<name>`。详见 [skills-engineering/README.md](skills-engineering/README.md)。
 
-**触发语**：默认 Tier 0 尾注；`【深潜】` / `【拓展】`；`【认知对手模式】` 等走 ios-engineer 认知对手全文。
+**触发层级**：
+- **Tier 0（门控）**：默认不触发；仅当本次回答含判断/取舍/归因/设计选择且能产出可证伪盲区时才追加，否则静默
+- **Tier 3（加深）**：`【深潜】` / `【拓展】`
+- **Tier 2（认知对手）**：`【认知对手模式】` / `【不要迎合】` / `【red team】` — 走 ios-engineer 认知对手全文
 
 ## 快速开始
 
