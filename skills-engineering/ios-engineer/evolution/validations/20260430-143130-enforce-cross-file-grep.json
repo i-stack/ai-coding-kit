@@ -1,0 +1,30 @@
+{
+  "proposal_id": "20260430-143130-enforce-cross-file-grep",
+  "proposal_file": "evolution/proposals/20260430-143130-enforce-cross-file-grep.md",
+  "validated_at": "2026-04-30T14:33:18+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v25",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 48\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "新增约束补齐 proposal 流程缺失",
+        "禁止模式明确",
+        "不阻塞常规审查"
+      ],
+      "deviations": [
+        "本提案属元规则变更",
+        "真实验证到下次跨文件改动时观察"
+      ],
+      "improvements": [
+        "后续考虑把 grep 检查自动化到 validate_skill_proposal.sh"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T14:33:18+0800"
+}

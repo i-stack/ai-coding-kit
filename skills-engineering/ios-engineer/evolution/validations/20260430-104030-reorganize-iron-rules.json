@@ -1,0 +1,29 @@
+{
+  "proposal_id": "20260430-104030-reorganize-iron-rules",
+  "proposal_file": "evolution/proposals/20260430-104030-reorganize-iron-rules.md",
+  "validated_at": "2026-04-30T10:43:51+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v9",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 62\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "核心铁律 9 条均 actionable",
+        "examples.md 不再自建策略",
+        "不适用边界清晰"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T10:44:15+0800"
+}

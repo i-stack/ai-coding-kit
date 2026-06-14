@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# Root pre-push guard for ai-coding-kit.
+#
+# Before a push proceeds, bring local agent state in lockstep with what is
+# about to be published:
+#
+# Skill-sync chain (fail-fast):
+#   1. skills-engineering/scripts/sync-skills.sh         — rsync ios-engineer/
+#      into ~/.claude, ~/.codex, ~/.cursor skill caches (with excludes)
+#   2. skills-engineering/scripts/sync-agent-preamble.sh — rewrite managed
+#      preamble blocks in ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md,
+#      Xcode codex/AGENTS.md, Xcode ClaudeAgentConfig/CLAUDE.md, and
+#      <cursor-project>/.cursor/rules/ios-engineer.mdc
+#   3. skills-engineering/scripts/verify-sync.sh         — assert caches are
+#      clean and preambles are tilde-ified
+#
+# MCP-sync:
+#   4. sync/sync_all.sh                                   — sync MCP server
+#      definitions to Cursor / Codex / Claude / Xcode, plus the CODEX SHARED
+#      block from env/codex/shared.toml, plus Claude Code env from
+#      env/claude/settings.shared.json.
+#
+# Any failure aborts the push.
+#
+# Bypass: set SKILL_BYPASS=1 (skips skill-sync chain only) or use
+#         git push --no-verify (skips this hook entirely).
+
+set -uo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+# --- skill-sync chain ---------------------------------------------------------
+
+if [ "${SKILL_BYPASS:-0}" != "1" ]; then
+  SYNC_SCRIPT="${ROOT}/skills-engineering/scripts/sync-skills.sh"
+  PREAMBLE_SCRIPT="${ROOT}/skills-engineering/scripts/sync-agent-preamble.sh"
+  VERIFY_SCRIPT="${ROOT}/skills-engineering/scripts/verify-sync.sh"
+
+  for s in "${SYNC_SCRIPT}" "${PREAMBLE_SCRIPT}" "${VERIFY_SCRIPT}"; do
+    if [ ! -x "${s}" ]; then
+      echo "skill-sync pre-push: ${s} missing or not executable." >&2
+      echo "Set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
+      exit 1
+    fi
+  done
+
+  echo "skill-sync pre-push: syncing skills-engineering/ to local agent caches..."
+  if ! "${SYNC_SCRIPT}"; then
+    echo "skill-sync pre-push: sync-skills.sh failed; push aborted." >&2
+    echo "Fix the sync error, or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
+    exit 1
+  fi
+
+  echo "skill-sync pre-push: rendering agent preamble blocks..."
+  if ! "${PREAMBLE_SCRIPT}"; then
+    echo "skill-sync pre-push: sync-agent-preamble.sh failed; push aborted." >&2
+    echo "Fix the preamble error, or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
+    exit 1
+  fi
+
+  echo "skill-sync pre-push: verifying cache layout..."
+  if ! "${VERIFY_SCRIPT}"; then
+    echo "skill-sync pre-push: verify-sync.sh reported issues; push aborted." >&2
+    echo "Fix the sync state, or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
+    exit 1
+  fi
+fi
+
+# --- sync (MCP + Codex shared) ------------------------------------------------
+
+MCP_SYNC="${ROOT}/sync/sync_all.sh"
+if [ -x "${MCP_SYNC}" ]; then
+  echo "sync pre-push: syncing MCP + Codex shared config to local agent configs..."
+  if ! "${MCP_SYNC}"; then
+    echo "sync pre-push: sync_all.sh failed; push aborted." >&2
+    echo "Fix the sync error, or use git push --no-verify to bypass (emergencies only)." >&2
+    exit 1
+  fi
+else
+  echo "sync pre-push: ${MCP_SYNC} missing or not executable; skipping." >&2
+fi
+
+exit 0

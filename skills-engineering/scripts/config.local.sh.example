@@ -1,0 +1,14 @@
+# Local configuration for sync scripts.
+#
+# Copy this file to `scripts/config.local.sh` and edit the values. The file
+# is git-ignored; it holds per-machine paths (e.g. Cursor project roots) that
+# should not be committed to the repo.
+#
+# sync-agent-preamble.sh will `source` this file on every run, so environment
+# variables exported here become defaults for the script. CLI flags and
+# already-exported shell variables still take precedence.
+
+# Colon-separated iOS project roots that should receive
+# `<root>/.cursor/rules/ios-engineer.mdc` and generated `<skill>.mdc` (e.g. cognitive-expansion).
+# Leave unset to skip Cursor project rules (repo root still gets generated .mdc from sync-manifest).
+export CURSOR_PROJECT_ROOTS="/Users/you/path/to/projA:/Users/you/path/to/projB"

@@ -1,0 +1,29 @@
+{
+  "proposal_id": "20260430-101809-downshift-current-architecture",
+  "proposal_file": "evolution/proposals/20260430-101809-downshift-current-architecture.md",
+  "validated_at": "2026-04-30T10:20:02+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v5",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 75\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "场景规则 L24 unchanged 指向 architecture_and_network.md",
+        "review_checklists.md 未受影响",
+        "架构咨询小节不干扰 review 场景"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T10:20:13+0800"
+}

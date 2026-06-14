@@ -1,0 +1,60 @@
+{
+  "id": "review",
+  "version": 1,
+  "category": "behavior",
+  "input": "review 这个改动，重点看有没有隐藏回归。",
+  "primary_refs": [
+    "references/review_checklists.md",
+    "references/anti_patterns.md"
+  ],
+  "output_contract": "findings-first",
+  "expected_hits": [
+    {
+      "key": "correctness-first",
+      "desc": "先报正确性、竞态、生命周期、架构越界、测试缺口",
+      "anchor": "references/review_checklists.md"
+    },
+    {
+      "key": "findings-before-style",
+      "desc": "Findings 明显先于风格意见",
+      "anchor": "SKILL.md:12",
+      "rule_id": "GR-004"
+    },
+    {
+      "key": "concise-no-tutorial",
+      "desc": "结论简短，不做长篇教学",
+      "anchor": "SKILL.md:12",
+      "rule_id": "GR-004"
+    },
+    {
+      "key": "residual-risk-block-present",
+      "desc": "输出末尾含独立的「残留风险声明」块，固定三字段：已覆盖 / 未覆盖 / 残留风险，作为独立段落字面存在，不与「验证缺口」合并",
+      "anchor": "SKILL.md:16",
+      "rule_id": "GR-008"
+    }
+  ],
+  "failure_signals": [
+    {
+      "key": "style-first",
+      "desc": "先讲命名、格式、风格"
+    },
+    {
+      "key": "no-severity-sort",
+      "desc": "没有按严重度排序"
+    },
+    {
+      "key": "miss-verification-gap",
+      "desc": "没提验证缺口"
+    },
+    {
+      "key": "residual-risk-missing-or-merged",
+      "desc": "残留风险声明缺失、三字段不全、或被合并进「验证缺口」段",
+      "rule_id": "GR-008"
+    }
+  ],
+  "scoring": {
+    "pass": "所有 expected_hits 命中且无 failure_signals 触发",
+    "partial": "至少半数 expected_hits 命中且未触发任何核心 failure_signals",
+    "fail": "命中任一 failure_signals 或 expected_hits 命中不到一半"
+  }
+}

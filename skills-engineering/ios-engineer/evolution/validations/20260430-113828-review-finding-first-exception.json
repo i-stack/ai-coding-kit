@@ -1,0 +1,29 @@
+{
+  "proposal_id": "20260430-113828-review-finding-first-exception",
+  "proposal_file": "evolution/proposals/20260430-113828-review-finding-first-exception.md",
+  "validated_at": "2026-04-30T11:45:59+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v18",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 47\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "SKILL.md L12 显式例外",
+        "examples.md 审查小节 findings-first",
+        "与 review_checklists.md 对齐"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T11:45:59+0800"
+}

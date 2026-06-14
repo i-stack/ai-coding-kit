@@ -1,0 +1,44 @@
+{
+  "proposal_id": "20260430-100521-consolidate-overlapping-sections",
+  "proposal_file": "evolution/proposals/20260430-100521-consolidate-overlapping-sections.md",
+  "validated_at": "2026-04-30T10:07:14+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v4",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 77\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "migration",
+      "result": "pass",
+      "hits": [
+        "L18 四段式仍定义",
+        "场景规则 L33 仍指向 migration_strategy.md",
+        "输出四段式不受章节退役影响"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "layout",
+      "result": "pass",
+      "hits": [
+        "首步分流排障类仍先读 root_cause_enforcement.md",
+        "场景规则 L29 layout_and_ui.md 保留",
+        "首段 2-4 份参考资料约束内化"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T10:07:34+0800"
+}

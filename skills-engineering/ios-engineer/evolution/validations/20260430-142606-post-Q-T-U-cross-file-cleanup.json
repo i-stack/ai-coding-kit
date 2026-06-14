@@ -1,0 +1,43 @@
+{
+  "proposal_id": "20260430-142606-post-Q-T-U-cross-file-cleanup",
+  "proposal_file": "evolution/proposals/20260430-142606-post-Q-T-U-cross-file-cleanup.md",
+  "validated_at": "2026-04-30T14:28:52+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v24",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 48\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "examples.md 第 3 节改引用",
+        "review_checklists.md 唯一归属"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "parameter-pass-through",
+      "result": "pass",
+      "hits": [
+        "完整链路单一定义在 architecture",
+        "DTO/Entity/UseCase/ViewState 归属清楚",
+        "networking_patterns 引用"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T14:29:13+0800"
+}

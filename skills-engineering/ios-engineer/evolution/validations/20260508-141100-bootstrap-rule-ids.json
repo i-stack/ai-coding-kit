@@ -1,0 +1,107 @@
+{
+  "proposal_id": "20260508-141100-bootstrap-rule-ids",
+  "proposal_file": "evolution/proposals/20260508-141100-bootstrap-rule-ids.md",
+  "validated_at": "2026-05-08T14:25:56+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v43",
+  "base_validation_output": "[1/11] Validate YAML structure\nYAML OK\n[2/11] Validate SKILL.md size\nSKILL.md lines: 63\n[3/11] Validate referenced files exist\nReference files OK\n[4/11] Validate layering guardrails\nLayering guardrails OK\n[5/11] Validate internal markdown links\nInternal links OK\n[6/11] Validate scenario specs\nScenario specs OK (6 files, 6 canonical slugs covered)\n[7/11] Validate rule IDs\nRule IDs OK (41 IDs in SKILL.md, 41 in rule_index.md, 41 active)\n[8/11] Validate no orphan references\nNo orphan references\n[9/11] Validate unique ownership + retired word regression\nUnique ownership + retired words OK\n[10/11] Validate snapshot consistency with active version\nSkipped (SKIP_SNAPSHOT_CONSISTENCY=1)\n[11/11] Run behavior validation scenarios\n[behavior 1/5] Active snapshot consistency\nSkipped (SKIP_SNAPSHOT_CONSISTENCY=1)\n[behavior 2/5] Proposal script rejection paths\n---\nPassed: 39\nFailed: 0\n[behavior 3/5] Repository template usability\n[behavior 4/5] Code review output contract\n[behavior 5/5] Network cache and error-modeling contract\nBehavior validation passed\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "layout",
+      "result": "pass",
+      "hits": [
+        "IR-005 最小可验证修复",
+        "IR-004 四段式输出",
+        "ROUTE-006 路由 layout_and_ui.md",
+        "SYM-002 症状导航命中"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "parameter-pass-through",
+      "result": "pass",
+      "hits": [
+        "IR-005 不局部补丁",
+        "ROUTE-002 架构设计路由 architecture_and_network.md",
+        "ROUTE-004 数据建模路由 domain_modeling.md"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "concurrency",
+      "result": "pass",
+      "hits": [
+        "IR-005 最小修复",
+        "IR-004 四段式含验证段",
+        "SYM-003 状态错乱症状路由",
+        "ROUTE-007 并发主读 swift_concurrency.md"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "IR-004 review 例外指向 findings-first",
+        "ROUTE-011 代码审查路由 review_checklists.md",
+        "OUT-002 使用 findings-first 骨架"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "migration",
+      "result": "pass",
+      "hits": [
+        "IR-004 四段式摘要先行",
+        "IR-005 不一次性替换",
+        "ROUTE-012 重构迁移路由 migration_strategy.md"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "mcp-control",
+      "result": "pass",
+      "hits": [
+        "IR-002 上下文不足先确认事实",
+        "IR-003 锁定 1 个主方向",
+        "ROUTE-016 工具预算路由 mcp_control.md"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "ID 体系仅覆盖 SKILL.md",
+        "references 内细粒度规则待 Step 2 后续下沉"
+      ]
+    }
+  ],
+  "updated_at": "2026-05-08T14:26:33+0800"
+}

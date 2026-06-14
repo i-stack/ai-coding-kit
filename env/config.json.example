@@ -1,0 +1,77 @@
+{
+  "mcpServers": {
+    "code-collaboration": {
+      "command": "npx",
+      "args": ["-y", "@github/github-mcp-server"],
+      "env": {
+        "GITHUB_TOKEN": "YOUR_GITHUB_PAT"
+      }
+    },
+    "browser-automation": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest", "--extension"],
+      "env": {}
+    },
+    "design-handoff": {
+      "url": "http://localhost:8000/mcp?role=Developer&name=YourName"
+    },
+    "api-documentation": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "apifox-mcp-server@latest",
+        "--project=YOUR_APIFOX_PROJECT_ID"
+      ],
+      "env": {
+        "APIFOX_ACCESS_TOKEN": "YOUR_APIFOX_TOKEN"
+      }
+    }
+  },
+  "env": {
+    "shared": {
+      "OPENAI_API_KEY": "",
+      "OPENAI_BASE_URL": "",
+      "ANTHROPIC_API_KEY": "",
+      "ANTHROPIC_BASE_URL": ""
+    }
+  },
+  "platforms": {
+    "rag-gateway": {
+      "env": {
+        "OPENAI_DEFAULT_MODEL": "",
+        "DATAEYES_API_KEY": ""
+      }
+    },
+    "claude": {
+      "env": {
+        "ANTHROPIC_MODEL": "",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "",
+        "CLAUDE_CODE_EFFORT_LEVEL": ""
+      }
+    },
+    "codex": {
+      "model": "",
+      "modelProvider": null,
+      "modelReasoningEffort": "medium",
+      "providerName": "shuyanai",
+      "wireApi": "responses",
+      "envKey": "OPENAI_API_KEY",
+      "features": {
+        "skills": true,
+        "multi_agent": true,
+        "js_repl": false,
+        "default_mode_request_user_input": true
+      },
+      "projects": {
+        "～/Desktop/iOS/bajoseekios": {
+          "trust_level": "trusted"
+        },
+        "～/Desktop/iOS/STBaseProject": {
+          "trust_level": "trusted"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "proposal_id": "20260430-145330-fix-cross-file-references-DD",
+  "proposal_file": "evolution/proposals/20260430-145330-fix-cross-file-references-DD.md",
+  "validated_at": "2026-04-30T14:56:39+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v28",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 48\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "architecture 引用 + 错误分层与 domain_modeling 一致",
+        "工具用途在 observability 单一归属"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "parameter-pass-through",
+      "result": "pass",
+      "hits": [
+        "链路职责在 architecture",
+        "错误分层在 domain_modeling",
+        "模式在 networking_patterns"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T14:56:40+0800"
+}

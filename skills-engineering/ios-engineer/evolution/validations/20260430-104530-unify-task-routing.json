@@ -1,0 +1,58 @@
+{
+  "proposal_id": "20260430-104530-unify-task-routing",
+  "proposal_file": "evolution/proposals/20260430-104530-unify-task-routing.md",
+  "validated_at": "2026-04-30T10:47:18+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v10",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 48\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "layout",
+      "result": "pass",
+      "hits": [
+        "任务分流排障类主读 root_cause_enforcement.md",
+        "按 UI 追加 layout_and_ui.md",
+        "O(1) 命中不扫三层"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "migration",
+      "result": "pass",
+      "hits": [
+        "任务分流重构迁移类主读 migration_strategy.md",
+        "按并发追加 swift_concurrency.md",
+        "按决策记录追加 decision_records.md"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "parameter-pass-through",
+      "result": "pass",
+      "hits": [
+        "任务分流架构设计类主读 architecture_and_network.md",
+        "参数透传触发词明确在该类内"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T10:47:50+0800"
+}

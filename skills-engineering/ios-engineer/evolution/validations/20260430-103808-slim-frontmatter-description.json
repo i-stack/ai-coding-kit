@@ -1,0 +1,29 @@
+{
+  "proposal_id": "20260430-103808-slim-frontmatter-description",
+  "proposal_file": "evolution/proposals/20260430-103808-slim-frontmatter-description.md",
+  "validated_at": "2026-04-30T10:39:05+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v8",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 66\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "frontmatter YAML 合法",
+        "正文 core iron L15 仍定义简体中文",
+        "router 触发词前置"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "description 实际 246 字符略超 200 目标但已减 48%"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T10:39:21+0800"
+}

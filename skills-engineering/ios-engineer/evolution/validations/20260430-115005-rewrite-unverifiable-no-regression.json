@@ -1,0 +1,28 @@
+{
+  "proposal_id": "20260430-115005-rewrite-unverifiable-no-regression",
+  "proposal_file": "evolution/proposals/20260430-115005-rewrite-unverifiable-no-regression.md",
+  "validated_at": "2026-04-30T11:52:11+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v20",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 47\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "不可验证断言替换为影响面+未验证路径+残留风险",
+        "与 SKILL.md L15 对齐"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T11:52:12+0800"
+}

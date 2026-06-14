@@ -1,0 +1,42 @@
+{
+  "proposal_id": "20260430-141450-review-findings-first-consistency",
+  "proposal_file": "evolution/proposals/20260430-141450-review-findings-first-consistency.md",
+  "validated_at": "2026-04-30T14:17:46+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v23",
+  "base_validation_output": "[1/4] Validate YAML structure\nYAML OK\n[2/4] Validate SKILL.md size\nSKILL.md lines: 48\n[3/4] Validate referenced files exist\nReference files OK\n[4/4] Validate layering guardrails\nLayering guardrails OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "可合入条件与命中维度对齐",
+        "纯 UI 改动可合入"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "migration",
+      "result": "pass",
+      "hits": [
+        "迁移审查用 review_checklists findings-first + 迁移专项检查项",
+        "不再两套格式"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T14:18:18+0800"
+}

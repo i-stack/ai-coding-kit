@@ -1,0 +1,56 @@
+{
+  "proposal_id": "20260430-171045-harden-evolution-flow-and-tests",
+  "proposal_file": "evolution/proposals/20260430-171045-harden-evolution-flow-and-tests.md",
+  "validated_at": "2026-04-30T17:13:50+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v32",
+  "base_validation_output": "[1/8] Validate YAML structure\nYAML OK\n[2/8] Validate SKILL.md size\nSKILL.md lines: 60\n[3/8] Validate referenced files exist\nReference files OK\n[4/8] Validate layering guardrails\nLayering guardrails OK\n[5/8] Validate internal markdown links\nInternal links OK\n[6/8] Validate no orphan references\nNo orphan references\n[7/8] Validate unique ownership + retired word regression\nUnique ownership + retired words OK\n[8/8] Validate snapshot consistency with active version\nSkipped (SKIP_SNAPSHOT_CONSISTENCY=1)\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "snapshot-drift-detection",
+      "result": "pass",
+      "hits": [
+        "step [8/8] 列出 7 个漂移文件后退出非零",
+        "SKIP=1 时整体通过"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "proposal-script-rejection-tests",
+      "result": "pass",
+      "hits": [
+        "test_proposal_scripts.sh 38 例全部 pass",
+        "含 slug 7 例 + 6 脚本 × 5 非法路径 + 烟雾 1"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "template-placeholder-clarity",
+      "result": "pass",
+      "hits": [
+        "code_templates.md 使用规则新增占位条目",
+        "覆盖 Feature* 命名和 LoggerProtocol 协议占位"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-04-30T17:14:23+0800"
+}

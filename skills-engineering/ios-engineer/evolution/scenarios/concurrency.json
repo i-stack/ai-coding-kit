@@ -1,0 +1,65 @@
+{
+  "id": "concurrency",
+  "version": 1,
+  "category": "behavior",
+  "input": "搜索页快速输入时结果会串线，帮我修，不要大改。",
+  "primary_refs": [
+    "references/swift_concurrency.md",
+    "references/ui_state_patterns.md"
+  ],
+  "output_contract": "four-segment",
+  "expected_hits": [
+    {
+      "key": "cancellation-and-stale-results",
+      "desc": "先落到任务取消、过期结果回写、状态归属",
+      "anchor": "references/swift_concurrency.md"
+    },
+    {
+      "key": "minimal-fix-first",
+      "desc": "优先最小修复，例如取消旧任务或丢弃过期结果",
+      "anchor": "SKILL.md:13",
+      "rule_id": "GR-005"
+    },
+    {
+      "key": "verification-step",
+      "desc": "说明验证方式",
+      "anchor": "SKILL.md:12",
+      "rule_id": "GR-004"
+    },
+    {
+      "key": "version-premise-declared",
+      "desc": "输出在「结论」段之前含独立的「版本前提」块（按 examples.md §4 模板），写出真值或显式假设",
+      "anchor": "SKILL.md:14",
+      "rule_id": "IR-006"
+    }
+  ],
+  "failure_signals": [
+    {
+      "key": "arch-overhaul",
+      "desc": "把问题泛化成换一套架构"
+    },
+    {
+      "key": "dispatch-bandaid",
+      "desc": "只加 DispatchQueue.main.async 或人为延迟"
+    },
+    {
+      "key": "no-cancellation-chain",
+      "desc": "不提取消链路"
+    },
+    {
+      "key": "no-version-premise",
+      "desc": "给出并发 / 可用性 API / SwiftUI 行为建议但既无真值也无显式假设，隐性使用某个 iOS / Swift 版本的 API",
+      "rule_id": "IR-006"
+    },
+    {
+      "key": "version-premise-inline-only",
+      "desc": "未把版本前提作为独立块字面输出，仅在散文里隐含",
+      "rule_id": "IR-006"
+    }
+  ],
+  "scoring": {
+    "pass": "所有 expected_hits 命中且无 failure_signals 触发",
+    "partial": "至少半数 expected_hits 命中且未触发任何核心 failure_signals",
+    "fail": "命中任一 failure_signals 或 expected_hits 命中不到一半"
+  }
+}

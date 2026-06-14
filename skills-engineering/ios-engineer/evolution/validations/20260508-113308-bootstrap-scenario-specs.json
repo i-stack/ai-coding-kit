@@ -1,0 +1,105 @@
+{
+  "proposal_id": "20260508-113308-bootstrap-scenario-specs",
+  "proposal_file": "evolution/proposals/20260508-113308-bootstrap-scenario-specs.md",
+  "validated_at": "2026-05-08T11:40:30+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v42",
+  "base_validation_output": "[1/10] Validate YAML structure\nYAML OK\n[2/10] Validate SKILL.md size\nSKILL.md lines: 63\n[3/10] Validate referenced files exist\nReference files OK\n[4/10] Validate layering guardrails\nLayering guardrails OK\n[5/10] Validate internal markdown links\nInternal links OK\n[6/10] Validate scenario specs\nScenario specs OK (6 files, 6 canonical slugs covered)\n[7/10] Validate no orphan references\nNo orphan references\n[8/10] Validate unique ownership + retired word regression\nUnique ownership + retired words OK\n[9/10] Validate snapshot consistency with active version\nSkipped (SKIP_SNAPSHOT_CONSISTENCY=1)\n[10/10] Run behavior validation scenarios\n[behavior 1/5] Active snapshot consistency\nSkipped (SKIP_SNAPSHOT_CONSISTENCY=1)\n[behavior 2/5] Proposal script rejection paths\n---\nPassed: 39\nFailed: 0\n[behavior 3/5] Repository template usability\n[behavior 4/5] Code review output contract\n[behavior 5/5] Network cache and error-modeling contract\nBehavior validation passed\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "layout",
+      "result": "pass",
+      "hits": [
+        "SKILL.md:27 症状表把 UI 错位路由到 layout_and_ui.md",
+        "SKILL.md:13 最小可验证修复优先于重写",
+        "SKILL.md:12 默认四段式输出"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "parameter-pass-through",
+      "result": "pass",
+      "hits": [
+        "SKILL.md:35 参数透传场景主读 architecture_and_network.md",
+        "SKILL.md:37 数据建模主读 domain_modeling.md",
+        "SKILL.md:13 不做局部补丁"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "concurrency",
+      "result": "pass",
+      "hits": [
+        "SKILL.md:28 状态错乱+异步回写路由到 ui_state_patterns.md 并追加 swift_concurrency.md 取消链路",
+        "SKILL.md:13 最小修复优先",
+        "SKILL.md:12 四段式输出含验证"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "SKILL.md:12 代码审查例外指向 findings-first",
+        "SKILL.md:44 代码审查路由到 review_checklists.md",
+        "SKILL.md:58 输出模板使用 findings-first 骨架"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "migration",
+      "result": "pass",
+      "hits": [
+        "SKILL.md:45 重构/迁移路由到 migration_strategy.md",
+        "SKILL.md:12 四段式摘要先行",
+        "SKILL.md:13 不一次性替换"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    },
+    {
+      "scenario": "mcp-control",
+      "result": "pass",
+      "hits": [
+        "SKILL.md:49 工具预算路由到 mcp_control.md",
+        "SKILL.md:11 上下文不足先确认关键事实",
+        "mcp_control.md 单方向推进与两次无证据切方向"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "本提案仅为结构化基线",
+        "语义层准确性需在后续真实多轮回放中复查"
+      ]
+    }
+  ],
+  "updated_at": "2026-05-08T11:41:38+0800"
+}
