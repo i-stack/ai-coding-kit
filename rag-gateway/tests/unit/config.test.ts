@@ -68,20 +68,53 @@ describe("applyGatewayConfigEnv", () => {
 });
 
 describe("gatewayEnvFromConfig", () => {
-    it("should merge shared env and gateway env with gateway taking precedence", () => {
+    it("should merge shared env and rag-gateway env with rag-gateway taking precedence", () => {
         const values = gatewayEnvFromConfig({
             env: { shared: { OPENAI_BASE_URL: "https://shared.example" } },
             platforms: {
-                gateway: {
+                "rag-gateway": {
                     env: {
-                        OPENAI_BASE_URL: "https://gateway.example",
-                        OPENAI_API_KEY: "sk-gateway",
+                        OPENAI_BASE_URL: "https://rag-gateway.example",
+                        OPENAI_API_KEY: "sk-rag-gateway",
                     },
                 },
             },
         });
 
-        expect(values.OPENAI_BASE_URL).toBe("https://gateway.example");
-        expect(values.OPENAI_API_KEY).toBe("sk-gateway");
+        expect(values.OPENAI_BASE_URL).toBe("https://rag-gateway.example");
+        expect(values.OPENAI_API_KEY).toBe("sk-rag-gateway");
+    });
+
+    it("should keep legacy gateway env as a fallback", () => {
+        const values = gatewayEnvFromConfig({
+            platforms: {
+                gateway: {
+                    env: {
+                        OPENAI_API_KEY: "sk-legacy",
+                    },
+                },
+            },
+        });
+
+        expect(values.OPENAI_API_KEY).toBe("sk-legacy");
+    });
+
+    it("should let rag-gateway env override legacy gateway env", () => {
+        const values = gatewayEnvFromConfig({
+            platforms: {
+                gateway: {
+                    env: {
+                        OPENAI_BASE_URL: "https://legacy.example",
+                    },
+                },
+                "rag-gateway": {
+                    env: {
+                        OPENAI_BASE_URL: "https://rag-gateway.example",
+                    },
+                },
+            },
+        });
+
+        expect(values.OPENAI_BASE_URL).toBe("https://rag-gateway.example");
     });
 });

@@ -32,7 +32,7 @@ Platform independence lives inside the single config file:
 {
   "env": { "shared": {} },
   "platforms": {
-    "gateway": { "env": {} },
+    "rag-gateway": { "env": {} },
     "claude": { "env": {} },
     "codex": { "env": {}, "features": {}, "projects": {} }
   }
@@ -51,7 +51,7 @@ Platform independence lives inside the single config file:
 | Claude Code | Merge `mcpServers` into `~/.claude.json`, preserving other keys and existing non-source servers. |
 | Xcode Claude Agent | Merge `mcpServers` into `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`; per-project when projects already exist. |
 | Claude settings | Merge `platforms.claude.env` into `~/.claude/settings.json` `env`, preserving unrelated env keys. |
-| Gateway | `gateway/src/config.ts` reads `platforms.gateway.env` directly from `env/config.json`; `.env` still wins at runtime. |
+| RAG Gateway | `rag-gateway/src/config.ts` reads `platforms["rag-gateway"].env` directly from `env/config.json`; `.env` still wins at runtime. |
 
 Codex targets are TOML because Codex config is TOML. The maintained source remains JSON; `sync_config.py` is the adapter.
 

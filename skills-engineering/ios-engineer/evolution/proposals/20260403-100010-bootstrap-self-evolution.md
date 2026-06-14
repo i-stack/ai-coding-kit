@@ -24,4 +24,4 @@
 - 残留风险：
 
 ## 状态
-- draft
+- approved

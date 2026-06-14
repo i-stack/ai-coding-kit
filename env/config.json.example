@@ -36,7 +36,7 @@
     }
   },
   "platforms": {
-    "gateway": {
+    "rag-gateway": {
       "env": {
         "OPENAI_DEFAULT_MODEL": "",
         "DATAEYES_API_KEY": ""

@@ -3,8 +3,12 @@
 # skills-engineering: local machine sync config (see scripts/config.local.sh.example)
 skills-engineering/scripts/config.local.sh
 
-# Claude Code: project-local permissions and paths (repo root)
-.claude/settings.local.json
-
 # env/: local secrets and platform config. Copy env/config.json.example and fill in tokens.
 env/config.json
+
+*__pycache__*/
+
+.cursor/
+.codex/
+.claude/
+docs/
