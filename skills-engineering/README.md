@@ -363,7 +363,7 @@ bash install-hooks.sh
 4. `sync/sync_all.sh` —— 把 MCP / Codex 共享配置同步到 Cursor / Codex / Claude / Xcode（来自 `sync/` subtree，与本守卫并存）。
 
 任何一步失败都会 `exit 1` 并阻止 `git push`，保证远端指向的版本与本地 Agent 正在加载的版本一致。  
-例外：若仅缺少本地 `mcp/servers.json`，`sync/sync_all.sh` 会按“未配置本地密钥文件”处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
+例外：若仅缺少本地 `env/config.json`，`sync/sync_all.sh` 会按“未配置本地密钥文件”处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
 
 ### 紧急绕过
 
