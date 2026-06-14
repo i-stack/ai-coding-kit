@@ -1,67 +1,73 @@
 # ai-coding-kit
 
-[![Skill](https://img.shields.io/badge/skill-ios--engineer-0A84FF)](skills-engineering/ios-engineer/SKILL.md)
-[![Skills sync](https://img.shields.io/badge/skills_sync-Codex%20%7C%20Claude%20%7C%20Cursor-5856D6)](skills-engineering/README.md)
-[![MCP sync](https://img.shields.io/badge/MCP_sync-Cursor%20%7C%20Codex%20%7C%20Claude%20%7C%20Xcode-663399)](sync/README.md)
-[![Skills platform](https://img.shields.io/badge/skills-macOS-0A84FF?style=flat-square)](skills-engineering/README.md)
-[![MCP platform](https://img.shields.io/badge/MCP-macOS%20%7C%20Linux-555555?style=flat-square)](sync/README.md)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-Codex%20%7C%20Claude%20%7C%20Cursor-5856D6)](skills-engineering/README.md)
+[![iOS Engineer Skill](https://img.shields.io/badge/iOS%20Engineer-Swift%20%7C%20SwiftUI%20%7C%20UIKit-0A84FF)](skills-engineering/ios-engineer/SKILL.md)
+[![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-Cursor%20%7C%20Codex%20%7C%20Claude%20%7C%20Xcode-663399)](sync/README.md)
+[![Universal RAG Gateway](https://img.shields.io/badge/Universal%20RAG%20Gateway-TypeScript%20%7C%20Fastify-34C759)](docs/universal-rag-gateway.md)
 
-本仓库聚合两套互相关联的本地工程化能力：**Agent Skill 的维护与多端同步**，以及 **MCP / Codex 配置的单源多端同步**。二者可独立使用；一起使用时，可在 Codex、Claude Code、Cursor 与 Xcode 相关路径上保持技能与 MCP 配置同源、少漂移。
+**ai-coding-kit** is a local AI coding workflow kit for maintaining Agent Skills, syncing MCP configuration, and experimenting with a Universal RAG Gateway. It is built for Codex, Claude Code, Cursor, Xcode Coding Assistant, and OpenAI-compatible clients that need shared engineering rules, tool configuration, memory, retrieval, and provider routing.
 
-| 目录 | 说明 |
+中文定位：这是一个面向 AI Coding / Agentic Coding / iOS Engineering / MCP / RAG Gateway 的本地工程化工具包，用于维护 Agent Skill、同步多端 MCP 配置，并沉淀可审计的工程规则与网关架构。
+
+## Overview
+
+This repository has three connected parts:
+
+| Area | Purpose | Start Here |
+|------|---------|------------|
+| Agent Skill engineering | Maintain, sync, and evolve reusable AI coding skills for Codex, Claude Code, Cursor, and Xcode-related paths. | [skills-engineering/README.md](skills-engineering/README.md) |
+| MCP and platform config sync | Render one local configuration source into Cursor, Codex, Claude Code, and Xcode host formats. | [sync/README.md](sync/README.md) |
+| Universal RAG Gateway | Explore an OpenAI-compatible gateway with provider routing, transcript storage, semantic memory, declarative tools, telemetry, and budget planning. | [docs/universal-rag-gateway.md](docs/universal-rag-gateway.md) |
+
+## Core Capabilities
+
+- **Agent Skills**: source-managed skills for engineering discipline, iOS / Swift / SwiftUI / UIKit work, problem analysis, logical reasoning, epistemic integrity, and cognitive expansion.
+- **Multi-host sync**: one local config template for MCP servers, shared environment values, and platform-specific settings across AI coding tools.
+- **iOS engineering rules**: an auditable `ios-engineer` skill for architecture, concurrency, networking, UI, performance, testing, review, migration, and release-risk control.
+- **Gateway architecture**: a TypeScript / Fastify Universal RAG Gateway with OpenAI-compatible routing, provider adapters, memory, tool execution, GraphRAG direction, and observability.
+
+## Quick Start
+
+| Task | Documentation |
+|------|---------------|
+| Set up or sync Agent Skills | [skills-engineering/README.md](skills-engineering/README.md) |
+| Configure MCP and platform settings | [sync/README.md](sync/README.md) |
+| Create local config from the template | [env/config.json.example](env/config.json.example) |
+| Inspect the iOS engineer skill | [skills-engineering/ios-engineer/SKILL.md](skills-engineering/ios-engineer/SKILL.md) |
+| Study the Gateway design and current implementation status | [docs/universal-rag-gateway.md](docs/universal-rag-gateway.md) |
+| Install repository-managed Git hooks | [install-hooks.sh](install-hooks.sh) |
+
+## Documentation
+
+| Topic | Link |
 |------|------|
-| [skills-engineering](skills-engineering/README.md) | 维护、同步与演进工程化 Skill（当前主技能 `ios-engineer`）；含 `SKILL.md`、references、演进提案与校验、同步到各 Agent skills 目录与 preamble。详见该目录 [README](skills-engineering/README.md)。 |
-| [env](env/) | 唯一配置源目录：`env/config.json`（gitignored，本机密钥与平台配置）与 `env/config.json.example`（可提交模板）。 |
-| [sync](sync/README.md) | 把 `env/config.json` 渲染并同步到 Cursor、Codex、Claude Code 与 Xcode Coding Assistant 等路径。详见该目录 [README](sync/README.md)。 |
-| [docs](docs/) | 仓库文档与架构设计。 |
-| ↳ [universal-rag-gateway.md](docs/universal-rag-gateway.md) | 通用型自学习 RAG Gateway 架构草案：多端协议适配、混合检索、声明式工具、自学习慢循环，含 MVP 范围与验收条件。[目录](docs/universal-rag-gateway.md#目录) |
+| Agent Skill engineering | [skills-engineering/README.md](skills-engineering/README.md) |
+| iOS engineer skill source | [skills-engineering/ios-engineer/SKILL.md](skills-engineering/ios-engineer/SKILL.md) |
+| iOS skill rule index | [skills-engineering/ios-engineer/references/rule_index.md](skills-engineering/ios-engineer/references/rule_index.md) |
+| Cognitive expansion skill | [skills-engineering/cognitive-expansion/SKILL.md](skills-engineering/cognitive-expansion/SKILL.md) |
+| Engineering discipline skill | [skills-engineering/engineering-discipline/SKILL.md](skills-engineering/engineering-discipline/SKILL.md) |
+| Logical reasoning skill | [skills-engineering/logical-reasoning/SKILL.md](skills-engineering/logical-reasoning/SKILL.md) |
+| Epistemic integrity skill | [skills-engineering/epistemic-integrity/SKILL.md](skills-engineering/epistemic-integrity/SKILL.md) |
+| Problem analysis skill | [skills-engineering/problem-analysis/SKILL.md](skills-engineering/problem-analysis/SKILL.md) |
+| MCP and platform config sync | [sync/README.md](sync/README.md) |
+| Universal RAG Gateway | [docs/universal-rag-gateway.md](docs/universal-rag-gateway.md) |
+| Token comparison notes | [docs/token-comparison-results-v2.md](docs/token-comparison-results-v2.md) |
 
-## 认知拓展
+## Repository Layout
 
-独立 skill `cognitive-expansion`，与 `ios-engineer` 同级：**单源** `SKILL.md` + `references/cognitive_expansion.md`，经 `sync-skills.sh` 同步 **全文** 到 Codex / Claude / Cursor / Xcode 的 `~/.*/skills/cognitive-expansion/`；Cursor 项目内另生成 `.cursor/rules/cognitive-expansion.mdc`（由详规自动生成，勿手改）。
-
-| 入口 | 路径 |
+| Path | Role |
 |------|------|
-| Skill 源（唯一维护处） | [skills-engineering/cognitive-expansion/](skills-engineering/cognitive-expansion/) |
-| 详规正文 | [skills-engineering/cognitive-expansion/references/cognitive_expansion.md](skills-engineering/cognitive-expansion/references/cognitive_expansion.md) |
-| 认知对手（Tier 2） | [skills-engineering/ios-engineer/references/cognitive_adversary_mode.md](skills-engineering/ios-engineer/references/cognitive_adversary_mode.md) |
+| [skills-engineering/](skills-engineering/) | Agent Skill sources, references, sync scripts, validation data, and skill evolution workflow. |
+| [sync/](sync/) | Renderers and orchestration for local MCP / platform config sync. |
+| [env/](env/) | Local configuration template; the real `env/config.json` is intentionally gitignored. |
+| [rag-gateway/](rag-gateway/) | Universal RAG Gateway source, tests, providers, retrieval, memory, telemetry, and declarative tool runtime. |
+| [docs/](docs/) | Architecture notes, Gateway status, and token comparison reports. |
+| [.githooks/](.githooks/) | Repository-managed commit and push guards. |
 
-**同步**：`cd skills-engineering && ./scripts/sync-skill-full.sh`（先 `sync-skills.sh` 全文，再 `sync-agent-preamble.sh` 写入 preamble 加载指令与 Cursor `.mdc`）。新增 skill 时在 `agent-preamble.md.tmpl` 的 `sync-manifest` 加 `skill:<name>`。详见 [skills-engineering/README.md](skills-engineering/README.md)。
+## Who This Is For
 
-**触发层级**：
-- **Tier 0（门控）**：默认不触发；仅当本次回答含判断/取舍/归因/设计选择且能产出可证伪盲区时才追加，否则静默
-- **Tier 3（加深）**：`【深潜】` / `【拓展】`
-- **Tier 2（认知对手）**：`【认知对手模式】` / `【不要迎合】` / `【red team】` — 走 ios-engineer 认知对手全文
+- Developers who want reusable Agent Skills for Codex, Claude Code, Cursor, or Xcode workflows.
+- iOS / Swift engineers who want explicit AI coding rules for Swift, SwiftUI, UIKit, Xcode, testing, review, migration, and release work.
+- AI infrastructure builders experimenting with local memory, retrieval, declarative tools, provider routing, and OpenAI-compatible gateway patterns.
+- Maintainers who want one source of truth for MCP configuration across multiple AI coding hosts.
 
-## 快速开始
-
-- **技能与 preamble**：在 `skills-engineering` 下按 [skills-engineering/README.md](skills-engineering/README.md) 的「快速开始」执行 `./scripts/sync-skills.sh` 等。
-- **MCP / Codex / Claude / Gateway 共享**：复制并编辑 `env/config.json`，然后执行 `bash sync/sync_all.sh`。详见 [sync/README.md](sync/README.md)。
-
-**忽略规则**：敏感文件与本机配置由仓库根目录 [`.gitignore`](.gitignore) 统一管理（例如 `env/config.json`、`skills-engineering/scripts/config.local.sh`）。
-
-## Git 钩子
-
-仓库根级统一管理 `pre-commit` 与 `pre-push`，安装一次同时启用两个 subtree 的守卫：
-
-```bash
-bash install-hooks.sh
-```
-
-会把 `core.hooksPath` 指向 `.githooks/`：
-
-- [`.githooks/pre-commit`](.githooks/pre-commit)：拦截 `skills-engineering/ios-engineer/SKILL.md` 与 `references/*.md` 的未治理变更（必须同 commit 绑定 evolution proposal + approval）。
-- [`.githooks/pre-push`](.githooks/pre-push)：推送前依次跑 skills-engineering 同步链（`sync-skills.sh` → `sync-agent-preamble.sh` → `verify-sync.sh`），再跑 [`sync/sync_all.sh`](sync/sync_all.sh)；默认任一失败中止 push（例外：`env/config.json` 缺失时，`sync_all.sh` 会跳过并退出 `0`，不阻断 push）。
-
-紧急绕过：
-
-```bash
-SKILL_BYPASS=1 git commit ...        # 跳过 skill 治理 + skill-sync 链（仍跑 sync/sync_all.sh）
-git push --no-verify                 # 跳过整个 pre-push
-```
-
-详细行为见各 subtree README 的「Git 钩子」章节。
-
-## 平台说明
-
-技能同步与脚本当前以 **macOS** 下的 Codex、Claude Code、Cursor 为主；MCP 同步支持 macOS 与 Linux。细节以各子目录 README 为准。

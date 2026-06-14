@@ -2,8 +2,8 @@
 
 ## Test Framework
 
-- **Test file**: `gateway/tests/integration/token-comparison.test.ts`
-- **Config**: `gateway/vitest.integration.config.ts`
+- **Test file**: `rag-gateway/tests/integration/token-comparison.test.ts`
+- **Config**: `rag-gateway/vitest.integration.config.ts`
 - **Framework**: Vitest 4.1.8
 - **Test infrastructure**:
   - `MockProviderServer` — HTTP mock server recording all request payloads

@@ -59,10 +59,12 @@ function objectRecord(value: unknown): Record<string, unknown> {
 export function gatewayEnvFromConfig(values: Record<string, unknown>): Record<string, unknown> {
 	const shared = objectRecord(objectRecord(values.env).shared);
 	const platforms = objectRecord(values.platforms);
-	const gateway = objectRecord(platforms.gateway);
+	const ragGateway = objectRecord(platforms["rag-gateway"]);
+	const legacyGateway = objectRecord(platforms.gateway);
 	return {
 		...shared,
-		...objectRecord(gateway.env),
+		...objectRecord(legacyGateway.env),
+		...objectRecord(ragGateway.env),
 	};
 }
 
@@ -74,12 +76,12 @@ const CONFIG_JSON_PATH = resolve(
 );
 
 /**
- * Load env/config.json and apply platforms.gateway.env keys to process.env.
+ * Load env/config.json and apply platforms["rag-gateway"].env keys to process.env.
  * .env values take precedence (already loaded by `import "dotenv/config"` above).
  * Silently degrades to .env-only if the file is missing or malformed.
  *
  * To add a new provider (Google, Azure, Mistral, …), simply add its
- * key-value pair to platforms.gateway.env — no code changes needed here.
+ * key-value pair to platforms["rag-gateway"].env — no code changes needed here.
  */
 function loadConfigJson(): void {
 	if (!existsSync(CONFIG_JSON_PATH)) {
@@ -91,7 +93,7 @@ function loadConfigJson(): void {
 		const values: Record<string, unknown> = JSON.parse(raw);
 		const gatewayEnv = gatewayEnvFromConfig(values);
 		applyGatewayConfigEnv(gatewayEnv, process.env);
-		console.info(`[config] Loaded env/config.json platforms.gateway.env (${Object.keys(gatewayEnv).length} keys)`);
+		console.info(`[config] Loaded env/config.json platforms["rag-gateway"].env (${Object.keys(gatewayEnv).length} keys)`);
 	} catch (err) {
 		console.warn(`[config] Failed to parse env/config.json: ${(err as Error).message}; using .env only`);
 	}
