@@ -11,3 +11,4 @@ env/config.json
 .cursor/
 .codex/
 .claude/
+docs/
