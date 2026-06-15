@@ -68,9 +68,9 @@ describe("applyGatewayConfigEnv", () => {
 });
 
 describe("gatewayEnvFromConfig", () => {
-    it("should merge shared env and rag-gateway env with rag-gateway taking precedence", () => {
+    it("should get rag-gateway env from platforms config", () => {
         const values = gatewayEnvFromConfig({
-            env: { shared: { OPENAI_BASE_URL: "https://shared.example" } },
+            env: {},
             platforms: {
                 "rag-gateway": {
                     env: {

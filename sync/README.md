@@ -30,16 +30,15 @@ Platform independence lives inside the single config file:
 
 ```json
 {
-  "env": { "shared": {} },
   "platforms": {
-    "rag-gateway": { "env": {} },
+    "gateway": { "env": {} },
     "claude": { "env": {} },
     "codex": { "env": {}, "features": {}, "projects": {} }
   }
 }
 ```
 
-`env.shared` is optional. Values under `platforms.<name>.env` override shared values for that platform. This keeps Gateway, Claude, and Codex separately configurable without splitting the source into multiple files.
+Values under `platforms.<name>.env` are scoped to that platform. No global `env.shared` — each platform owns its own env vars.
 
 ## Targets
 

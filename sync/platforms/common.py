@@ -41,22 +41,14 @@ def platform_config(data: dict[str, Any], platform: str) -> dict[str, Any]:
 
 
 def env_for_platform(data: dict[str, Any], platform: str) -> dict[str, str]:
-    env_root = object_at(data, "env")
-    shared = env_root.get("shared", {})
-    if shared is None:
-        shared = {}
-    if not isinstance(shared, dict):
-        raise ValueError("env.shared must be an object.")
-
     cfg = platform_config(data, platform)
-    local_env = cfg.get("env", {})
-    if local_env is None:
-        local_env = {}
-    if not isinstance(local_env, dict):
+    env = cfg.get("env", {})
+    if env is None:
+        env = {}
+    if not isinstance(env, dict):
         raise ValueError(f"platforms.{platform}.env must be an object.")
 
-    merged = {**shared, **local_env}
-    return {k: v for k, v in merged.items() if isinstance(k, str) and isinstance(v, str) and v != ""}
+    return {k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str) and v != ""}
 
 
 def mcp_servers(data: dict[str, Any]) -> dict[str, Any]:

@@ -57,13 +57,11 @@ function objectRecord(value: unknown): Record<string, unknown> {
 }
 
 export function gatewayEnvFromConfig(values: Record<string, unknown>): Record<string, unknown> {
-	const shared = objectRecord(objectRecord(values.env).shared);
 	const platforms = objectRecord(values.platforms);
 	const ragGateway = objectRecord(platforms["rag-gateway"]);
 	const legacyGateway = objectRecord(platforms.gateway);
 	return {
-		...shared,
-		...objectRecord(legacyGateway.env),
+				...objectRecord(legacyGateway.env),
 		...objectRecord(ragGateway.env),
 	};
 }
