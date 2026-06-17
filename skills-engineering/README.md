@@ -165,6 +165,12 @@ SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=0 SYNC_XCODE_CODEX=0 SYNC_XCODE_CLAUDE=1 
 - `~/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md`
 - `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md`
 
+同步到 `~/.claude/CLAUDE.md` 时，脚本还会维护一个 Claude 专用的 `claude-router-pro-mode`
+托管块，用于写入 HAIKU / SONNET / OPUS 伪自动分流规则、复杂度评分、二阶段执行、成本优化与
+fallback 策略；该块不会同步到 Codex、Cursor 或 Xcode Claude。脚本同时会生成
+`~/.claude/agents/router-agent.md`、`~/.claude/agents/coder-agent.md`、`~/.claude/agents/fast-agent.md`。
+该 router 托管块会固定写在 `~/.claude/CLAUDE.md` 顶部；若用户手动移动，下次同步会自动归位。
+
 如需同步 Cursor 项目规则，传入冒号分隔的项目根目录：
 
 ```bash

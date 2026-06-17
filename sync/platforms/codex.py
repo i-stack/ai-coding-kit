@@ -80,15 +80,20 @@ def generate_codex_shared_toml(data: dict[str, Any]) -> str:
 
     # model_provider 行: provider 有效时激活，null 时注释掉
     if use_custom_provider:
-        lines.append(f'model_provider = "custom"')
+        lines.append(f'model_provider = {toml_quote(str(provider_name))}')
+        lines.append(f'preferred_auth_method = "apikey"')
     else:
-        lines.append(f'# model_provider = "custom"')
+        lines.append(f'# model_provider = ""')
+        lines.append(f'# preferred_auth_method = "apikey"')
 
     if effort := codex.get("modelReasoningEffort"):
         lines.append(f"model_reasoning_effort = {toml_quote(str(effort))}")
 
     if personality := codex.get("personality"):
         lines.append(f"personality = {toml_quote(str(personality))}")
+
+    if (disable_response_storage := codex.get("disable_response_storage")) is not None:
+        lines.append(f"disable_response_storage = {'true' if disable_response_storage else 'false'}")
 
     if base_url:
         lines.extend(
