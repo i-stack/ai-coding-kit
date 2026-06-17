@@ -59,5 +59,36 @@
             },
             "timeoutMs": 5000
         }
+    },
+    {
+        "name": "search_memory",
+        "description": "Search semantic memory (Qdrant vector store) and entity graph (GraphRAG) for relevant context from past conversations.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "The search query to find relevant memories and entities"
+                },
+                "limit": {
+                    "type": "number",
+                    "description": "Maximum number of results to return (default: 5)"
+                },
+                "tenant_id": {
+                    "type": "string",
+                    "description": "Tenant ID for multi-tenant isolation (default: 'default')"
+                },
+                "project_id": {
+                    "type": "string",
+                    "description": "Optional project ID for project-scoped search"
+                }
+            },
+            "required": ["query"]
+        },
+        "executor": {
+            "type": "memory_search",
+            "defaultLimit": 5,
+            "scoreThreshold": 0.35
+        }
     }
 ]

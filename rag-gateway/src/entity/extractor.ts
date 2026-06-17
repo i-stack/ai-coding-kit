@@ -2,9 +2,13 @@
  * Entity Extractor — uses the LLM to extract structured entities and
  * relationships from conversation text.
  *
- * Runs as a fire-and-forget background step after each chat response.
+ * Runs as a fire-and-forget background step after each MCP tool call.
  * Gracefully degrades: on failure, returns null and the caller logs
  * the degradation but does not block the response path.
+ *
+ * Configured via EXTRACTION_API_KEY / EXTRACTION_BASE_URL / EXTRACTION_MODEL.
+ * Falls back to EMBEDDING_API_KEY / EMBEDDING_BASE_URL if extraction-specific
+ * env vars are unset.
  */
 import OpenAI from "openai";
 import type { GatewayConfig } from "../config.js";
@@ -57,10 +61,10 @@ export class EntityExtractor {
 
 	constructor(config: GatewayConfig) {
 		this.client = new OpenAI({
-			apiKey: config.openaiApiKey,
-			baseURL: config.openaiBaseUrl,
+			apiKey: config.extractionApiKey || config.embeddingApiKey,
+			baseURL: config.extractionBaseUrl || config.embeddingBaseUrl,
 		});
-		this.model = config.openaiDefaultModel;
+		this.model = config.extractionModel;
 	}
 
 	/**

@@ -11,7 +11,7 @@
  */
 
 const DEFAULT_COLLECTION = "memory_chunks";
-const VECTOR_SIZE = 256; // bge-m3 via OpenAI SDK returns 256-dim
+const VECTOR_SIZE = 1024; // bge-m3 via OpenAI SDK returns 1024-dim
 
 export interface QdrantSearchResult {
 	id: string;

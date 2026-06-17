@@ -50,7 +50,7 @@ describe("QdrantStore", () => {
         // Second call: PUT to create collection
         const secondCall = fetchMock.mock.calls[1];
         expect(secondCall[0]).toBe("http://localhost:6333/collections/memory_chunks");
-        expect(JSON.parse(secondCall[1].body).vectors.size).toBe(256);
+        expect(JSON.parse(secondCall[1].body).vectors.size).toBe(1024);
     });
 
     it("ensureCollection should skip creation if exists", async () => {
