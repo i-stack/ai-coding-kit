@@ -15,6 +15,9 @@ export interface GatewayConfig {
 	embeddingBaseUrl: string;
 	/** Model name for embeddings (default: "bge-m3") */
 	embeddingModel: string;
+	/** Vector dimension for Qdrant collection. Must match the embedding model used.
+	 *  bge-m3 = 1024, text-embedding-ada-002 = 1536, text-embedding-3-large = 3072 */
+	vectorSize: number;
 	/** API key for entity extraction LLM (falls back to embeddingApiKey) */
 	extractionApiKey: string;
 	/** Base URL for entity extraction LLM */
@@ -98,6 +101,19 @@ export function loadConfig(): GatewayConfig {
 	// Phase 2: apply env/config.json defaults for any keys still unset.
 	loadConfigJson();
 
+	const embeddingModel = optionalEnv("EMBEDDING_MODEL", "bge-m3");
+
+	// Infer vector dimension from model name when VECTOR_SIZE is not explicitly set
+	const rawVectorSize = process.env.VECTOR_SIZE ?? "";
+	const DEFAULT_VECTOR_SIZES: Record<string, number> = {
+		"bge-m3": 1024,
+		"text-embedding-ada-002": 1536,
+		"text-embedding-3-large": 3072,
+	};
+	const vectorSize = rawVectorSize
+		? parseInt(rawVectorSize, 10)
+		: (DEFAULT_VECTOR_SIZES[embeddingModel] ?? 1024);
+
 	return {
 		port: parseInt(optionalEnv("GATEWAY_PORT", "3000"), 10),
 		host: optionalEnv("GATEWAY_HOST", "127.0.0.1"),
@@ -106,7 +122,8 @@ export function loadConfig(): GatewayConfig {
 		graphRagEnabled: process.env.GRAPH_RAG_ENABLED === "true",
 		embeddingApiKey: optionalEnv("EMBEDDING_API_KEY", ""),
 		embeddingBaseUrl: optionalEnv("EMBEDDING_BASE_URL", "https://api.openai.com/v1"),
-		embeddingModel: optionalEnv("EMBEDDING_MODEL", "bge-m3"),
+		embeddingModel,
+		vectorSize,
 		extractionApiKey: optionalEnv("EXTRACTION_API_KEY", ""),
 		extractionBaseUrl: optionalEnv("EXTRACTION_BASE_URL", ""),
 		extractionModel: optionalEnv("EXTRACTION_MODEL", "gpt-4o-mini"),

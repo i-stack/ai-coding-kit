@@ -49,7 +49,7 @@ async function main() {
 	if (config.qdrantUrl) {
 		try {
 			const embedding = new EmbeddingService(config);
-			const qdrant = new QdrantStore(config.qdrantUrl);
+			const qdrant = new QdrantStore(config.qdrantUrl, { vectorSize: config.vectorSize });
 			await qdrant.ensureCollection();
 			await qdrant.ensurePayloadIndexes();
 			vectorStore = new VectorStore(embedding, qdrant);

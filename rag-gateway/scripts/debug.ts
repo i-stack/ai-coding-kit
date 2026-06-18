@@ -16,7 +16,7 @@ async function debug() {
   }
 
   // Test Qdrant direct search
-  const qdrant = new QdrantStore(config.qdrantUrl!);
+  const qdrant = new QdrantStore(config.qdrantUrl!, { vectorSize: config.vectorSize });
   try {
     const vec = await embedding.embed("RAG gateway");
     const results = await qdrant.search(vec, { limit: 5, tenantId: "default" });
