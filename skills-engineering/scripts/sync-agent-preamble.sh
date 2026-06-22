@@ -16,6 +16,7 @@ TEMPLATE="${TEMPLATE:-${SCRIPT_DIR}/templates/agent-preamble.md.tmpl}"
 CLAUDE_TARGET="${CLAUDE_TARGET:-${HOME}/.claude/CLAUDE.md}"
 CLAUDE_AGENTS_DIR="${CLAUDE_AGENTS_DIR:-${HOME}/.claude/agents}"
 CODEX_TARGET="${CODEX_TARGET:-${HOME}/.codex/AGENTS.md}"
+GEMINI_TARGET="${GEMINI_TARGET:-${HOME}/.gemini/GEMINI.md}"
 XCODE_CODEX_TARGET="${XCODE_CODEX_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md}"
 XCODE_CLAUDE_TARGET="${XCODE_CLAUDE_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md}"
 CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
@@ -542,6 +543,13 @@ elif [[ -n "${SYNC_CODEX:-}" ]]; then
   echo "Skip Codex preamble: disabled via SYNC_CODEX=${SYNC_CODEX}."
 else
   echo "Skip Codex preamble: ${HOME}/.codex not found (set SYNC_CODEX=1 to force)."
+fi
+if sync_enabled "${SYNC_GEMINI:-}" "${HOME}/.gemini"; then
+  sync_target "${GEMINI_TARGET}" "gemini" "~/.gemini/skills/ios-engineer/"
+elif [[ -n "${SYNC_GEMINI:-}" ]]; then
+  echo "Skip Gemini preamble: disabled via SYNC_GEMINI=${SYNC_GEMINI}."
+else
+  echo "Skip Gemini preamble: ${HOME}/.gemini not found (set SYNC_GEMINI=1 to force)."
 fi
 if sync_enabled "${SYNC_XCODE_CODEX:-}" "${HOME}/Library/Developer/Xcode/CodingAssistant/codex"; then
   sync_target "${XCODE_CODEX_TARGET}" "codex" "~/Library/Developer/Xcode/CodingAssistant/codex/skills/ios-engineer/"

@@ -2,17 +2,17 @@
 
 [![Skill](https://img.shields.io/badge/skill-ios--engineer-0A84FF)](ios-engineer/SKILL.md)
 ![Agent](https://img.shields.io/badge/agent-skill--engineering-34C759)
-![Sync](https://img.shields.io/badge/sync-Codex%20%7C%20Claude%20%7C%20Cursor-5856D6)
+![Sync](https://img.shields.io/badge/sync-Codex%20%7C%20Claude%20%7C%20Cursor%20%7C%20Gemini-5856D6)
 
 用于维护、同步与演进工程化 Agent Skill 的仓库。当前主技能为 `ios-engineer`，覆盖 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务中的架构、并发、网络、UI、性能、测试、审查、迁移和发布风险控制。
 
 本仓库同时提供三类能力：
 
 - Skill 内容源：`ios-engineer/SKILL.md` 与 `ios-engineer/references/` 是技能规则和参考文档的来源。
-- 多端同步：把技能同步到 Codex、Claude Code、Cursor 的本地 skills 目录，并把托管 preamble 写入对应 Agent 配置。
+- 多端同步：把技能同步到 Codex、Claude Code、Cursor、Gemini 的本地 skills 目录，并把托管 preamble 写入对应 Agent 配置。
 - 受控演进：用 proposal、validation、approval、history、usage ledger 管理技能变更，避免直接修改规则后失去验证链路。
 
-当前仅适配 macOS 下的 Codex、Claude Code 和 Cursor；欢迎提交 PR 补充 Windows 同步脚本，或补充其他需要同步的 AI 工具。
+当前仅适配 macOS 下的 Codex、Claude Code、Cursor 和 Gemini；欢迎提交 PR 补充 Windows 同步脚本，或补充其他需要同步的 AI 工具。
 
 ## 当前状态
 
@@ -65,6 +65,7 @@
 - `Codex`：需要 `~/.codex/skills/ios-engineer` + `~/.codex/AGENTS.md`。前者提供 `SKILL.md + references/`，后者负责把技能路径接入 system prompt。
 - `Claude`：需要 `~/.claude/skills/ios-engineer` + `~/.claude/CLAUDE.md`。只同步 skill 目录不足以保证自动加载。
 - `Cursor`：每个 skill 需要 `~/.cursor/skills/<skill>` + 项目内 `.cursor/rules/<skill>.mdc`（`cognitive-expansion.mdc` 由 `sync-agent-preamble.sh` 从 skill 详规生成）。`alwaysApply: true` 的 `.mdc` 负责项目内自动加载。
+- `Gemini`：需要 `~/.gemini/skills/ios-engineer` + `~/.gemini/GEMINI.md`。前者提供 `SKILL.md + references/`，后者负责作为全局上下文在对话中每次自动加载。
 - `Xcode Codex`：需要 `~/Library/Developer/Xcode/CodingAssistant/codex/skills/ios-engineer` + `~/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md`。
 - `Xcode Claude`：需要 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/ios-engineer` + `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md`。
 
@@ -98,6 +99,7 @@
 - `~/.codex/skills/ios-engineer`
 - `~/.claude/skills/ios-engineer`
 - `~/.cursor/skills/ios-engineer`
+- `~/.gemini/skills/ios-engineer`
 - `~/Library/Developer/Xcode/CodingAssistant/codex/skills/ios-engineer`
 - `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/ios-engineer`
 
@@ -117,6 +119,7 @@
 - `CODEX_DEST_BASE`：默认 `~/.codex/skills`
 - `CLAUDE_DEST_BASE`：默认 `~/.claude/skills`
 - `CURSOR_DEST_BASE`：默认 `~/.cursor/skills`
+- `GEMINI_DEST_BASE`：默认 `~/.gemini/skills`
 - `XCODE_CODEX_DEST_BASE`：默认 `~/Library/Developer/Xcode/CodingAssistant/codex/skills`
 - `XCODE_CLAUDE_DEST_BASE`：默认 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills`
 
@@ -125,6 +128,7 @@
 - `SYNC_CLAUDE`
 - `SYNC_CODEX`
 - `SYNC_CURSOR`
+- `SYNC_GEMINI`
 - `SYNC_XCODE_CODEX`
 - `SYNC_XCODE_CLAUDE`
 

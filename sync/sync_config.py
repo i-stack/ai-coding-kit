@@ -9,7 +9,7 @@ import argparse
 from collections.abc import Callable
 from typing import Any
 
-from platforms import claude, codex, cursor
+from platforms import claude, codex, cursor, gemini
 from platforms.common import load_config
 
 SyncFn = Callable[[dict[str, Any]], None]
@@ -18,6 +18,7 @@ TARGETS: dict[str, SyncFn] = {
     "cursor": cursor.sync,
     "codex": codex.sync,
     "claude": claude.sync,
+    "gemini": gemini.sync,
 }
 
 

@@ -97,6 +97,7 @@ Targeted runs:
 python3 sync/sync_config.py --target cursor
 python3 sync/sync_config.py --target codex
 python3 sync/sync_config.py --target claude
+python3 sync/sync_config.py --target gemini
 ```
 
 ## Managed Blocks
@@ -120,3 +121,4 @@ JSON targets are merge-only: source keys from `env/config.json` are added or upd
 ## Safety
 
 `env/config.json` is gitignored because it may contain API keys and MCP tokens. Commit only `env/config.json.example`.
+keys and MCP tokens. Commit only `env/config.json.example`.

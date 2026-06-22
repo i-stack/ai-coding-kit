@@ -14,12 +14,14 @@ fi
 CODEX_DEST_BASE="${CODEX_DEST_BASE:-${HOME}/.codex/skills}"
 CLAUDE_DEST_BASE="${CLAUDE_DEST_BASE:-${HOME}/.claude/skills}"
 CURSOR_DEST_BASE="${CURSOR_DEST_BASE:-${HOME}/.cursor/skills}"
+GEMINI_DEST_BASE="${GEMINI_DEST_BASE:-${HOME}/.gemini/skills}"
 XCODE_CODEX_DEST_BASE="${XCODE_CODEX_DEST_BASE:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/skills}"
 XCODE_CLAUDE_DEST_BASE="${XCODE_CLAUDE_DEST_BASE:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills}"
 
 CLAUDE_ROOT="${HOME}/.claude"
 CODEX_ROOT="${HOME}/.codex"
 CURSOR_ROOT="${HOME}/.cursor"
+GEMINI_ROOT="${HOME}/.gemini"
 XCODE_CODEX_ROOT="${HOME}/Library/Developer/Xcode/CodingAssistant/codex"
 XCODE_CLAUDE_ROOT="${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig"
 
@@ -46,13 +48,14 @@ Environment variables:
   CODEX_DEST_BASE  Default: ~/.codex/skills
   CLAUDE_DEST_BASE Default: ~/.claude/skills
   CURSOR_DEST_BASE Default: ~/.cursor/skills
+  GEMINI_DEST_BASE Default: ~/.gemini/skills
   XCODE_CODEX_DEST_BASE / XCODE_CLAUDE_DEST_BASE  Xcode skill paths
 
 If neither SKILL_NAME nor SKILL_NAMES is set, syncs every directory under
 skills-engineering/ that contains a SKILL.md file.
 
 Sync target gating (per-tool; values: 1=force on, 0=force off, unset=auto-detect):
-  SYNC_CLAUDE, SYNC_CODEX, SYNC_CURSOR, SYNC_XCODE_CODEX, SYNC_XCODE_CLAUDE
+  SYNC_CLAUDE, SYNC_CODEX, SYNC_CURSOR, SYNC_GEMINI, SYNC_XCODE_CODEX, SYNC_XCODE_CLAUDE
 EOF
 }
 
@@ -127,6 +130,13 @@ build_dest_bases() {
     echo "Skip Cursor sync: disabled via SYNC_CURSOR=${SYNC_CURSOR}."
   else
     echo "Skip Cursor sync: ${CURSOR_ROOT} not found (set SYNC_CURSOR=1 to force)."
+  fi
+  if sync_enabled "${SYNC_GEMINI:-}" "${GEMINI_ROOT}"; then
+    DEST_BASES+=("${GEMINI_DEST_BASE}")
+  elif [[ -n "${SYNC_GEMINI:-}" ]]; then
+    echo "Skip Gemini sync: disabled via SYNC_GEMINI=${SYNC_GEMINI}."
+  else
+    echo "Skip Gemini sync: ${GEMINI_ROOT} not found (set SYNC_GEMINI=1 to force)."
   fi
   if sync_enabled "${SYNC_XCODE_CODEX:-}" "${XCODE_CODEX_ROOT}"; then
     DEST_BASES+=("${XCODE_CODEX_DEST_BASE}")
