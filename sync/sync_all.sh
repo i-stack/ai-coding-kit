@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync configuration sources to Cursor / Codex / Claude Code / Xcode.
+# Sync configuration sources to Cursor / Codex / Claude Code / Cline / Xcode.
 #
 # Source (sibling of this sync/ dir):
 #   - env/config.json — MCP catalog + platform-specific env/config, gitignored.
@@ -12,6 +12,8 @@
 #   3) Claude Code: merge mcpServers into ~/.claude.json and into Xcode's
 #      ~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json
 #      (per-project mcpServers), plus env into ~/.claude/settings.json.
+#   4) Cline: merge mcpServers into the VSCode extension MCP settings JSON, and copy
+#      skills from ~/.claude/skills/ into ~/.cline/skills/.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -25,7 +27,7 @@ if [ ! -f "$CONFIG_JSON" ]; then
   exit 0
 fi
 
-echo "[1/1] Sync config to Cursor / Codex / Claude / Xcode"
+echo "[1/1] Sync config to Cursor / Codex / Claude / Cline / Xcode"
 python3 "$SCRIPT_DIR/sync_config.py" --target all
 
 echo "Done."

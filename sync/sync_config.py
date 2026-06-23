@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sync env/config.json into Cursor, Codex, Claude Code, and Xcode.
+Sync env/config.json into Cursor, Codex, Claude Code, Cline, and Xcode.
 
 The source stays outside this directory because it is runtime configuration, not
 sync tool code. Platform-specific rendering lives in sync/platforms/.
@@ -9,7 +9,7 @@ import argparse
 from collections.abc import Callable
 from typing import Any
 
-from platforms import claude, codex, cursor, gemini
+from platforms import claude, cline, codex, cursor, gemini
 from platforms.common import load_config
 
 SyncFn = Callable[[dict[str, Any]], None]
@@ -19,6 +19,7 @@ TARGETS: dict[str, SyncFn] = {
     "codex": codex.sync,
     "claude": claude.sync,
     "gemini": gemini.sync,
+    "cline": cline.sync,
 }
 
 
