@@ -14,21 +14,21 @@ def sync_xcode_claude_json(servers: dict[str, Any]) -> None:
     if isinstance(projects, dict) and projects:
         for proj in projects.values():
             if isinstance(proj, dict):
-                proj["mcpServers"] = merge_object(proj.get("mcpServers"), servers)
+                proj["mcpServers"] = servers
         mode = "per-project"
     else:
-        data["mcpServers"] = merge_object(data.get("mcpServers"), servers)
+        data["mcpServers"] = servers
         mode = "root"
     write_json(XCODE_CLAUDE_JSON, data)
-    print(f"Merged MCP servers into {XCODE_CLAUDE_JSON} ({mode}).")
+    print(f"Replaced MCP servers in {XCODE_CLAUDE_JSON} ({mode}).")
 
 
 def sync(data: dict[str, Any]) -> None:
     servers = mcp_servers(data)
     claude = read_json_object(CLAUDE_JSON)
-    claude["mcpServers"] = merge_object(claude.get("mcpServers"), servers)
+    claude["mcpServers"] = servers
     write_json(CLAUDE_JSON, claude)
-    print(f"Merged MCP servers into {CLAUDE_JSON} (other top-level config preserved).")
+    print(f"Replaced MCP servers in {CLAUDE_JSON} (other top-level config preserved).")
 
     sync_xcode_claude_json(servers)
 

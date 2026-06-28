@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .common import mcp_servers, merge_object, read_json_object, write_json
+from .common import mcp_servers, read_json_object, write_json
 
 _STORAGE_SUFFIX = "saoudrizwan.claude-dev/settings/cline_mcp_settings.json"
 
@@ -23,9 +23,9 @@ def _sync_mcp(servers: dict[str, Any]) -> None:
         return
     for path in targets:
         data = read_json_object(path)
-        data["mcpServers"] = merge_object(data.get("mcpServers"), servers)
+        data["mcpServers"] = servers
         write_json(path, data)
-        print(f"Merged MCP servers into {path}.")
+        print(f"Replaced MCP servers in {path}.")
 
 
 def _sync_skills() -> None:

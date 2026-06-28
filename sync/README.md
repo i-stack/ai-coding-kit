@@ -44,11 +44,11 @@ Values under `platforms.<name>.env` are scoped to that platform. No global `env.
 
 | Target | Output |
 |------|--------|
-| Cursor | Merge `mcpServers` into `~/.cursor/mcp.json`, preserving other keys and existing non-source servers. |
+| Cursor | Replace `mcpServers` in `~/.cursor/mcp.json`, preserving other top-level keys. |
 | Codex CLI | `~/.codex/mcp.generated.toml` plus managed blocks in `~/.codex/config.toml`. |
 | Xcode Codex | `~/Library/Developer/Xcode/CodingAssistant/codex/` with the same TOML rendering. |
-| Claude Code | Merge `mcpServers` into `~/.claude.json`, preserving other keys and existing non-source servers. |
-| Xcode Claude Agent | Merge `mcpServers` into `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`; per-project when projects already exist. |
+| Claude Code | Replace `mcpServers` in `~/.claude.json`, preserving other top-level keys. |
+| Xcode Claude Agent | Replace `mcpServers` in `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`; per-project when projects already exist. |
 | Claude settings | Merge `platforms.claude.env` into `~/.claude/settings.json` `env`, preserving unrelated env keys. |
 | RAG Gateway | `rag-gateway/src/config.ts` reads `platforms["rag-gateway"].env` directly from `env/config.json`; `.env` still wins at runtime. |
 
@@ -116,7 +116,7 @@ Codex config files contain two generated regions:
 
 Everything outside those markers is host-specific and preserved. Keep `developer_instructions`, sandbox, plugins, Xcode-only MCP, notifications, and local overrides outside managed blocks.
 
-JSON targets are merge-only: source keys from `env/config.json` are added or updated, while keys not present in the source are left untouched. Removing a stale key from a JSON target remains a manual cleanup step.
+JSON MCP targets treat `env/config.json` as authoritative: each run replaces the target `mcpServers` object so source-side deletes and edits propagate. Non-MCP top-level keys are preserved. Platform env blocks, such as Claude settings `env`, remain merge-based so unrelated local environment keys survive.
 
 ## Safety
 
