@@ -30,4 +30,13 @@ fi
 echo "[1/1] Sync config to Cursor / Codex / Claude / Cline / Xcode"
 python3 "$SCRIPT_DIR/sync_config.py" --target all
 
+# Source ~/.zshrc to load any env vars written by the sync (e.g. DATAEYES_API_KEY).
+# This takes effect in the current script process only; to apply immediately in your
+# open terminal run: source ~/.zshrc
+if [ -f "$HOME/.zshrc" ]; then
+  # shellcheck disable=SC1090
+  source "$HOME/.zshrc" 2>/dev/null || true
+  echo "[sync] Sourced ~/.zshrc — run 'source ~/.zshrc' in your terminal for immediate effect."
+fi
+
 echo "Done."
