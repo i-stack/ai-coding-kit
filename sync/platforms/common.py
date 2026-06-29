@@ -51,11 +51,31 @@ def env_for_platform(data: dict[str, Any], platform: str) -> dict[str, str]:
     return {k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str) and v != ""}
 
 
-def mcp_servers(data: dict[str, Any]) -> dict[str, Any]:
-    servers = data.get("mcpServers", {})
-    if not isinstance(servers, dict):
+def mcp_servers(data: dict[str, Any], platform: str | None = None) -> dict[str, Any]:
+    raw = data.get("mcpServers", {})
+    if not isinstance(raw, dict):
         raise ValueError("mcpServers must be an object.")
-    return servers
+    result: dict[str, Any] = {}
+    for name, cfg in raw.items():
+        if not isinstance(cfg, dict):
+            result[name] = cfg
+            continue
+        allowed = cfg.get("platforms")
+        if allowed is not None:
+            if not isinstance(allowed, list) or (platform is not None and platform not in allowed):
+                continue
+        # strip internal routing metadata before writing to target
+        result[name] = {k: v for k, v in cfg.items() if k != "platforms"}
+    return result
+
+
+def sync_json_mcp(path: Path, servers: dict[str, Any]) -> None:
+    if path.is_symlink():
+        path.unlink()
+    existing = read_json_object(path)
+    existing["mcpServers"] = servers
+    write_json(path, existing)
+    print(f"Replaced MCP servers in {path}.")
 
 
 def read_json_object(path: Path) -> dict[str, Any]:

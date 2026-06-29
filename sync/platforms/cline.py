@@ -50,5 +50,5 @@ def _sync_skills() -> None:
 
 
 def sync(data: dict[str, Any]) -> None:
-    _sync_mcp(mcp_servers(data))
+    _sync_mcp(mcp_servers(data, "cline"))
     _sync_skills()

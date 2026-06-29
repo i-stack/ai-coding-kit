@@ -15,6 +15,32 @@ cp env/config.json.example env/config.json
 $EDITOR env/config.json
 ```
 
+## MCP Server Platform Filtering
+
+By default every MCP server is synced to every platform. Add an optional `platforms` array to limit which platforms receive a server:
+
+```json
+"mcpServers": {
+    "XcodeBuildMCP": {
+        "command": "npx",
+        "args": ["-y", "xcodebuildmcp@latest", "mcp"],
+        "platforms": ["claude", "codex"]
+    },
+    "design-handoff": {
+        "url": "http://localhost:8000/mcp",
+        "platforms": ["claude", "cline"]
+    },
+    "github": {
+        "url": "https://api.githubcopilot.com/mcp/"
+    }
+}
+```
+
+- `"platforms": ["claude", "codex"]` — only claude and codex receive this server.
+- No `platforms` field — all platforms receive this server (existing behavior preserved).
+
+The `platforms` key is stripped from the output; target config files never see it.
+
 ## Design
 
 The architecture is deliberately split into three layers:
@@ -56,7 +82,20 @@ Codex targets are TOML because Codex config is TOML. The maintained source remai
 
 ## Adding Platforms
 
-Add one renderer module under `sync/platforms/`, then register it in `TARGETS` inside `sync/sync_config.py`.
+**Complex platforms** (custom config format, multi-file writes, or extra logic) need a renderer module:
+
+1. Add `sync/platforms/<name>.py` with a `sync(data) -> None` function.
+2. Register it in `TARGETS` inside `sync/sync_config.py`.
+
+**Simple JSON-MCP platforms** (only need `mcpServers` written to a JSON file) can be declared directly in `env/config.json` without any Python:
+
+```json
+"platforms": {
+    "zed": { "type": "json-mcp", "path": "~/.config/zed/mcp.json" }
+}
+```
+
+`sync_config.py` auto-discovers all `type=json-mcp` entries and builds sync functions for them at runtime. Adding Zed, Kiro, or any other simple platform requires only a config change.
 
 Do not add another top-level sync script for each platform. The stable command should remain:
 

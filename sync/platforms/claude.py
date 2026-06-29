@@ -24,7 +24,7 @@ def sync_xcode_claude_json(servers: dict[str, Any]) -> None:
 
 
 def sync(data: dict[str, Any]) -> None:
-    servers = mcp_servers(data)
+    servers = mcp_servers(data, "claude")
     claude = read_json_object(CLAUDE_JSON)
     claude["mcpServers"] = servers
     write_json(CLAUDE_JSON, claude)

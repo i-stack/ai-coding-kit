@@ -10,10 +10,12 @@
     "browser-automation": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest", "--extension"],
-      "env": {}
+      "env": {},
+      "platforms": ["claude", "codex", "cline"]
     },
     "design-handoff": {
-      "url": "http://localhost:8000/mcp?role=Developer&name=YourName"
+      "url": "http://localhost:8000/mcp?role=Developer&name=YourName",
+      "platforms": ["claude", "cline"]
     },
     "api-documentation": {
       "command": "npx",
@@ -24,7 +26,8 @@
       ],
       "env": {
         "APIFOX_ACCESS_TOKEN": "YOUR_APIFOX_TOKEN"
-      }
+      },
+      "platforms": ["claude", "codex", "cline"]
     }
   },
   "platforms": {
@@ -70,6 +73,11 @@
           "trust_level": "trusted"
         }
       }
+    },
+    "_comment_json_mcp": "Declare simple platforms here without writing Python. type=json-mcp replaces mcpServers in the target JSON file.",
+    "zed": {
+      "type": "json-mcp",
+      "path": "~/.config/zed/mcp.json"
     }
   }
 }

@@ -160,7 +160,7 @@ def merge_codex_managed_blocks(cfg: Path, shared_body: str, mcp_body: str) -> No
 
 
 def sync(data: dict[str, Any]) -> None:
-    servers = mcp_servers(data)
+    servers = mcp_servers(data, "codex")
     generated = generate_mcp_toml(servers)
     shared = generate_codex_shared_toml(data)
 
