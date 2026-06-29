@@ -45,6 +45,19 @@
         "ANTHROPIC_DEFAULT_SONNET_MODEL": "",
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": "",
         "CLAUDE_CODE_EFFORT_LEVEL": ""
+      },
+      "hooks": {
+        "SessionStart": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "~/.claude/hooks/xmcp-init.sh",
+                "timeout": 10
+              }
+            ]
+          }
+        ]
       }
     },
     "codex": {
@@ -54,10 +67,11 @@
       "modelReasoningEffort": "medium",
       "providerName": "",
       "wireApi": "responses",
+      "openaiBaseUrl": "",
       "envKey": "OPENAI_API_KEY",
+      "needExport": true,
       "env": {
-        "OPENAI_API_KEY": "",
-        "OPENAI_BASE_URL": ""
+        "OPENAI_API_KEY": ""
       },
       "features": {
         "skills": true,
@@ -66,12 +80,20 @@
         "default_mode_request_user_input": true
       },
       "projects": {
-        "～/Desktop/iOS/bajoseekios": {
+        "~/Desktop/iOS/bajoseekios": {
           "trust_level": "trusted"
         },
-        "～/Desktop/iOS/STBaseProject": {
+        "~/Desktop/iOS/STBaseProject": {
           "trust_level": "trusted"
         }
+      }
+    },
+    "gemini": {
+      "needExport": true,
+      "env": {
+        "GEMINI_API_KEY": "",
+        "GOOGLE_GEMINI_BASE_URL": "",
+        "GEMINI_MODEL": ""
       }
     },
     "_comment_json_mcp": "Declare simple platforms here without writing Python. type=json-mcp replaces mcpServers in the target JSON file.",
