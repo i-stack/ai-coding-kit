@@ -71,7 +71,7 @@
       "envKey": "OPENAI_API_KEY",
       "needExport": true,
       "env": {
-        "OPENAI_API_KEY": ""
+        "OPENAI_API_KEY": "YOUR_API_KEY"
       },
       "features": {
         "skills": true,
@@ -99,7 +99,7 @@
           "name": "DeepSeek V4 Pro",
           "vendor": "DeepSeek",
           "url": "https://cloud.dataeyes.ai/v1",
-          "apiKey": "${DEEP_SEEK_KEY}",
+          "apiKey": "YOUR_API_KEY",
           "maxInputTokens": 128000,
           "maxOutputTokens": 8192,
           "supportsToolCall": true,
@@ -114,7 +114,7 @@
           "name": "DeepSeek V4 Flash",
           "vendor": "DeepSeek",
           "url": "https://cloud.dataeyes.ai/v1",
-          "apiKey": "${DEEP_SEEK_KEY}",
+          "apiKey": "YOUR_API_KEY",
           "maxInputTokens": 128000,
           "maxOutputTokens": 8192,
           "supportsToolCall": true,

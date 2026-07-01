@@ -27,6 +27,9 @@ if [ ! -f "$CONFIG_JSON" ]; then
   exit 0
 fi
 
+# Auto-backup config.json before sync (keeps last 10 in ~/.ai-coding-kit-backups/)
+bash "$SCRIPT_DIR/backup-config.sh" backup
+
 echo "[1/1] Sync config to Cursor / CodeBuddy / Codex / Claude / Cline / Xcode"
 python3 "$SCRIPT_DIR/sync_config.py" --target all
 
