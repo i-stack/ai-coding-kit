@@ -18,7 +18,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from platforms import claude, cline, codex, cursor, gemini
+from platforms import claude, cline, codex, cursor, gemini, continue_platform
 from platforms.common import load_config, mcp_servers, read_json_object, write_json
 
 SyncFn = Callable[[dict[str, Any]], None]
@@ -29,6 +29,7 @@ TARGETS: dict[str, SyncFn] = {
     "claude": claude.sync,
     "gemini": gemini.sync,
     "cline": cline.sync,
+    "continue": continue_platform.sync,
 }
 
 

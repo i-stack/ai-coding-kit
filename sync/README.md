@@ -77,6 +77,7 @@ Values under `platforms.<name>.env` are scoped to that platform. No global `env.
 | Xcode Claude Agent | Replace `mcpServers` in `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`; per-project when projects already exist. |
 | Claude settings | Merge `platforms.claude.env` into `~/.claude/settings.json` `env`, preserving unrelated env keys. |
 | RAG Gateway | `rag-gateway/src/config.ts` reads `platforms["rag-gateway"].env` directly from `env/config.json`; `.env` still wins at runtime. |
+| Continue | Replace `mcpServers` (with SSE header compatibility mapping) and update `models` in `~/.continue/config.yaml`. |
 
 Codex targets are TOML because Codex config is TOML. The maintained source remains JSON; `sync_config.py` is the adapter.
 
@@ -137,6 +138,7 @@ python3 sync/sync_config.py --target cursor
 python3 sync/sync_config.py --target codex
 python3 sync/sync_config.py --target claude
 python3 sync/sync_config.py --target gemini
+python3 sync/sync_config.py --target continue
 ```
 
 ## Managed Blocks

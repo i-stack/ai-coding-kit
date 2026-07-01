@@ -2,10 +2,10 @@
 
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-Codex%20%7C%20Claude%20%7C%20Cursor%20%7C%20Gemini-5856D6)](skills-engineering/README.md)
 [![iOS Engineer Skill](https://img.shields.io/badge/iOS%20Engineer-Swift%20%7C%20SwiftUI%20%7C%20UIKit-0A84FF)](skills-engineering/ios-engineer/SKILL.md)
-[![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-Cursor%20%7C%20Codex%20%7C%20Claude%20%7C%20Xcode%20%7C%20Gemini-663399)](sync/README.md)
+[![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-Cursor%20%7C%20Codex%20%7C%20Claude%20%7C%20Xcode%20%7C%20Gemini%20%7C%20Continue-663399)](sync/README.md)
 [![Universal RAG Gateway](https://img.shields.io/badge/Universal%20RAG%20Gateway-TypeScript%20%7C%20Fastify-34C759)](docs/universal-rag-gateway.md)
 
-**ai-coding-kit** is a local AI coding workflow kit for maintaining Agent Skills, syncing MCP configuration, and experimenting with a Universal RAG Gateway. It is built for Codex, Claude Code, Cursor, Gemini CLI, Xcode Coding Assistant, and OpenAI-compatible clients that need shared engineering rules, tool configuration, memory, retrieval, and provider routing.
+**ai-coding-kit** is a local AI coding workflow kit for maintaining Agent Skills, syncing MCP configuration, and experimenting with a Universal RAG Gateway. It is built for Codex, Claude Code, Cursor, Gemini CLI, Continue, Xcode Coding Assistant, and OpenAI-compatible clients that need shared engineering rules, tool configuration, memory, retrieval, and provider routing.
 
 中文定位：这是一个面向 AI Coding / Agentic Coding / iOS Engineering / MCP / RAG Gateway 的本地工程化工具包，用于维护 Agent Skill、同步多端 MCP 配置，并沉淀可审计的工程规则与网关架构。
 
@@ -69,7 +69,7 @@ This repository has three connected parts:
 - Developers who want reusable Agent Skills for Codex, Claude Code, Cursor, Gemini, or Xcode workflows.
 - iOS / Swift engineers who want explicit AI coding rules for Swift, SwiftUI, UIKit, Xcode, testing, review, migration, and release work.
 - AI infrastructure builders experimenting with local memory, retrieval, declarative tools, provider routing, and OpenAI-compatible gateway patterns.
-- Maintainers who want one source of truth for MCP configuration across multiple AI coding hosts.
+- Maintainers who want one source of truth for MCP configuration across multiple AI coding hosts (Cursor, Claude, Cline, Gemini, Continue, Xcode).
 
 hosts.
 

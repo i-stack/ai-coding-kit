@@ -11,7 +11,7 @@
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest", "--extension"],
       "env": {},
-      "platforms": ["claude", "codex", "cline"]
+      "platforms": ["claude", "codex", "cline", "continue"]
     },
     "design-handoff": {
       "url": "http://localhost:8000/mcp?role=Developer&name=YourName",
@@ -95,6 +95,21 @@
         "GOOGLE_GEMINI_BASE_URL": "",
         "GEMINI_MODEL": ""
       }
+    },
+    "continue": {
+      "path": "~/.continue/config.yaml",
+      "models": [
+        {
+          "name": "deepseek-v4-pro",
+          "provider": "openai",
+          "model": "deepseek-v4-pro",
+          "apiKey": "YOUR_API_KEY",
+          "apiBase": "https://api.openai.com/v1",
+          "defaultCompletionOptions": {
+            "maxTokens": 128000
+          }
+        }
+      ]
     },
     "_comment_json_mcp": "Declare simple platforms here without writing Python. type=json-mcp replaces mcpServers in the target JSON file.",
     "zed": {
