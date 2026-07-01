@@ -1,0 +1,23 @@
+{
+  "proposal_id": "20260701-160500-add-test-priority-layers",
+  "approved_at": "2026-07-01T16:05:00+0800",
+  "active_version": "v73",
+  "validation": {
+    "structural": true,
+    "scenario": true,
+    "risk": "low"
+  },
+  "changes": [
+    {
+      "file": "skills-engineering/ios-engineer/references/test_execution_and_repair.md",
+      "type": "enhancement",
+      "description": "Add test priority layers (MCP > script > raw xcodebuild) and adaptive script usage docs"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/scripts/run_ios_tests.sh",
+      "type": "addition",
+      "description": "Add adaptive test execution script with auto-discovery"
+    }
+  ],
+  "status": "approved"
+}

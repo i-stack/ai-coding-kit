@@ -16,8 +16,45 @@
 - 优先使用 XCTest / XCUITest / 项目现有测试框架，不引入不必要的新依赖。
 
 ## 验证命令
+
+### 优先级分层
+执行 iOS 测试的推荐路径，按优先级从高到低：
+
+| 优先级 | 方式 | 适用场景 |
+|--------|------|----------|
+| **1. MCP** | `XcodeBuildMCP`（构建 / 跑测试 / 读 Build Settings） | 交互式 agent 排障，自动读取项目 `.xcodebuildmcp/config.yaml` |
+| **2. 自适应脚本** | `scripts/run_ios_tests.sh`（自动发现 workspace/scheme/simulator） | CI 流水线、本地手动回归、MCP 不可用时的回退 |
+| **3. 裸 xcodebuild** | 手动拼 `xcodebuild test ...` | 调试特定参数、MCP 和脚本均不覆盖的极端场景 |
+
+交互式 iOS 工程任务优先走 [mcp_control.md](mcp_control.md) 的 `XcodeBuildMCP` 映射；下列命令是 MCP 不可用、MCP 能力不覆盖、或需要沉淀到 CI / 脚本时的回退示例，不是默认首选路径。
+
+### 自适应脚本（推荐用于 CI / 本地手动回归）
+脚本位于 `skills-engineering/ios-engineer/scripts/run_ios_tests.sh`，会自动发现项目配置：
+
+```sh
+# 复制到项目 scripts/ 目录（或直接引用 skill 路径）
+cp skills-engineering/ios-engineer/scripts/run_ios_tests.sh scripts/run_ios_tests.sh
+
+# 跑全部测试
+./scripts/run_ios_tests.sh
+
+# 只跑指定测试类
+./scripts/run_ios_tests.sh STMarkdownFixTests
+
+# 手动覆盖配置
+WORKSPACE=MyApp.xcworkspace SCHEME=MyApp SIMULATOR_NAME="iPhone 16 Pro" ./scripts/run_ios_tests.sh
+```
+
+配置发现逻辑（按优先级）：
+1. **环境变量** `WORKSPACE` / `SCHEME` / `SIMULATOR_NAME` —— 手动覆盖
+2. **`.xcodebuildmcp/config.yaml`** —— 由 `xmcp-init.sh` 自动生成，与 XcodeBuildMCP 共享配置
+3. **自动发现** —— 查找 `.xcworkspace` → `xcodebuild -list` 获取 scheme → 默认 `iPhone 16` 模拟器
+
+脚本自动检测 `xcbeautify`，若已安装则美化输出 + 生成 JUnit 报告；否则使用原始 `xcodebuild` 输出。
+
+### 裸 xcodebuild 回退示例
 - 对包含 `UIKit` / iOS-only API / 仅面向 iOS 的 framework 的 SPM 包，不要用裸 `swift test` 做最终验证；它默认按当前主机平台构建，常见失败是 `no such module 'UIKit'`。这种失败通常表示验证命令目标平台错了，不等价于源码在 iOS 下不可编译。
-- 交互式 iOS 工程任务优先走 [mcp_control.md](mcp_control.md) 的 `XcodeBuildMCP` 映射；下列 `xcodebuild` 命令是 MCP 不可用、MCP 能力不覆盖、或需要沉淀到 CI / 脚本时的回退示例，不是默认首选路径。
+
 - 先查 workspace / project 的 scheme 与可用模拟器：
 
   ```sh
