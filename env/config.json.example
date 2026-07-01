@@ -10,10 +10,12 @@
     "browser-automation": {
       "command": "npx",
       "args": ["-y", "@playwright/mcp@latest", "--extension"],
-      "env": {}
+      "env": {},
+      "platforms": ["claude", "codex", "cline", "continue"]
     },
     "design-handoff": {
-      "url": "http://localhost:8000/mcp?role=Developer&name=YourName"
+      "url": "http://localhost:8000/mcp?role=Developer&name=YourName",
+      "platforms": ["claude", "cline"]
     },
     "api-documentation": {
       "command": "npx",
@@ -24,40 +26,53 @@
       ],
       "env": {
         "APIFOX_ACCESS_TOKEN": "YOUR_APIFOX_TOKEN"
-      }
-    }
-  },
-  "env": {
-    "shared": {
-      "OPENAI_API_KEY": "",
-      "OPENAI_BASE_URL": "",
-      "ANTHROPIC_API_KEY": "",
-      "ANTHROPIC_BASE_URL": ""
+      },
+      "platforms": ["claude", "codex", "cline"]
     }
   },
   "platforms": {
     "rag-gateway": {
       "env": {
-        "OPENAI_DEFAULT_MODEL": "",
-        "DATAEYES_API_KEY": ""
+        "OPENAI_DEFAULT_MODEL": ""
       }
     },
     "claude": {
       "env": {
+        "ANTHROPIC_API_KEY": "",
+        "ANTHROPIC_BASE_URL": "",
         "ANTHROPIC_MODEL": "",
         "ANTHROPIC_DEFAULT_OPUS_MODEL": "",
         "ANTHROPIC_DEFAULT_SONNET_MODEL": "",
         "ANTHROPIC_DEFAULT_HAIKU_MODEL": "",
         "CLAUDE_CODE_EFFORT_LEVEL": ""
+      },
+      "hooks": {
+        "SessionStart": [
+          {
+            "hooks": [
+              {
+                "type": "command",
+                "command": "~/.claude/hooks/xmcp-init.sh",
+                "timeout": 10
+              }
+            ]
+          }
+        ]
       }
     },
     "codex": {
       "model": "",
+      "personality": "",
       "modelProvider": null,
       "modelReasoningEffort": "medium",
-      "providerName": "shuyanai",
+      "providerName": "",
       "wireApi": "responses",
+      "openaiBaseUrl": "",
       "envKey": "OPENAI_API_KEY",
+      "needExport": true,
+      "env": {
+        "OPENAI_API_KEY": "YOUR_API_KEY"
+      },
       "features": {
         "skills": true,
         "multi_agent": true,
@@ -65,13 +80,79 @@
         "default_mode_request_user_input": true
       },
       "projects": {
-        "～/Desktop/iOS/bajoseekios": {
+        "~/Desktop/iOS/bajoseekios": {
           "trust_level": "trusted"
         },
-        "～/Desktop/iOS/STBaseProject": {
+        "~/Desktop/iOS/STBaseProject": {
           "trust_level": "trusted"
         }
       }
+    },
+    "codebuddy": {
+      "needExport": true,
+      "env": {
+        "DEEP_SEEK_KEY": ""
+      },
+      "models": [
+        {
+          "id": "deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "vendor": "DeepSeek",
+          "url": "https://cloud.dataeyes.ai/v1",
+          "apiKey": "YOUR_API_KEY",
+          "maxInputTokens": 128000,
+          "maxOutputTokens": 8192,
+          "supportsToolCall": true,
+          "supportsImages": false,
+          "relatedModels": {
+            "lite": "deepseek-v4-flash",
+            "reasoning": "deepseek-v4-pro"
+          }
+        },
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "vendor": "DeepSeek",
+          "url": "https://cloud.dataeyes.ai/v1",
+          "apiKey": "YOUR_API_KEY",
+          "maxInputTokens": 128000,
+          "maxOutputTokens": 8192,
+          "supportsToolCall": true,
+          "supportsImages": false
+        }
+      ],
+      "availableModels": [
+        "deepseek-v4-pro",
+        "deepseek-v4-flash"
+      ]
+    },
+    "gemini": {
+      "needExport": true,
+      "env": {
+        "GEMINI_API_KEY": "",
+        "GOOGLE_GEMINI_BASE_URL": "",
+        "GEMINI_MODEL": ""
+      }
+    },
+    "continue": {
+      "path": "~/.continue/config.yaml",
+      "models": [
+        {
+          "name": "deepseek-v4-pro",
+          "provider": "openai",
+          "model": "deepseek-v4-pro",
+          "apiKey": "YOUR_API_KEY",
+          "apiBase": "https://api.openai.com/v1",
+          "defaultCompletionOptions": {
+            "maxTokens": 128000
+          }
+        }
+      ]
+    },
+    "_comment_json_mcp": "Declare simple platforms here without writing Python. type=json-mcp replaces mcpServers in the target JSON file.",
+    "zed": {
+      "type": "json-mcp",
+      "path": "~/.config/zed/mcp.json"
     }
   }
 }

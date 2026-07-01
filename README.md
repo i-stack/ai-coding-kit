@@ -1,48 +1,92 @@
 # ai-coding-kit
 
-[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-Codex%20%7C%20Claude%20%7C%20Cursor-5856D6)](skills-engineering/README.md)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-8%2B%20AI%20Coding%20Tools-5856D6)](skills-engineering/README.md)
 [![iOS Engineer Skill](https://img.shields.io/badge/iOS%20Engineer-Swift%20%7C%20SwiftUI%20%7C%20UIKit-0A84FF)](skills-engineering/ios-engineer/SKILL.md)
-[![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-Cursor%20%7C%20Codex%20%7C%20Claude%20%7C%20Xcode-663399)](sync/README.md)
+[![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-8%20Platforms-663399)](sync/README.md)
 [![Universal RAG Gateway](https://img.shields.io/badge/Universal%20RAG%20Gateway-TypeScript%20%7C%20Fastify-34C759)](docs/universal-rag-gateway.md)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**ai-coding-kit** is a local AI coding workflow kit for maintaining Agent Skills, syncing MCP configuration, and experimenting with a Universal RAG Gateway. It is built for Codex, Claude Code, Cursor, Xcode Coding Assistant, and OpenAI-compatible clients that need shared engineering rules, tool configuration, memory, retrieval, and provider routing.
+> **One kit. All your AI coding tools.** Agent Skills management, MCP configuration sync, iOS engineering rules, and a Universal RAG Gateway — unified for Cursor, CodeBuddy, Codex, Claude Code, Gemini CLI, Continue, Cline, and Xcode Coding Assistant.
 
-中文定位：这是一个面向 AI Coding / Agentic Coding / iOS Engineering / MCP / RAG Gateway 的本地工程化工具包，用于维护 Agent Skill、同步多端 MCP 配置，并沉淀可审计的工程规则与网关架构。
+**ai-coding-kit** is a local-first AI coding workflow toolkit for developers who use multiple AI coding tools and need a single source of truth for Agent Skills (AI coding skills / coding agent skills / prompt engineering rules), MCP server configuration (Model Context Protocol config), platform settings, and RAG Gateway routing. It replaces scattered config files with one maintainable `env/config.json` and auto-syncs to every AI coding host you use.
 
-## Overview
+中文定位：这是一个面向 AI Coding / Agentic Coding / MCP（模型上下文协议）/ RAG Gateway 的本地工程化工具包。为同时使用多个 AI 编码工具（Cursor、CodeBuddy、Codex、Claude Code、Gemini CLI、Continue、Cline、Xcode Coding Assistant）的开发者提供统一的 Agent Skill 维护、MCP 配置同步、iOS 工程规则和智能网关路由。
 
-This repository has three connected parts:
+## Why ai-coding-kit?
 
-| Area | Purpose | Start Here |
-|------|---------|------------|
-| Agent Skill engineering | Maintain, sync, and evolve reusable AI coding skills for Codex, Claude Code, Cursor, and Xcode-related paths. | [skills-engineering/README.md](skills-engineering/README.md) |
-| MCP and platform config sync | Render one local configuration source into Cursor, Codex, Claude Code, and Xcode host formats. | [sync/README.md](sync/README.md) |
-| Universal RAG Gateway | Explore an OpenAI-compatible gateway with provider routing, transcript storage, semantic memory, declarative tools, telemetry, and budget planning. | [docs/universal-rag-gateway.md](docs/universal-rag-gateway.md) |
+Managing MCP servers, API keys, and Agent Skills across multiple AI coding assistants is a hassle — each tool stores its config in a different format and location. Update one, forget the rest. **ai-coding-kit** solves this:
 
-## Core Capabilities
+- **One config file** → auto-generates Cursor mcp.json, Codex TOML, Claude JSON, CodeBuddy models, Continue YAML, and more.
+- **One sync command** → `bash sync.sh` updates every tool in seconds.
+- **Git-ignored secrets** → `env/config.json` stays local; only the sanitized example is committed.
 
-- **Agent Skills**: source-managed skills for engineering discipline, iOS / Swift / SwiftUI / UIKit work, problem analysis, logical reasoning, epistemic integrity, and cognitive expansion.
-- **Multi-host sync**: one local config template for MCP servers, shared environment values, and platform-specific settings across AI coding tools.
-- **iOS engineering rules**: an auditable `ios-engineer` skill for architecture, concurrency, networking, UI, performance, testing, review, migration, and release-risk control.
-- **Gateway architecture**: a TypeScript / Fastify Universal RAG Gateway with OpenAI-compatible routing, provider adapters, memory, tool execution, GraphRAG direction, and observability.
+## Features
+
+> **Agent Skills & Prompt Engineering**
+>
+> Ready-to-use AI coding skills for engineering discipline, iOS / Swift / SwiftUI / UIKit development, problem analysis, logical reasoning, and cognitive expansion. Version-controlled, syncable, and auditable.
+
+> **MCP Config Sync (Model Context Protocol)**
+>
+> Define MCP servers once in `env/config.json` and auto-render to Cursor (mcp.json), CodeBuddy (mcp.json + models.json), Codex (config.toml), Claude Code (.claude.json + settings.json), Gemini CLI, Continue (config.yaml), and Cline — with per-server platform filtering.
+
+> **iOS Engineering Rules**
+>
+> Production-grade rules for Swift, SwiftUI, UIKit, Xcode, concurrency (async/await, actors), networking, performance, testing, code review, migration, and release-risk control — designed for AI coding assistants to produce reliable iOS code.
+
+> **Universal RAG Gateway**
+>
+> TypeScript / Fastify gateway with OpenAI-compatible API, provider routing, semantic memory, transcript storage, declarative tools, GraphRAG, and telemetry. A local alternative to cloud RAG services.
+
+## Supported AI Coding Tools
+
+| Tool | Synced Config |
+|------|--------------|
+| **Cursor** | `.cursor/mcp.json` |
+| **CodeBuddy** | `.codebuddy/mcp.json`, `models.json`, `skills/` |
+| **Claude Code** | `.claude.json`, `settings.json`, `skills/` |
+| **Codex CLI** | `.codex/config.toml`, `mcp.generated.toml` |
+| **Gemini CLI** | Environment variables |
+| **Continue** | `.continue/config.yaml` |
+| **Cline** (VSCode) | MCP settings JSON, `skills/` |
+| **Xcode Coding Assistant** | Codex + Claude Agent config paths |
 
 ## Quick Start
 
-| Task | Documentation |
+```bash
+# 1. Clone the repository
+git clone https://github.com/i-stack/ai-coding-kit.git
+cd ai-coding-kit
+
+# 2. Configure your MCP servers, API keys, and platform settings
+#    First run auto-copies from the example template
+vim env/config.json
+
+# 3. One-command sync to all your AI coding tools
+bash sync.sh
+```
+
+`sync.sh` automatically syncs your MCP server config and platform settings to **Cursor, CodeBuddy, Codex, Claude Code, Xcode, Cline, Gemini CLI, and Continue** in one shot.
+
+| Next Steps | Documentation |
 |------|---------------|
-| Set up or sync Agent Skills | [skills-engineering/README.md](skills-engineering/README.md) |
-| Configure MCP and platform settings | [sync/README.md](sync/README.md) |
-| Create local config from the template | [env/config.json.example](env/config.json.example) |
-| Inspect the iOS engineer skill | [skills-engineering/ios-engineer/SKILL.md](skills-engineering/ios-engineer/SKILL.md) |
-| Study the Gateway design and current implementation status | [docs/universal-rag-gateway.md](docs/universal-rag-gateway.md) |
-| Install repository-managed Git hooks | [install-hooks.sh](install-hooks.sh) |
+| Learn Agent Skills in depth | [skills-engineering/README.md](skills-engineering/README.md) |
+| Understand MCP config sync | [sync/README.md](sync/README.md) |
+| See the config template | [env/config.json.example](env/config.json.example) |
+| Explore the iOS engineer skill | [skills-engineering/ios-engineer/SKILL.md](skills-engineering/ios-engineer/SKILL.md) |
+| Study the RAG Gateway | [docs/universal-rag-gateway.md](docs/universal-rag-gateway.md) |
+| Set up Git hooks | [install-hooks.sh](install-hooks.sh) |
+
+## What is MCP? (Model Context Protocol)
+
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is an open protocol that lets AI coding tools connect to external services — GitHub, Playwright, databases, APIs, design tools — through a standardized interface. **ai-coding-kit** gives you one place to define all your MCP servers and syncs them to every tool that supports MCP.
 
 ## Documentation
 
 | Topic | Link |
 |------|------|
 | Agent Skill engineering | [skills-engineering/README.md](skills-engineering/README.md) |
-| iOS engineer skill source | [skills-engineering/ios-engineer/SKILL.md](skills-engineering/ios-engineer/SKILL.md) |
+| iOS engineer skill | [skills-engineering/ios-engineer/SKILL.md](skills-engineering/ios-engineer/SKILL.md) |
 | iOS skill rule index | [skills-engineering/ios-engineer/references/rule_index.md](skills-engineering/ios-engineer/references/rule_index.md) |
 | Cognitive expansion skill | [skills-engineering/cognitive-expansion/SKILL.md](skills-engineering/cognitive-expansion/SKILL.md) |
 | Engineering discipline skill | [skills-engineering/engineering-discipline/SKILL.md](skills-engineering/engineering-discipline/SKILL.md) |
@@ -66,8 +110,12 @@ This repository has three connected parts:
 
 ## Who This Is For
 
-- Developers who want reusable Agent Skills for Codex, Claude Code, Cursor, or Xcode workflows.
-- iOS / Swift engineers who want explicit AI coding rules for Swift, SwiftUI, UIKit, Xcode, testing, review, migration, and release work.
-- AI infrastructure builders experimenting with local memory, retrieval, declarative tools, provider routing, and OpenAI-compatible gateway patterns.
-- Maintainers who want one source of truth for MCP configuration across multiple AI coding hosts.
+- **Developers using multiple AI coding tools** who want one config to rule them all — define MCP servers and Agent Skills once, sync everywhere.
+- **iOS / Swift engineers** who want production-grade AI coding rules for Swift, SwiftUI, UIKit, Xcode, concurrency, testing, code review, and app migration.
+- **AI infrastructure builders** experimenting with local memory, semantic retrieval, declarative tools, provider routing, and OpenAI-compatible RAG gateway patterns.
+- **Team maintainers** who need a single source of truth for MCP configuration, API keys, and model settings across Cursor, CodeBuddy, Claude Code, Codex, Gemini, Continue, Cline, and Xcode.
+
+## License
+
+[MIT](LICENSE)
 

@@ -1,4 +1,5 @@
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +16,69 @@ from .common import (
     toml_value,
     xcode_codex_dir,
 )
+
+ZSHRC_BEGIN = "# BEGIN CODEX ENV SYNC (from env/config.json)"
+ZSHRC_END = "# END CODEX ENV SYNC"
+ZSHRC_BLOCK_PATTERN = re.compile(
+    r"# BEGIN CODEX ENV SYNC(?: \(from [^)]+\))?"
+    + r".*?"
+    + re.escape(ZSHRC_END)
+    + r"\n?",
+    re.DOTALL,
+)
+
+
+def generate_zshrc_env_block(data: dict[str, Any]) -> str:
+    """Generate export lines for codex env vars, including the envKey mapping."""
+    codex = platform_config(data, "codex")
+    env = env_for_platform(data, "codex")
+    env_key = codex.get("envKey", "")
+
+    lines: list[str] = []
+    for k, v in env.items():
+        lines.append(f'export {k}="{v}"')
+
+    # envKey is the var name codex's provider config reads for the API key.
+    # Write it explicitly if it isn't already covered by env.
+    if env_key and env_key not in env:
+        api_key = env.get("OPENAI_API_KEY", "")
+        if api_key:
+            lines.append(f'export {env_key}="{api_key}"')
+
+    return "\n".join(lines)
+
+
+def sync_zshrc_env(data: dict[str, Any]) -> None:
+    """Write codex env vars into a managed block in ~/.zshrc."""
+    body = generate_zshrc_env_block(data)
+    if not body:
+        return
+
+    block = f"{ZSHRC_BEGIN}\n{body}\n{ZSHRC_END}\n"
+    zshrc = Path.home() / ".zshrc"
+
+    if zshrc.exists():
+        text = zshrc.read_text(encoding="utf-8")
+        if ZSHRC_BLOCK_PATTERN.search(text):
+            new_text = ZSHRC_BLOCK_PATTERN.sub(block, text)
+        else:
+            new_text = text.rstrip() + "\n\n" + block
+    else:
+        new_text = block
+
+    zshrc.write_text(new_text, encoding="utf-8")
+    print(f"Updated codex env vars in {zshrc}.")
+
+    # Source ~/.zshrc so vars are active in the current subprocess environment.
+    # This does NOT propagate to the parent terminal; the user must run
+    # `source ~/.zshrc` once in their open terminal for immediate effect.
+    try:
+        subprocess.run(["zsh", "-c", f"source {zshrc}"], check=True, capture_output=True)
+        print(f"Sourced {zshrc} (current process).")
+    except subprocess.CalledProcessError as exc:
+        print(f"[warn] source {zshrc} exited {exc.returncode}: {exc.stderr.decode().strip()}")
+
+
 
 MCP_BEGIN = "# BEGIN MCP SYNC (from env/config.json)"
 MCP_END = "# END MCP SYNC"
@@ -80,15 +144,20 @@ def generate_codex_shared_toml(data: dict[str, Any]) -> str:
 
     # model_provider 行: provider 有效时激活，null 时注释掉
     if use_custom_provider:
-        lines.append(f'model_provider = "custom"')
+        lines.append(f'model_provider = {toml_quote(str(provider_name))}')
+        lines.append(f'preferred_auth_method = "apikey"')
     else:
-        lines.append(f'# model_provider = "custom"')
+        lines.append(f'# model_provider = ""')
+        lines.append(f'# preferred_auth_method = "apikey"')
 
     if effort := codex.get("modelReasoningEffort"):
         lines.append(f"model_reasoning_effort = {toml_quote(str(effort))}")
 
     if personality := codex.get("personality"):
         lines.append(f"personality = {toml_quote(str(personality))}")
+
+    if (disable_response_storage := codex.get("disable_response_storage")) is not None:
+        lines.append(f"disable_response_storage = {'true' if disable_response_storage else 'false'}")
 
     if base_url:
         lines.extend(
@@ -155,7 +224,7 @@ def merge_codex_managed_blocks(cfg: Path, shared_body: str, mcp_body: str) -> No
 
 
 def sync(data: dict[str, Any]) -> None:
-    servers = mcp_servers(data)
+    servers = mcp_servers(data, "codex")
     generated = generate_mcp_toml(servers)
     shared = generate_codex_shared_toml(data)
 
@@ -171,3 +240,6 @@ def sync(data: dict[str, Any]) -> None:
     xc_gen.write_text(generated, encoding="utf-8")
     print(f"Wrote: {xc_gen}")
     merge_codex_managed_blocks(xc / "config.toml", shared, generated)
+
+    if platform_config(data, "codex").get("needExport"):
+        sync_zshrc_env(data)

@@ -1,33 +1,30 @@
-import OpenAI from "openai";
 import type { GatewayConfig } from "../config.js";
 
 /**
- * Embedding service that uses the same upstream provider as the chat endpoint.
+ * Embedding service that converts text to vectors for Qdrant search.
  *
- * Configured via the existing OPENAI_API_KEY and OPENAI_BASE_URL.
- * Uses the "bge-m3" model (256-dim via OpenAI SDK, 1024-dim native).
+ * Uses native fetch instead of the OpenAI SDK because the SDK misreports
+ * bge-m3 vector dimensions (returns 256-dim zeros instead of 1024-dim real).
+ *
+ * Configured via EMBEDDING_API_KEY / EMBEDDING_BASE_URL / EMBEDDING_MODEL.
  */
 export class EmbeddingService {
-    private client: OpenAI;
+    private apiKey: string;
+    private baseUrl: string;
     private model: string;
 
-    constructor(config: GatewayConfig, model = "bge-m3") {
-        this.client = new OpenAI({
-            apiKey: config.openaiApiKey,
-            baseURL: config.openaiBaseUrl,
-        });
-        this.model = model;
+    constructor(config: GatewayConfig, model?: string) {
+        this.apiKey = config.embeddingApiKey;
+        this.baseUrl = config.embeddingBaseUrl.replace(/\/+$/, "");
+        this.model = model ?? config.embeddingModel;
     }
 
     /**
      * Generate an embedding vector for a single text string.
      */
     async embed(text: string): Promise<number[]> {
-        const response = await this.client.embeddings.create({
-            model: this.model,
-            input: text,
-        });
-        return response.data[0].embedding;
+        const results = await this._create(text);
+        return results[0];
     }
 
     /**
@@ -35,14 +32,38 @@ export class EmbeddingService {
      */
     async embedBatch(texts: string[]): Promise<number[][]> {
         if (texts.length === 0) return [];
+        return this._create(texts);
+    }
 
-        const response = await this.client.embeddings.create({
-            model: this.model,
-            input: texts,
+    /**
+     * Internal: call the OpenAI-compatible embeddings API via native fetch.
+     */
+    private async _create(input: string | string[]): Promise<number[][]> {
+        const url = `${this.baseUrl}/embeddings`;
+        const response = await fetch(url, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${this.apiKey}`,
+            },
+            body: JSON.stringify({
+                model: this.model,
+                input,
+            }),
         });
 
+        if (!response.ok) {
+            const text = await response.text();
+            throw new Error(`Embedding API ${response.status}: ${text}`);
+        }
+
+        const json = (await response.json()) as {
+            data: Array<{ embedding: number[]; index: number }>;
+        };
+
         // Sort by index to maintain order
-        const sorted = response.data.sort((a, b) => a.index - b.index);
-        return sorted.map((d) => d.embedding);
+        return json.data
+            .sort((a, b) => a.index - b.index)
+            .map((d) => d.embedding);
     }
 }

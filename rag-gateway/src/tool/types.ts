@@ -26,7 +26,15 @@ export interface StaticTemplateExecutor {
     contentType?: string;
 }
 
-export type ToolExecutor = HttpRequestExecutor | StaticTemplateExecutor;
+export interface MemorySearchExecutor {
+    type: "memory_search";
+    /** Default max results to return (overridable by args.limit) */
+    defaultLimit?: number;
+    /** Minimum relevance score threshold (0-1) */
+    scoreThreshold?: number;
+}
+
+export type ToolExecutor = HttpRequestExecutor | StaticTemplateExecutor | MemorySearchExecutor;
 
 // ── Tool spec ─────────────────────────────────────────────────────
 

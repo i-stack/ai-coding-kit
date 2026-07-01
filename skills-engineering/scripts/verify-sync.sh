@@ -11,6 +11,7 @@ SE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 CLAUDE_PREAMBLE="${HOME}/.claude/CLAUDE.md"
 CODEX_PREAMBLE="${HOME}/.codex/AGENTS.md"
+GEMINI_PREAMBLE="${HOME}/.gemini/GEMINI.md"
 XCODE_CODEX_PREAMBLE="${HOME}/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md"
 XCODE_CLAUDE_PREAMBLE="${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md"
 
@@ -106,6 +107,16 @@ elif [[ -n "${SYNC_CODEX:-}" ]]; then
 else
   echo "Skip Codex verify: ${HOME}/.codex not found (set SYNC_CODEX=1 to force)."
 fi
+if sync_enabled "${SYNC_GEMINI:-}" "${HOME}/.gemini"; then
+  check_skills_under_base "${HOME}/.gemini/skills"
+  check_preamble_tilde "$GEMINI_PREAMBLE"
+  CHECKED=$((CHECKED + 1))
+elif [[ -n "${SYNC_GEMINI:-}" ]]; then
+  echo "Skip Gemini verify: disabled via SYNC_GEMINI=${SYNC_GEMINI}."
+else
+  echo "Skip Gemini verify: ${HOME}/.gemini not found (set SYNC_GEMINI=1 to force)."
+fi
+
 if sync_enabled "${SYNC_CURSOR:-}" "${HOME}/.cursor"; then
   check_skills_under_base "${HOME}/.cursor/skills"
   CHECKED=$((CHECKED + 1))

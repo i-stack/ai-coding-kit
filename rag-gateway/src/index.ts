@@ -1,8 +1,6 @@
 import Fastify from "fastify";
 import cors from "@fastify/cors";
 import { loadConfig } from "./config.js";
-import { ProviderRouter } from "./provider/router.js";
-import { registerChatRoutes } from "./routes/chat.js";
 import { initDb, migrateSchema } from "./db/index.js";
 import { EmbeddingService } from "./vector/embedding.js";
 import { QdrantStore } from "./vector/qdrant.js";
@@ -38,12 +36,12 @@ async function main() {
 			app.log.info("PostgreSQL connected and schema migrated");
 		} catch (err) {
 			const msg = (err as Error).message;
-			app.log.warn({ err }, "PostgreSQL unavailable - transcripts will not be stored");
+			app.log.warn({ err }, "PostgreSQL unavailable");
 			startupDegradations.push("postgres");
 			metricsCollector.recordDegradation("postgres", msg);
 		}
 	} else {
-		app.log.info("DATABASE_URL not set - transcripts will not be stored");
+		app.log.info("DATABASE_URL not set — entity store disabled");
 	}
 
 	// -- Qdrant semantic memory (optional - degrade gracefully) -------------
@@ -51,7 +49,7 @@ async function main() {
 	if (config.qdrantUrl) {
 		try {
 			const embedding = new EmbeddingService(config);
-			const qdrant = new QdrantStore(config.qdrantUrl);
+			const qdrant = new QdrantStore(config.qdrantUrl, { vectorSize: config.vectorSize });
 			await qdrant.ensureCollection();
 			await qdrant.ensurePayloadIndexes();
 			vectorStore = new VectorStore(embedding, qdrant);
@@ -91,8 +89,8 @@ async function main() {
 	toolRegistry.loadFromFile();
 	app.log.info(`Tool registry: ${toolRegistry.count} tools loaded`);
 
-	// -- Tool executor ------------------------------------------------
-	const toolExecutor = new ToolExecutorEngine();
+	// -- Tool executor (injected with stores for memory_search executor) ----
+	const toolExecutor = new ToolExecutorEngine(undefined, { vectorStore, entityStore });
 
 	// -- Health check -------------------------------------------------------
 	app.get("/health", async () => {
@@ -104,12 +102,7 @@ async function main() {
 		return metricsCollector.snapshot();
 	});
 
-	// -- Provider (multi-provider router) -----------------------------------
-	const provider = new ProviderRouter(config);
-	app.log.info(`Provider router: ${provider.providerNames.join(" + ")}`);
-
-	// -- Routes -------------------------------------------------------------
-	registerChatRoutes(app, provider, config, vectorStore, entityStore, toolRegistry, toolExecutor);
+	// -- MCP server (tools/list + tools/call via SSE) ----------------------
 	registerMcpServer(app, toolRegistry, toolExecutor);
 
 	// -- Start --------------------------------------------------------------

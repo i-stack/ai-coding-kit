@@ -1,4 +1,8 @@
 import type { ToolSpec, ToolExecutor } from "./types.js";
+import type { VectorStore } from "../vector/store.js";
+import type { EntityStore } from "../entity/store.js";
+import type { QdrantSearchResult } from "../vector/qdrant.js";
+import type { GraphSearchResult } from "../types.js";
 
 export interface ToolExecutionResult {
     toolCallId: string;
@@ -14,21 +18,32 @@ export interface ToolExecutionResult {
  * For MVP, supports:
  *   - http_request (allowlisted hosts only)
  *   - static_template (deterministic snippet substitution)
+ *   - memory_search (Qdrant + GraphRAG retrieval)
  *
  * Security rules:
  *   - http_request: only https://, only allowlisted hosts, timeout enforced
  *   - static_template: no exec/shell, only {{args.X}} and {{env.Y}} substitution
+ *   - memory_search: read-only store access, no mutation
  */
 export class ToolExecutorEngine {
     private allowedHosts: string[];
+    private vectorStore?: VectorStore;
+    private entityStore?: EntityStore;
 
-    constructor(allowedHosts?: string[]) {
+    constructor(
+        allowedHosts?: string[],
+        stores?: { vectorStore?: VectorStore; entityStore?: EntityStore },
+    ) {
         // Default: block everything except documented demo/test hosts
         this.allowedHosts = allowedHosts ?? [
             "api.github.com",
             "httpbin.org",
             "jsonplaceholder.typicode.com",
         ];
+        if (stores) {
+            this.vectorStore = stores.vectorStore;
+            this.entityStore = stores.entityStore;
+        }
     }
 
     /**
@@ -45,6 +60,8 @@ export class ToolExecutorEngine {
                     return await this.executeHttp(spec, toolCallId, args);
                 case "static_template":
                     return this.executeTemplate(spec, toolCallId, args);
+                case "memory_search":
+                    return await this.executeMemorySearch(spec, toolCallId, args);
                 default:
                     return {
                         toolCallId,
@@ -175,6 +192,89 @@ export class ToolExecutorEngine {
             toolCallId,
             name: spec.name,
             content,
+            success: true,
+        };
+    }
+
+    // ── memory_search executor ────────────────────────────────────────────
+
+    private async executeMemorySearch(
+        spec: ToolSpec,
+        toolCallId: string,
+        args: Record<string, unknown>,
+    ): Promise<ToolExecutionResult> {
+        const executor = spec.executor as Extract<ToolExecutor, { type: "memory_search" }>;
+        const query = args.query as string | undefined;
+        if (!query) {
+            return {
+                toolCallId,
+                name: spec.name,
+                content: "Error: missing required argument 'query'",
+                success: false,
+                error: "Missing required argument 'query'",
+            };
+        }
+
+        const limit = (args.limit as number | undefined) ?? executor.defaultLimit ?? 5;
+        const tenantId = (args.tenant_id as string | undefined) ?? "default";
+        const projectId = args.project_id as string | undefined;
+
+        const parts: string[] = [];
+
+        // Qdrant semantic search
+        if (this.vectorStore) {
+            try {
+                const results = await this.vectorStore.search(query, {
+                    limit,
+                    tenantId,
+                    projectId,
+                });
+                if (results.length > 0) {
+                    const filtered = executor.scoreThreshold
+                        ? results.filter((r) => r.score >= executor.scoreThreshold!)
+                        : results;
+                    if (filtered.length > 0) {
+                        parts.push("=== Semantic Memory (Qdrant) ===");
+                        for (const r of filtered) {
+                            parts.push(`[relevance=${r.score.toFixed(2)}] ${r.payload.text}`);
+                        }
+                    }
+                }
+            } catch (err) {
+                parts.push(`[Qdrant search failed: ${(err as Error).message}]`);
+            }
+        }
+
+        // GraphRAG entity search
+        if (this.entityStore) {
+            try {
+                const graphResults = await this.entityStore.searchGraph(query, tenantId, {
+                    limit,
+                    projectId,
+                });
+                if (graphResults.length > 0) {
+                    parts.push("=== Entity Graph (GraphRAG) ===");
+                    const lines = this.entityStore.formatContext(graphResults);
+                    parts.push(...lines);
+                }
+            } catch (err) {
+                parts.push(`[Graph search failed: ${(err as Error).message}]`);
+            }
+        }
+
+        if (parts.length === 0) {
+            return {
+                toolCallId,
+                name: spec.name,
+                content: "No relevant memories found.",
+                success: true,
+            };
+        }
+
+        return {
+            toolCallId,
+            name: spec.name,
+            content: parts.join("\n\n"),
             success: true,
         };
     }

@@ -28,13 +28,15 @@ GR-NNN 规则由独立 global skill 承载，跨平台通用（不限 iOS）；i
 
 | ID | Status | 摘要 | Skill 位置 |
 |----|--------|------|------------|
-| GR-010 | active | 可追溯逻辑链；高风险场景输出独立「逻辑链」块（事实/证据、推断、结论强度、可证伪/缺口） | [logical-reasoning/references/logical_reasoning.md](../../logical-reasoning/references/logical_reasoning.md) |
+| GR-001 | active | 安全合规防御（绝不暴露 .env 凭证，限制高敏 shell，杜绝 API/网络外泄） | [engineering-discipline/references/engineering_discipline.md](../../engineering-discipline/references/engineering_discipline.md) |
 | GR-002 | active | 前置确认块（信息不足时字面化触发，段标题为机械校验 anchor） | [engineering-discipline/references/engineering_discipline.md](../../engineering-discipline/references/engineering_discipline.md) |
 | GR-003 | active | 单根因锁定（1 主路径 + 最多 1 备选） | 同上 |
 | GR-004 | active | 四段式输出（根因→为什么→修法→验证）；review 例外由平台 skill 定义 | 同上 |
 | GR-005 | active | 最小修复优先 | 同上 |
-| GR-007 | active | 不格式化代码 | 同上 |
+| GR-006 | active | 工具调用预算拦截与主动中断机制（同一条路失败 3 次或 15 turns 强阻断） | 同上 |
+| GR-007 | active | 不格式化代码（防 Diff 噪声，限制美化范围，杜绝空行） | 同上 |
 | GR-008 | active | 变更覆盖声明（已覆盖/未覆盖/残留风险三字段，段标题为机械校验 anchor） | 同上 |
+| GR-010 | active | 可追溯逻辑链；高风险场景输出独立「逻辑链」块（事实/证据、推断、结论强度、可证伪/缺口） | [logical-reasoning/references/logical_reasoning.md](../../logical-reasoning/references/logical_reasoning.md) |
 
 ## 症状导航 SYM-NNN
 

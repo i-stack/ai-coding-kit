@@ -15,6 +15,32 @@ cp env/config.json.example env/config.json
 $EDITOR env/config.json
 ```
 
+## MCP Server Platform Filtering
+
+By default every MCP server is synced to every platform. Add an optional `platforms` array to limit which platforms receive a server:
+
+```json
+"mcpServers": {
+    "XcodeBuildMCP": {
+        "command": "npx",
+        "args": ["-y", "xcodebuildmcp@latest", "mcp"],
+        "platforms": ["claude", "codex"]
+    },
+    "design-handoff": {
+        "url": "http://localhost:8000/mcp",
+        "platforms": ["claude", "cline"]
+    },
+    "github": {
+        "url": "https://api.githubcopilot.com/mcp/"
+    }
+}
+```
+
+- `"platforms": ["claude", "codex"]` — only claude and codex receive this server.
+- No `platforms` field — all platforms receive this server (existing behavior preserved).
+
+The `platforms` key is stripped from the output; target config files never see it.
+
 ## Design
 
 The architecture is deliberately split into three layers:
@@ -24,40 +50,54 @@ The architecture is deliberately split into three layers:
 | Source | `env/config.json` | One maintained config file: MCP catalog, shared env, and platform-specific env/config. |
 | Renderer | `sync/platforms/*.py` | Converts source schema into each platform's required file format. |
 | Orchestrator | `sync/sync_config.py` | Loads the source and dispatches to selected platform renderers. |
-| Target | Cursor / Codex / Claude / Xcode paths | Generated or merged files; never edited as the source of truth. |
+| Target | Cursor / CodeBuddy / Codex / Claude / Xcode paths | Generated or merged files; never edited as the source of truth. |
 
 Platform independence lives inside the single config file:
 
 ```json
 {
-  "env": { "shared": {} },
   "platforms": {
-    "rag-gateway": { "env": {} },
+    "gateway": { "env": {} },
     "claude": { "env": {} },
     "codex": { "env": {}, "features": {}, "projects": {} }
   }
 }
 ```
 
-`env.shared` is optional. Values under `platforms.<name>.env` override shared values for that platform. This keeps Gateway, Claude, and Codex separately configurable without splitting the source into multiple files.
+Values under `platforms.<name>.env` are scoped to that platform. No global `env.shared` — each platform owns its own env vars.
 
 ## Targets
 
 | Target | Output |
 |------|--------|
-| Cursor | Merge `mcpServers` into `~/.cursor/mcp.json`, preserving other keys and existing non-source servers. |
+| Cursor | Replace `mcpServers` in `~/.cursor/mcp.json`, preserving other top-level keys. |
+| CodeBuddy | Replace `mcpServers` in `~/.codebuddy/mcp.json`, sync models to `~/.codebuddy/models.json`, and copy skills from `~/.claude/skills/` to `~/.codebuddy/skills/`. |
 | Codex CLI | `~/.codex/mcp.generated.toml` plus managed blocks in `~/.codex/config.toml`. |
 | Xcode Codex | `~/Library/Developer/Xcode/CodingAssistant/codex/` with the same TOML rendering. |
-| Claude Code | Merge `mcpServers` into `~/.claude.json`, preserving other keys and existing non-source servers. |
-| Xcode Claude Agent | Merge `mcpServers` into `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`; per-project when projects already exist. |
+| Claude Code | Replace `mcpServers` in `~/.claude.json`, preserving other top-level keys. |
+| Xcode Claude Agent | Replace `mcpServers` in `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`; per-project when projects already exist. |
 | Claude settings | Merge `platforms.claude.env` into `~/.claude/settings.json` `env`, preserving unrelated env keys. |
 | RAG Gateway | `rag-gateway/src/config.ts` reads `platforms["rag-gateway"].env` directly from `env/config.json`; `.env` still wins at runtime. |
+| Continue | Replace `mcpServers` (with SSE header compatibility mapping) and update `models` in `~/.continue/config.yaml`. |
 
 Codex targets are TOML because Codex config is TOML. The maintained source remains JSON; `sync_config.py` is the adapter.
 
 ## Adding Platforms
 
-Add one renderer module under `sync/platforms/`, then register it in `TARGETS` inside `sync/sync_config.py`.
+**Complex platforms** (custom config format, multi-file writes, or extra logic) need a renderer module:
+
+1. Add `sync/platforms/<name>.py` with a `sync(data) -> None` function.
+2. Register it in `TARGETS` inside `sync/sync_config.py`.
+
+**Simple JSON-MCP platforms** (only need `mcpServers` written to a JSON file) can be declared directly in `env/config.json` without any Python:
+
+```json
+"platforms": {
+    "zed": { "type": "json-mcp", "path": "~/.config/zed/mcp.json" }
+}
+```
+
+`sync_config.py` auto-discovers all `type=json-mcp` entries and builds sync functions for them at runtime. Adding Zed, Kiro, or any other simple platform requires only a config change.
 
 Do not add another top-level sync script for each platform. The stable command should remain:
 
@@ -96,8 +136,11 @@ Targeted runs:
 
 ```bash
 python3 sync/sync_config.py --target cursor
+python3 sync/sync_config.py --target codebuddy
 python3 sync/sync_config.py --target codex
 python3 sync/sync_config.py --target claude
+python3 sync/sync_config.py --target gemini
+python3 sync/sync_config.py --target continue
 ```
 
 ## Managed Blocks
@@ -116,8 +159,9 @@ Codex config files contain two generated regions:
 
 Everything outside those markers is host-specific and preserved. Keep `developer_instructions`, sandbox, plugins, Xcode-only MCP, notifications, and local overrides outside managed blocks.
 
-JSON targets are merge-only: source keys from `env/config.json` are added or updated, while keys not present in the source are left untouched. Removing a stale key from a JSON target remains a manual cleanup step.
+JSON MCP targets treat `env/config.json` as authoritative: each run replaces the target `mcpServers` object so source-side deletes and edits propagate. Non-MCP top-level keys are preserved. Platform env blocks, such as Claude settings `env`, remain merge-based so unrelated local environment keys survive.
 
 ## Safety
 
 `env/config.json` is gitignored because it may contain API keys and MCP tokens. Commit only `env/config.json.example`.
+keys and MCP tokens. Commit only `env/config.json.example`.

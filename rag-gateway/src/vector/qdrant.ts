@@ -11,7 +11,13 @@
  */
 
 const DEFAULT_COLLECTION = "memory_chunks";
-const VECTOR_SIZE = 256; // bge-m3 via OpenAI SDK returns 256-dim
+
+export interface QdrantStoreOptions {
+	/** Override collection name (default: "memory_chunks") */
+	collectionName?: string;
+	/** Override vector dimension (default: 1024 for bge-m3) */
+	vectorSize?: number;
+}
 
 export interface QdrantSearchResult {
 	id: string;
@@ -35,11 +41,13 @@ interface QdrantPoint {
 export class QdrantStore {
 	private baseUrl: string;
 	private collectionName: string;
+	private vectorSize: number;
 
-	constructor(url: string, collectionName = DEFAULT_COLLECTION) {
+	constructor(url: string, options?: QdrantStoreOptions) {
 		// Strip trailing slash from base URL
 		this.baseUrl = url.replace(/\/+$/, "");
-		this.collectionName = collectionName;
+		this.collectionName = options?.collectionName ?? DEFAULT_COLLECTION;
+		this.vectorSize = options?.vectorSize ?? 1024; // bge-m3 default
 	}
 
 	private async request<T>(
@@ -71,12 +79,12 @@ export class QdrantStore {
 		if (!exists) {
 			await this.request("PUT", `/collections/${this.collectionName}`, {
 				vectors: {
-					size: VECTOR_SIZE,
+					size: this.vectorSize,
 					distance: "Cosine",
 				},
 			});
 			console.log(
-				`📦 Qdrant collection "${this.collectionName}" created (size=${VECTOR_SIZE})`,
+				`📦 Qdrant collection "${this.collectionName}" created (size=${this.vectorSize})`,
 			);
 		}
 	}

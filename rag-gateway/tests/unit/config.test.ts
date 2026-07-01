@@ -2,12 +2,6 @@ import { describe, it, expect } from "vitest";
 import { loadConfig, applyGatewayConfigEnv, gatewayEnvFromConfig } from "../../src/config.js";
 
 describe("loadConfig", () => {
-    it("should require OPENAI_API_KEY", () => {
-        delete process.env.OPENAI_API_KEY;
-        expect(() => loadConfig()).toThrow("OPENAI_API_KEY");
-        process.env.OPENAI_API_KEY = "test-openai-key";
-    });
-
     it("should read GATEWAY_PORT and GATEWAY_HOST from env", () => {
         process.env.GATEWAY_PORT = "4000";
         process.env.GATEWAY_HOST = "0.0.0.0";
@@ -16,9 +10,14 @@ describe("loadConfig", () => {
         expect(config.host).toBe("0.0.0.0");
     });
 
-    it("should use default base URL for OpenAI", () => {
+    it("should use default base URL for embeddings", () => {
         const config = loadConfig();
-        expect(config.openaiBaseUrl).toBe("https://api.openai.com/v1");
+        expect(config.embeddingBaseUrl).toBe("https://api.openai.com/v1");
+    });
+
+    it("should use default embedding model", () => {
+        const config = loadConfig();
+        expect(config.embeddingModel).toBe("bge-m3");
     });
 
     it("should parse GRAPH_RAG_ENABLED as boolean", () => {
@@ -42,17 +41,17 @@ describe("applyGatewayConfigEnv", () => {
     it("should set env vars from parsed JSON object", () => {
         const env: Record<string, string | undefined> = {};
         applyGatewayConfigEnv(
-            { OPENAI_API_KEY: "sk-abc", ANTHROPIC_BASE_URL: "https://test.com" },
+            { EMBEDDING_API_KEY: "sk-abc", EXTRACTION_MODEL: "gpt-4o" },
             env,
         );
-        expect(env.OPENAI_API_KEY).toBe("sk-abc");
-        expect(env.ANTHROPIC_BASE_URL).toBe("https://test.com");
+        expect(env.EMBEDDING_API_KEY).toBe("sk-abc");
+        expect(env.EXTRACTION_MODEL).toBe("gpt-4o");
     });
 
     it("should not override existing env vars", () => {
-        const env = { OPENAI_API_KEY: "sk-existing" };
-        applyGatewayConfigEnv({ OPENAI_API_KEY: "sk-abc" }, env);
-        expect(env.OPENAI_API_KEY).toBe("sk-existing");
+        const env = { EMBEDDING_API_KEY: "sk-existing" };
+        applyGatewayConfigEnv({ EMBEDDING_API_KEY: "sk-abc" }, env);
+        expect(env.EMBEDDING_API_KEY).toBe("sk-existing");
     });
 
     it("should skip null and non-string values", () => {
@@ -68,21 +67,21 @@ describe("applyGatewayConfigEnv", () => {
 });
 
 describe("gatewayEnvFromConfig", () => {
-    it("should merge shared env and rag-gateway env with rag-gateway taking precedence", () => {
+    it("should get rag-gateway env from platforms config", () => {
         const values = gatewayEnvFromConfig({
-            env: { shared: { OPENAI_BASE_URL: "https://shared.example" } },
+            env: {},
             platforms: {
                 "rag-gateway": {
                     env: {
-                        OPENAI_BASE_URL: "https://rag-gateway.example",
-                        OPENAI_API_KEY: "sk-rag-gateway",
+                        EMBEDDING_BASE_URL: "https://rag-gateway.example",
+                        EMBEDDING_API_KEY: "sk-rag-gateway",
                     },
                 },
             },
         });
 
-        expect(values.OPENAI_BASE_URL).toBe("https://rag-gateway.example");
-        expect(values.OPENAI_API_KEY).toBe("sk-rag-gateway");
+        expect(values.EMBEDDING_BASE_URL).toBe("https://rag-gateway.example");
+        expect(values.EMBEDDING_API_KEY).toBe("sk-rag-gateway");
     });
 
     it("should keep legacy gateway env as a fallback", () => {
@@ -90,13 +89,13 @@ describe("gatewayEnvFromConfig", () => {
             platforms: {
                 gateway: {
                     env: {
-                        OPENAI_API_KEY: "sk-legacy",
+                        EMBEDDING_API_KEY: "sk-legacy",
                     },
                 },
             },
         });
 
-        expect(values.OPENAI_API_KEY).toBe("sk-legacy");
+        expect(values.EMBEDDING_API_KEY).toBe("sk-legacy");
     });
 
     it("should let rag-gateway env override legacy gateway env", () => {
@@ -104,17 +103,17 @@ describe("gatewayEnvFromConfig", () => {
             platforms: {
                 gateway: {
                     env: {
-                        OPENAI_BASE_URL: "https://legacy.example",
+                        EMBEDDING_BASE_URL: "https://legacy.example",
                     },
                 },
                 "rag-gateway": {
                     env: {
-                        OPENAI_BASE_URL: "https://rag-gateway.example",
+                        EMBEDDING_BASE_URL: "https://rag-gateway.example",
                     },
                 },
             },
         });
 
-        expect(values.OPENAI_BASE_URL).toBe("https://rag-gateway.example");
+        expect(values.EMBEDDING_BASE_URL).toBe("https://rag-gateway.example");
     });
 });
