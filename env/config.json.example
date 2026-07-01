@@ -88,6 +88,44 @@
         }
       }
     },
+    "codebuddy": {
+      "needExport": true,
+      "env": {
+        "DEEP_SEEK_KEY": ""
+      },
+      "models": [
+        {
+          "id": "deepseek-v4-pro",
+          "name": "DeepSeek V4 Pro",
+          "vendor": "DeepSeek",
+          "url": "https://cloud.dataeyes.ai/v1",
+          "apiKey": "${DEEP_SEEK_KEY}",
+          "maxInputTokens": 128000,
+          "maxOutputTokens": 8192,
+          "supportsToolCall": true,
+          "supportsImages": false,
+          "relatedModels": {
+            "lite": "deepseek-v4-flash",
+            "reasoning": "deepseek-v4-pro"
+          }
+        },
+        {
+          "id": "deepseek-v4-flash",
+          "name": "DeepSeek V4 Flash",
+          "vendor": "DeepSeek",
+          "url": "https://cloud.dataeyes.ai/v1",
+          "apiKey": "${DEEP_SEEK_KEY}",
+          "maxInputTokens": 128000,
+          "maxOutputTokens": 8192,
+          "supportsToolCall": true,
+          "supportsImages": false
+        }
+      ],
+      "availableModels": [
+        "deepseek-v4-pro",
+        "deepseek-v4-flash"
+      ]
+    },
     "gemini": {
       "needExport": true,
       "env": {

@@ -18,13 +18,14 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from platforms import claude, cline, codex, cursor, gemini, continue_platform
+from platforms import claude, cline, codebuddy, codex, cursor, gemini, continue_platform
 from platforms.common import load_config, mcp_servers, read_json_object, write_json
 
 SyncFn = Callable[[dict[str, Any]], None]
 
 TARGETS: dict[str, SyncFn] = {
     "cursor": cursor.sync,
+    "codebuddy": codebuddy.sync,
     "codex": codex.sync,
     "claude": claude.sync,
     "gemini": gemini.sync,

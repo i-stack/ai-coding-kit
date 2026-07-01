@@ -81,7 +81,10 @@ def sync_json_mcp(path: Path, servers: dict[str, Any]) -> None:
 def read_json_object(path: Path) -> dict[str, Any]:
     if not path.exists():
         return {}
-    data = json.loads(path.read_text(encoding="utf-8"))
+    raw = path.read_text(encoding="utf-8").strip()
+    if not raw:
+        return {}
+    data = json.loads(raw)
     if not isinstance(data, dict):
         raise ValueError(f"{path} must contain a JSON object.")
     return data

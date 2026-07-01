@@ -50,7 +50,7 @@ The architecture is deliberately split into three layers:
 | Source | `env/config.json` | One maintained config file: MCP catalog, shared env, and platform-specific env/config. |
 | Renderer | `sync/platforms/*.py` | Converts source schema into each platform's required file format. |
 | Orchestrator | `sync/sync_config.py` | Loads the source and dispatches to selected platform renderers. |
-| Target | Cursor / Codex / Claude / Xcode paths | Generated or merged files; never edited as the source of truth. |
+| Target | Cursor / CodeBuddy / Codex / Claude / Xcode paths | Generated or merged files; never edited as the source of truth. |
 
 Platform independence lives inside the single config file:
 
@@ -71,6 +71,7 @@ Values under `platforms.<name>.env` are scoped to that platform. No global `env.
 | Target | Output |
 |------|--------|
 | Cursor | Replace `mcpServers` in `~/.cursor/mcp.json`, preserving other top-level keys. |
+| CodeBuddy | Replace `mcpServers` in `~/.codebuddy/mcp.json`, sync models to `~/.codebuddy/models.json`, and copy skills from `~/.claude/skills/` to `~/.codebuddy/skills/`. |
 | Codex CLI | `~/.codex/mcp.generated.toml` plus managed blocks in `~/.codex/config.toml`. |
 | Xcode Codex | `~/Library/Developer/Xcode/CodingAssistant/codex/` with the same TOML rendering. |
 | Claude Code | Replace `mcpServers` in `~/.claude.json`, preserving other top-level keys. |
@@ -135,6 +136,7 @@ Targeted runs:
 
 ```bash
 python3 sync/sync_config.py --target cursor
+python3 sync/sync_config.py --target codebuddy
 python3 sync/sync_config.py --target codex
 python3 sync/sync_config.py --target claude
 python3 sync/sync_config.py --target gemini

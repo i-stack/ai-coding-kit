@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sync configuration sources to Cursor / Codex / Claude Code / Cline / Xcode.
+# Sync configuration sources to Cursor / CodeBuddy / Codex / Claude Code / Cline / Xcode.
 #
 # Source (sibling of this sync/ dir):
 #   - env/config.json — MCP catalog + platform-specific env/config, gitignored.
@@ -27,7 +27,7 @@ if [ ! -f "$CONFIG_JSON" ]; then
   exit 0
 fi
 
-echo "[1/1] Sync config to Cursor / Codex / Claude / Cline / Xcode"
+echo "[1/1] Sync config to Cursor / CodeBuddy / Codex / Claude / Cline / Xcode"
 python3 "$SCRIPT_DIR/sync_config.py" --target all
 
 # Source ~/.zshrc to load any env vars written by the sync (e.g. DATAEYES_API_KEY).
