@@ -13,13 +13,16 @@ Simple JSON-MCP platforms can be declared directly in env/config.json without co
     }
 """
 import argparse
+import importlib
 import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from platforms import claude, cline, codebuddy, codex, cursor, gemini, continue_platform
+from platforms import claude, cline, codebuddy, codex, cursor, gemini
 from platforms.common import load_config, mcp_servers, read_json_object, write_json
+
+_continue = importlib.import_module("platforms.continue")
 
 SyncFn = Callable[[dict[str, Any]], None]
 
@@ -30,7 +33,7 @@ TARGETS: dict[str, SyncFn] = {
     "claude": claude.sync,
     "gemini": gemini.sync,
     "cline": cline.sync,
-    "continue": continue_platform.sync,
+    "continue": _continue.sync,
 }
 
 
