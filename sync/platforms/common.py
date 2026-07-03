@@ -295,6 +295,14 @@ def xcode_codex_dir() -> Path:
     return Path.home() / "Library/Developer/Xcode/CodingAssistant/codex"
 
 
+def xcode_gemini_dir() -> Path:
+    return Path.home() / "Library/Developer/Xcode/CodingAssistant/gemini"
+
+
+def gemini_settings_path() -> Path:
+    return Path.home() / ".gemini/settings.json"
+
+
 # ── TOML generation utilities ────────────────────────────────────────────────
 
 def toml_quote(s: str) -> str:
