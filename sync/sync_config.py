@@ -15,7 +15,7 @@ from collections.abc import Callable
 from typing import Any
 
 from platforms import claude, cline, codebuddy, codex, cursor, gemini
-from platforms.common import discover_platforms, filter_mcp_for_platform, load_all_mcp, load_platform_config
+from platforms.common import discover_platforms, filter_mcp_for_platform, load_all_mcp, load_platform_config, sync_env_to_zshrc
 
 # continue.py contains 'continue' keyword which can't be a Python import name.
 import importlib as _importlib
@@ -72,6 +72,26 @@ def _auto_discover_targets() -> dict[str, SyncFn]:
     return all_targets
 
 
+def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> None:
+    """Automatically write env vars to ~/.zshrc if platform config declares
+    an export_env_to_zshrc block.
+
+    Convention: env/platforms/<platform>.json may contain:
+
+        "export_env_to_zshrc": {
+            "VAR_NAME": "value"
+        }
+
+    Each key in the object is treated as an env var to export.
+    When present, the orchestrator calls sync_env_to_zshrc() so that each
+    platform's sync() doesn't need to handle zshrc manually.
+    """
+    env = platform_cfg.get("export_env_to_zshrc")
+    if not isinstance(env, dict) or not env:
+        return
+    sync_env_to_zshrc(platform, env)
+
+
 def main() -> None:
     mcp_all = load_all_mcp()
     if not mcp_all:
@@ -99,11 +119,13 @@ def main() -> None:
             mcp_servers = filter_mcp_for_platform(mcp_all, name)
             platform_cfg = load_platform_config(name)
             fn(mcp_servers, platform_cfg)
+            _auto_export_env_to_zshrc(name, platform_cfg)
     elif args.target in all_targets:
         fn = all_targets[args.target]
         mcp_servers = filter_mcp_for_platform(mcp_all, args.target)
         platform_cfg = load_platform_config(args.target)
         fn(mcp_servers, platform_cfg)
+        _auto_export_env_to_zshrc(args.target, platform_cfg)
     else:
         print(f"[error] Unknown target '{args.target}'. Valid: all, {', '.join(valid)}", file=sys.stderr)
         raise SystemExit(1)

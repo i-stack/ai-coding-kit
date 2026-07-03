@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -146,6 +147,67 @@ def env_for_platform(platform: str) -> dict[str, str]:
     if not isinstance(env, dict):
         raise ValueError(f"platforms.{platform}.env must be an object.")
     return {k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str) and v != ""}
+
+
+def sync_env_to_zshrc(platform: str, env: dict[str, str]) -> None:
+    """Write platform env vars into a managed block in ~/.zshrc.
+
+    Convention:
+      - env/platforms/<platform>.json declares an "env" object with VAR=value pairs.
+      - The platform's sync() calls this function (optionally gated by
+        an "export_env_to_zshrc" flag if the platform supports alternative
+        env delivery methods like settings.json).
+
+    The managed block format is:
+      # BEGIN <PLATFORM> ENV SYNC (from env/platforms/<platform>.json)
+      export VAR="value"
+      # END <PLATFORM> ENV SYNC
+
+    Existing blocks for the same platform are replaced in-place; blocks for
+    other platforms are left untouched.
+
+    The block is sourced in the current subprocess so downstream tools see the
+    vars, but the user still needs to `source ~/.zshrc` in their open terminal.
+    """
+    if not env:
+        return
+
+    lines = [f'export {k}="{v}"' for k, v in env.items()]
+    if not lines:
+        return
+
+    begin = f"# BEGIN {platform.upper()} ENV SYNC (from env/platforms/{platform}.json)"
+    end = f"# END {platform.upper()} ENV SYNC"
+    block = begin + "\n" + "\n".join(lines) + "\n" + end + "\n"
+
+    block_re = re.compile(
+        r"# BEGIN " + platform.upper() + r" ENV SYNC(?: \(from [^)]+\))?"
+        + r".*?"
+        + re.escape(end)
+        + r"\n?",
+        re.DOTALL,
+    )
+
+    zshrc = Path.home() / ".zshrc"
+    if zshrc.exists():
+        text = zshrc.read_text(encoding="utf-8")
+        if block_re.search(text):
+            new_text = block_re.sub(block, text)
+        else:
+            new_text = text.rstrip() + "\n\n" + block
+    else:
+        new_text = block
+
+    zshrc.write_text(new_text, encoding="utf-8")
+    print(f"[{platform}] Updated env vars in {zshrc}.")
+
+    # Source so downstream tools see the vars in the current subprocess.
+    # Does NOT propagate to parent terminal — user must source manually.
+    try:
+        subprocess.run(["zsh", "-c", f"source {zshrc}"], check=True, capture_output=True)
+        print(f"[{platform}] Sourced {zshrc} (current process).")
+    except subprocess.CalledProcessError as exc:
+        print(f"[warn] [{platform}] source {zshrc} exited {exc.returncode}: {exc.stderr.decode().strip()}")
 
 
 def filter_mcp_for_platform(mcp_all: dict[str, Any], platform: str) -> dict[str, Any]:

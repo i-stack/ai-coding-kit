@@ -1,7 +1,7 @@
 {
     "model": "gpt-5.5",
     "personality": "pragmatic",
-    "model_provider": "dataeyes",
+    "model_provider": "",
     "model_reasoning_effort": "medium",
     "model_verbosity": "medium",
     "model_reasoning_summary": "auto",
@@ -15,6 +15,13 @@
     "file_opener": "cursor",
     "project_doc_max_bytes": 32768,
     "project_doc_fallback_filenames": ["CODEBUDDY.md", "CLAUDE.md"],
+    "model_providers": {
+        "dataeyes": {
+            "base_url": "${codex.url}",
+            "env_key": "DATAEYES_API_KEY",
+            "wire_api": "responses"
+        }
+    },
     "history": {
         "persistence": "save-all",
         "max_bytes": 104857600
@@ -52,13 +59,6 @@
     "feedback": {
         "enabled": true
     },
-    "model_providers": {
-        "dataeyes": {
-            "base_url": "${codex.url}",
-            "env_key": "DATAEYES_API_KEY",
-            "wire_api": "responses"
-        }
-    },
     "features": {
         "skills": true,
         "multi_agent": true,
@@ -80,8 +80,7 @@
             "trust_level": "trusted"
         }
     },
-    "export_env_to_zshrc": true,
-    "env": {
+    "export_env_to_zshrc": {
         "DATAEYES_API_KEY": "${codex.key}"
     }
 }
