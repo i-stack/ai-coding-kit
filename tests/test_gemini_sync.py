@@ -122,11 +122,11 @@ class GeminiSyncTests(unittest.TestCase):
             },
             "settings",
         )
-        self.assertEqual(settings["context"]["fileName"], ["GEMINI.md", "CODEBUDDY.md", "CLAUDE.md"])
+        self.assertEqual(settings["context"]["fileName"], "GEMINI.md")
         self.assertTrue(settings["context"]["includeDirectoryTree"])
         self.assertEqual(settings["context"]["importFormat"], "tree")
         self.assertTrue(settings["tools"]["useRipgrep"])
-        self.assertEqual(settings["tools"]["sandbox"], "workspace-write")
+        self.assertEqual(settings["tools"]["sandbox"], "sandbox-exec")
         self.assertTrue(settings["tools"]["sandboxNetworkAccess"])
         self.assertTrue(settings["tools"]["shell"]["enableInteractiveShell"])
         self.assertTrue(settings["skills"]["enabled"])

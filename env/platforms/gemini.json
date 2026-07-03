@@ -7,7 +7,7 @@
         "skipNextSpeakerCheck": true
     },
     "context": {
-        "fileName": ["GEMINI.md", "CODEBUDDY.md", "CLAUDE.md"],
+        "fileName": "GEMINI.md",
         "includeDirectoryTree": true,
         "importFormat": "tree",
         "fileFiltering": {
@@ -19,7 +19,7 @@
         }
     },
     "tools": {
-        "sandbox": "workspace-write",
+        "sandbox": "sandbox-exec",
         "sandboxNetworkAccess": true,
         "useRipgrep": true,
         "shell": {
