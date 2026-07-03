@@ -9,24 +9,48 @@
     "hide_agent_reasoning": true,
     "sandbox_mode": "workspace-write",
     "approval_policy": "on-request",
+    "allow_login_shell": true,
     "default_permissions": ":workspace",
     "web_search": "cached",
     "file_opener": "cursor",
+    "project_doc_max_bytes": 32768,
+    "project_doc_fallback_filenames": ["CODEBUDDY.md", "CLAUDE.md"],
     "history": {
         "persistence": "save-all",
         "max_bytes": 104857600
     },
     "sandbox_workspace_write": {
-        "network_access": true
+        "network_access": true,
+        "writable_roots": [],
+        "exclude_tmpdir_env_var": false,
+        "exclude_slash_tmp": false
     },
     "tools": {
         "view_image": true
     },
     "shell_environment_policy": {
-        "inherit": "all"
+        "inherit": "all",
+        "ignore_default_excludes": false,
+        "exclude": []
     },
     "tui": {
-        "notifications": true
+        "notifications": true,
+        "animations": true,
+        "show_tooltips": true
+    },
+    "agents": {
+        "max_threads": 6,
+        "max_depth": 1
+    },
+    "memories": {
+        "generate_memories": true,
+        "use_memories": true
+    },
+    "analytics": {
+        "enabled": true
+    },
+    "feedback": {
+        "enabled": true
     },
     "model_providers": {
         "dataeyes": {
@@ -44,6 +68,7 @@
         "shell_tool": true,
         "memories": true,
         "personality": true,
+        "fast_mode": true,
         "enable_request_compression": true,
         "skill_mcp_dependency_install": true
     },
