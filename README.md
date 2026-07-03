@@ -26,6 +26,12 @@ $EDITOR env/secrets.json
 bash sync.sh
 ```
 
+## 平台支持
+
+当前主要开发和测试环境为 **macOS**。部分平台模块（如 Codex 同步中的 Xcode 集成、`.zshrc` 导出）在 macOS 外不可用。
+
+欢迎 Windows 用户在 Windows 上验证并提交 PR。核心同步逻辑已尽量保持跨平台，适配改动预计较小。
+
 ## 模块
 
 各模块有独立的 README，按需深入：
