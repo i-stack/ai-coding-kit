@@ -1,7 +1,7 @@
 {
-  "env": {
-    "EMBEDDING_API_KEY": "${rag-gateway.key}",
-    "EMBEDDING_BASE_URL": "${rag-gateway.url}",
-    "EMBEDDING_MODEL": "bge-m3"
-  }
+    "env": {
+        "EMBEDDING_API_KEY": "${rag-gateway.key}",
+        "EMBEDDING_BASE_URL": "${rag-gateway.url}",
+        "EMBEDDING_MODEL": "bge-m3"
+    }
 }

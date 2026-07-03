@@ -1,10 +1,21 @@
 {
-  "name": "apifox",
-  "type": "stdio",
-  "command": "npx",
-  "args": ["-y", "apifox-mcp-server@latest", "--project=5440764"],
-  "env": {
-    "APIFOX_ACCESS_TOKEN": "${apifox.token}"
-  },
-  "platforms": ["claude", "codex", "codebuddy", "gemini", "cline", "continue"]
+    "name": "apifox",
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+        "-y",
+        "apifox-mcp-server@latest",
+        "--project=5440764"
+    ],
+    "env": {
+        "APIFOX_ACCESS_TOKEN": "${apifox.token}"
+    },
+    "platforms": [
+        "claude",
+        "codex",
+        "codebuddy",
+        "gemini",
+        "cline",
+        "continue"
+    ]
 }

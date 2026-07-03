@@ -1,24 +1,24 @@
 {
-  "env": {
-    "ANTHROPIC_AUTH_TOKEN": "${claude.token}",
-    "ANTHROPIC_BASE_URL": "${claude.url}",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
-    "CLAUDE_CODE_EFFORT_LEVEL": "medium",
-    "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1"
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/hooks/xmcp-init.sh",
-            "timeout": 10
-          }
+    "env": {
+        "ANTHROPIC_AUTH_TOKEN": "${claude.token}",
+        "ANTHROPIC_BASE_URL": "${claude.url}",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
+        "CLAUDE_CODE_EFFORT_LEVEL": "medium",
+        "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1"
+    },
+    "hooks": {
+        "SessionStart": [
+            {
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "~/.claude/hooks/xmcp-init.sh",
+                        "timeout": 10
+                    }
+                ]
+            }
         ]
-      }
-    ]
-  }
+    }
 }

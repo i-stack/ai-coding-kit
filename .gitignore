@@ -7,8 +7,6 @@ skills-engineering/scripts/config.local.sh
 # env/mcp/*.json and env/platforms/*.json are committed (use ${VAR} references, no real secrets).
 # User only needs to create env/secrets.json from env/secrets.json.example.
 env/secrets.json
-env/config.json
-env/config.json.example
 
 *__pycache__*/
 
