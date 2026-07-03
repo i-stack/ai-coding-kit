@@ -1,0 +1,9 @@
+{
+  "_comment": "MCP 服务器配置模板。复制此文件到 env/mcp/<name>.json 并填入实际值。",
+  "name": "my-mcp-server",
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "<package-name>"],
+  "env": {},
+  "platforms": ["claude", "codex", "codebuddy", "gemini", "cline", "continue"]
+}

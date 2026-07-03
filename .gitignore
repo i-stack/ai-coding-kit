@@ -3,8 +3,13 @@
 # skills-engineering: local machine sync config (see scripts/config.local.sh.example)
 skills-engineering/scripts/config.local.sh
 
-# env/: local secrets and platform config. Copy env/config.json.example and fill in tokens.
+# env/: local secrets and platform config.
+# Templates in env/templates/ are committed (no secrets).
+# Real configs in env/mcp/ and env/platforms/ are gitignored (contain secrets).
 env/config.json
+env/config.json.example
+env/mcp/*.json
+env/platforms/*.json
 
 *__pycache__*/
 

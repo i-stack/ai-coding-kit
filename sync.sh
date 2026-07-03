@@ -3,19 +3,24 @@
 # ai-coding-kit 一键同步脚本
 #
 # 用法:
-#   bash sync.sh                 # 首次使用：自动检测 config，若不存在则从 example 复制并提示编辑
-#   bash sync.sh --force         # 强制执行同步（跳过 config 检查提示）
-#   bash sync.sh --init          # 仅初始化 config（从 example 复制）
+#   bash sync.sh                 # 同步所有平台的 MCP 和配置
+#   bash sync.sh --force         # 强制执行同步（跳过检查提示）
+#   bash sync.sh --init          # 仅初始化环境（创建模板文件）
+#
+# 配置文件:
+#   env/mcp/              — MCP 服务器定义（每个文件一个服务）
+#   env/platforms/        — 各平台专属配置（遵循官方规范）
+#   env/templates/        — 新增 MCP/平台的模板
 #
 # 此脚本会：
-#   1. 检查 env/config.json 是否存在，不存在则从 env/config.json.example 复制
+#   1. 检查 env/mcp/ 目录是否存在配置文件
 #   2. 执行 sync/sync_all.sh 同步配置到各 AI 编码工具
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONFIG_JSON="$SCRIPT_DIR/env/config.json"
-CONFIG_EXAMPLE="$SCRIPT_DIR/env/config.json.example"
+MCP_DIR="$SCRIPT_DIR/env/mcp"
+PLATFORMS_DIR="$SCRIPT_DIR/env/platforms"
 
 # --- 颜色输出 ---
 RED='\033[0;31m'
@@ -37,43 +42,27 @@ elif [ "${1:-}" = "--force" ]; then
   MODE="force"
 fi
 
-# --- 初始化 config ---
-init_config() {
-  if [ -f "$CONFIG_JSON" ]; then
-    echo_ok "env/config.json 已存在，跳过初始化。"
-    return 0
+# --- 检查配置 ---
+check_config() {
+  local has_config=false
+
+  if [ -d "$MCP_DIR" ] && [ -n "$(ls -A "$MCP_DIR"/*.json 2>/dev/null || true)" ]; then
+    has_config=true
   fi
 
-  if [ ! -f "$CONFIG_EXAMPLE" ]; then
-    echo_error "找不到 env/config.json.example，请确认仓库完整性。"
-    exit 1
-  fi
-
-  echo_warn "env/config.json 不存在，正在从 env/config.json.example 复制..."
-  cp "$CONFIG_EXAMPLE" "$CONFIG_JSON"
-  echo_ok "已创建 env/config.json"
-
-  echo ""
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo -e "${YELLOW}  请编辑 env/config.json 填入你的 API Keys 和 MCP 配置：${NC}"
-  echo -e "${YELLOW}${NC}"
-  echo -e "${YELLOW}    vim env/config.json${NC}"
-  echo -e "${YELLOW}    code env/config.json${NC}"
-  echo -e "${YELLOW}${NC}"
-  echo -e "${YELLOW}  编辑完成后，重新运行:${NC}"
-  echo -e "${YELLOW}${NC}"
-  echo -e "${YELLOW}    bash sync.sh${NC}"
-  echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-  echo ""
-
-  if [ "$MODE" = "init" ]; then
-    exit 0
-  fi
-
-  # 交互模式：等待用户确认是否已编辑完成
-  read -r -p "是否已完成编辑？(y/n) " CONFIRM
-  if [ "$CONFIRM" != "y" ] && [ "$CONFIRM" != "Y" ]; then
-    echo_warn "已取消。编辑完 env/config.json 后运行 bash sync.sh 即可同步。"
+  if [ "$has_config" = false ]; then
+    echo_warn "env/mcp/ 目录下没有 MCP 配置文件。"
+    echo_warn "请按照以下步骤创建配置："
+    echo ""
+    echo -e "  ${CYAN}# 1. 从模板创建 MCP 服务器配置${NC}"
+    echo -e "  ${CYAN}cp env/templates/mcp.template.json env/mcp/my-server.json${NC}"
+    echo -e "  ${CYAN}$EDITOR env/mcp/my-server.json${NC}"
+    echo ""
+    echo -e "  ${CYAN}# 2. 从模板创建平台配置${NC}"
+    echo -e "  ${CYAN}cp env/templates/platform.template.json env/platforms/codex.json${NC}"
+    echo -e "  ${CYAN}$EDITOR env/platforms/codex.json${NC}"
+    echo ""
+    echo_warn "配置完成后，重新运行: bash sync.sh"
     exit 0
   fi
 }
@@ -104,14 +93,12 @@ run_sync() {
 # --- 主流程 ---
 echo ""
 echo -e "${CYAN}╔══════════════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║      ai-coding-kit 一键同步工具              ║${NC}"
+echo -e "${CYAN}║      ai-coding-kit 一键同步工具 v3.0         ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
-init_config
+check_config
 
-if [ "$MODE" = "force" ]; then
-  run_sync
-elif [ "$MODE" = "sync" ]; then
+if [ "$MODE" = "force" ] || [ "$MODE" = "sync" ]; then
   run_sync
 fi

@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .common import mcp_servers, platform_config, read_json_object, sync_json_mcp, write_json
+from .common import read_json_object, sync_json_mcp, write_json
 
 MCP_TARGET = Path.home() / ".codebuddy" / "mcp.json"
 MODELS_TARGET = Path.home() / ".codebuddy" / "models.json"
@@ -10,8 +10,7 @@ CODEBUDDY_SKILLS_DIR = Path.home() / ".codebuddy" / "skills"
 CLAUDE_SKILLS_DIR = Path.home() / ".claude" / "skills"
 
 
-def _sync_models(data: dict[str, Any]) -> None:
-    cfg = platform_config(data, "codebuddy")
+def _sync_models(cfg: dict[str, Any]) -> None:
     models = cfg.get("models")
     available_models = cfg.get("availableModels")
 
@@ -49,7 +48,8 @@ def _sync_skills() -> None:
     print(f"Synced {len(synced)} skills to {CODEBUDDY_SKILLS_DIR}: {', '.join(synced) or '(none)'}.")
 
 
-def sync(data: dict[str, Any]) -> None:
-    sync_json_mcp(MCP_TARGET, mcp_servers(data, "codebuddy"))
-    _sync_models(data)
+def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
+    """Sync MCP servers, models, and skills to CodeBuddy."""
+    sync_json_mcp(MCP_TARGET, mcp_servers)
+    _sync_models(cfg)
     _sync_skills()

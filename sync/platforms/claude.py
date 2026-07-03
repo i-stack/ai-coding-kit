@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Any
 
-from .common import env_for_platform, mcp_servers, merge_object, platform_config, read_json_object, write_json
+from .common import merge_object, read_json_object, write_json
 
 CLAUDE_JSON = Path.home() / ".claude.json"
 CLAUDE_SETTINGS_JSON = Path.home() / ".claude" / "settings.json"
@@ -21,8 +21,7 @@ def _install_hook_scripts() -> None:
         print(f"Installed hook script: {dest}")
 
 
-def _hooks_for_platform(data: dict[str, Any]) -> dict[str, Any]:
-    cfg = platform_config(data, "claude")
+def _expand_hooks(cfg: dict[str, Any]) -> dict[str, Any]:
     raw: dict[str, Any] = cfg.get("hooks", {})
     expanded: dict[str, Any] = {}
     for event, entries in raw.items():
@@ -39,7 +38,7 @@ def _hooks_for_platform(data: dict[str, Any]) -> dict[str, Any]:
     return expanded
 
 
-def sync_xcode_claude_json(servers: dict[str, Any]) -> None:
+def _sync_xcode_claude_json(servers: dict[str, Any]) -> None:
     data = read_json_object(XCODE_CLAUDE_JSON)
     projects = data.get("projects")
     if isinstance(projects, dict) and projects:
@@ -54,22 +53,32 @@ def sync_xcode_claude_json(servers: dict[str, Any]) -> None:
     print(f"Replaced MCP servers in {XCODE_CLAUDE_JSON} ({mode}).")
 
 
-def sync(data: dict[str, Any]) -> None:
-    servers = mcp_servers(data, "claude")
+def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
+    """Sync MCP servers and Claude platform config."""
+    # Write ~/.claude.json
     claude = read_json_object(CLAUDE_JSON)
-    claude["mcpServers"] = servers
+    claude["mcpServers"] = mcp_servers
     write_json(CLAUDE_JSON, claude)
     print(f"Replaced MCP servers in {CLAUDE_JSON} (other top-level config preserved).")
 
-    sync_xcode_claude_json(servers)
+    # Xcode Claude Agent
+    _sync_xcode_claude_json(mcp_servers)
 
-    env = env_for_platform(data, "claude")
+    # Write ~/.claude/settings.json
     settings = read_json_object(CLAUDE_SETTINGS_JSON)
-    settings["env"] = merge_object(settings.get("env"), env)
 
+    env = cfg.get("env", {})
+    if isinstance(env, dict) and env:
+        settings["env"] = merge_object(settings.get("env"), env)
+        print(f"Merged env into {CLAUDE_SETTINGS_JSON} ({len(env)} vars; other keys preserved).")
+    else:
+        print(f"[claude] No env vars in platform config — skipping env merge.")
+
+    # Install hook scripts
     _install_hook_scripts()
 
-    config_hooks = _hooks_for_platform(data)
+    # Merge hooks from platform config
+    config_hooks = _expand_hooks(cfg)
     if config_hooks:
         existing_hooks: dict[str, Any] = settings.get("hooks", {})
         existing_hooks.update(config_hooks)
@@ -77,4 +86,3 @@ def sync(data: dict[str, Any]) -> None:
         print(f"Merged hooks into {CLAUDE_SETTINGS_JSON} ({len(config_hooks)} event(s)).")
 
     write_json(CLAUDE_SETTINGS_JSON, settings)
-    print(f"Merged env into {CLAUDE_SETTINGS_JSON} ({len(env)} vars; other keys preserved).")

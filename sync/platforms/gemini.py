@@ -3,11 +3,11 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from .common import env_for_platform, mcp_servers, platform_config, sync_json_mcp
+from .common import sync_json_mcp
 
 _TARGET = Path.home() / ".gemini/settings.json"
 
-ZSHRC_BEGIN = "# BEGIN GEMINI ENV SYNC (from env/config.json)"
+ZSHRC_BEGIN = "# BEGIN GEMINI ENV SYNC (from env/platforms/gemini.json)"
 ZSHRC_END = "# END GEMINI ENV SYNC"
 ZSHRC_BLOCK_PATTERN = re.compile(
     r"# BEGIN GEMINI ENV SYNC(?: \(from [^)]+\))?"
@@ -18,12 +18,15 @@ ZSHRC_BLOCK_PATTERN = re.compile(
 )
 
 
-def sync_zshrc_env(data: dict[str, Any]) -> None:
-    env = env_for_platform(data, "gemini")
-    if not env:
+def _sync_zshrc_env(cfg: dict[str, Any]) -> None:
+    env = cfg.get("env", {})
+    if not isinstance(env, dict) or not env:
         return
 
-    lines = [f'export {k}="{v}"' for k, v in env.items()]
+    lines = [f'export {k}="{v}"' for k, v in env.items() if isinstance(k, str) and isinstance(v, str) and v]
+    if not lines:
+        return
+
     block = f"{ZSHRC_BEGIN}\n" + "\n".join(lines) + f"\n{ZSHRC_END}\n"
     zshrc = Path.home() / ".zshrc"
 
@@ -46,8 +49,8 @@ def sync_zshrc_env(data: dict[str, Any]) -> None:
         print(f"[warn] source {zshrc} exited {exc.returncode}: {exc.stderr.decode().strip()}")
 
 
-def sync(data: dict[str, Any]) -> None:
-    sync_json_mcp(_TARGET, mcp_servers(data, "gemini"))
-    cfg = platform_config(data, "gemini")
-    if cfg.get("needExport"):
-        sync_zshrc_env(data)
+def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
+    """Sync MCP servers and env vars to Gemini CLI."""
+    sync_json_mcp(_TARGET, mcp_servers)
+    if cfg.get("env"):
+        _sync_zshrc_env(cfg)

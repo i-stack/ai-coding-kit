@@ -1,0 +1,7 @@
+{
+  "_comment": "平台配置模板。复制此文件到 env/platforms/<name>.json，填入该平台的配置。配置字段应严格遵循该平台的官方配置规范。",
+  "env": {
+    "YOUR_API_KEY": "your-api-key-here",
+    "CUSTOM_BASE_URL": "https://your-endpoint.com"
+  }
+}

@@ -5,69 +5,111 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SRC_CONFIG = REPO_ROOT / "env" / "config.json"
+MCP_DIR = REPO_ROOT / "env" / "mcp"
+PLATFORMS_DIR = REPO_ROOT / "env" / "platforms"
 
 
-def load_config() -> dict[str, Any] | None:
-    if not SRC_CONFIG.exists():
-        print(f"[sync] {SRC_CONFIG} is missing (gitignored local file).")
-        print("[sync] Copy env/config.json.example -> env/config.json, edit, then run again.")
-        print("[sync] Skipping sync; pre-push will not block on this.")
-        return None
+# ── Configuration loading ────────────────────────────────────────────────────
 
-    data = json.loads(SRC_CONFIG.read_text(encoding="utf-8"))
+def load_all_mcp() -> dict[str, Any]:
+    """Scan env/mcp/*.json and return a merged dict of {server_name: server_config}.
+
+    Each file should contain:
+      {"name": "server-name", "type": "stdio|sse", ..., "platforms": [...]}
+
+    Returns {} if env/mcp/ is missing or empty (graceful degradation).
+    """
+    if not MCP_DIR.is_dir():
+        print(f"[sync] {MCP_DIR} directory not found — no MCP servers loaded.")
+        return {}
+
+    result: dict[str, Any] = {}
+    for f in sorted(MCP_DIR.glob("*.json")):
+        try:
+            data = json.loads(f.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            print(f"[sync] Skipping {f.name}: {exc}")
+            continue
+        if not isinstance(data, dict):
+            print(f"[sync] Skipping {f.name}: not a JSON object.")
+            continue
+        name = data.get("name", f.stem)
+        # Strip internal metadata: name, _comment
+        clean = {k: v for k, v in data.items() if k not in ("name", "_comment")}
+        result[name] = clean
+    return result
+
+
+def load_platform_config(platform: str) -> dict[str, Any]:
+    """Load platform-specific config from env/platforms/<platform>.json.
+
+    Returns {} if the file doesn't exist.
+    """
+    path = PLATFORMS_DIR / f"{platform}.json"
+    if not path.is_file():
+        return {}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"[sync] Failed to load {path}: {exc}")
+        return {}
     if not isinstance(data, dict):
-        raise ValueError(f"{SRC_CONFIG} must contain a JSON object.")
-    return data
-
-
-def object_at(data: dict[str, Any], key: str) -> dict[str, Any]:
-    val = data.get(key, {})
-    if val is None:
+        print(f"[sync] {path} must contain a JSON object — skipped.")
         return {}
-    if not isinstance(val, dict):
-        raise ValueError(f"{key} must be an object.")
-    return val
+    return {k: v for k, v in data.items() if k not in ("_comment",)}
 
 
-def platform_config(data: dict[str, Any], platform: str) -> dict[str, Any]:
-    platforms = object_at(data, "platforms")
-    cfg = platforms.get(platform, {})
-    if cfg is None:
-        return {}
-    if not isinstance(cfg, dict):
-        raise ValueError(f"platforms.{platform} must be an object.")
-    return cfg
+def env_for_platform(platform: str) -> dict[str, str]:
+    """Extract env vars from a platform config's top-level 'env' key.
 
-
-def env_for_platform(data: dict[str, Any], platform: str) -> dict[str, str]:
-    cfg = platform_config(data, platform)
+    The 'env' key holds {VAR_NAME: value} pairs that the sync engine writes
+    to ~/.zshrc managed blocks or platform settings.json as appropriate.
+    """
+    cfg = load_platform_config(platform)
     env = cfg.get("env", {})
     if env is None:
         env = {}
     if not isinstance(env, dict):
         raise ValueError(f"platforms.{platform}.env must be an object.")
-
     return {k: v for k, v in env.items() if isinstance(k, str) and isinstance(v, str) and v != ""}
 
 
-def mcp_servers(data: dict[str, Any], platform: str | None = None) -> dict[str, Any]:
-    raw = data.get("mcpServers", {})
-    if not isinstance(raw, dict):
-        raise ValueError("mcpServers must be an object.")
+def filter_mcp_for_platform(mcp_all: dict[str, Any], platform: str) -> dict[str, Any]:
+    """Filter MCP servers to those enabled for the given platform.
+
+    A server is included if:
+      - It has no 'platforms' key (included everywhere), OR
+      - Its 'platforms' list includes the given platform name.
+
+    The 'platforms' key is stripped from the output.
+    The 'type' key is also stripped (rendering concern, not output concern).
+    """
     result: dict[str, Any] = {}
-    for name, cfg in raw.items():
+    for name, cfg in mcp_all.items():
         if not isinstance(cfg, dict):
             result[name] = cfg
             continue
         allowed = cfg.get("platforms")
         if allowed is not None:
-            if not isinstance(allowed, list) or (platform is not None and platform not in allowed):
+            if not isinstance(allowed, list) or platform not in allowed:
                 continue
-        # strip internal routing metadata before writing to target
-        result[name] = {k: v for k, v in cfg.items() if k != "platforms"}
+        result[name] = {k: v for k, v in cfg.items() if k not in ("platforms", "type")}
     return result
 
+
+def discover_platforms() -> list[str]:
+    """Return platform names that have a config file in env/platforms/.
+
+    Used by the orchestrator to auto-discover sync targets.
+    """
+    if not PLATFORMS_DIR.is_dir():
+        return []
+    return sorted(
+        f.stem for f in PLATFORMS_DIR.glob("*.json")
+    )
+
+
+# ── JSON I/O utilities ───────────────────────────────────────────────────────
 
 def sync_json_mcp(path: Path, servers: dict[str, Any]) -> None:
     if path.is_symlink():
@@ -100,6 +142,8 @@ def merge_object(existing: Any, updates: dict[str, Any]) -> dict[str, Any]:
     return {**base, **updates}
 
 
+# ── Path helpers ─────────────────────────────────────────────────────────────
+
 def codex_config_path() -> Path:
     if p := os.environ.get("CODEX_CONFIG"):
         return Path(p).expanduser()
@@ -117,6 +161,8 @@ def codex_generated_toml_path() -> Path:
 def xcode_codex_dir() -> Path:
     return Path.home() / "Library/Developer/Xcode/CodingAssistant/codex"
 
+
+# ── TOML generation utilities ────────────────────────────────────────────────
 
 def toml_quote(s: str) -> str:
     return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
@@ -148,3 +194,84 @@ def toml_array(items: list[Any]) -> str:
 
 def toml_inline_table(values: dict[str, Any]) -> str:
     return "{ " + ", ".join(f"{k} = {toml_value(v)}" for k, v in values.items()) + " }"
+
+
+def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> str:
+    """Convert a dict tree to TOML key-value lines and [table] sections.
+
+    Skips keys in `ignore` (default: {'env', '_comment', 'projects', 'model_providers'}).
+    Nested dicts with scalar values become [parent] tables with key=value lines.
+    Deeper nested dicts become [parent.child] tables.
+    Returns a TOML string suitable for insertion into managed blocks.
+    """
+    skip = ignore or {"env", "_comment", "projects", "model_providers"}
+    lines: list[str] = []
+
+    def _emit_table(parent_key: str, sub: dict[str, Any]) -> None:
+        """Emit a TOML [table] section from a dict."""
+        # Separate scalars/lists from nested dicts
+        sub_tables: dict[str, dict[str, Any]] = {}
+        has_scalars = False
+        for k, v in sub.items():
+            if isinstance(v, dict):
+                sub_tables[k] = v
+            else:
+                has_scalars = True
+                if isinstance(v, list):
+                    lines.append(f"{k} = {toml_value(v)}")
+                elif v is not None:
+                    lines.append(f"{k} = {toml_value(v)}")
+        # Emit nested sub-tables
+        for sub_key, sub_value in sub_tables.items():
+            section_key = toml_header_key_segment(f"{parent_key}.{sub_key}")
+            lines.append(f"[{section_key}]")
+            _emit_table(sub_key, sub_value)
+        if has_scalars or not sub_tables:
+            lines.append("")
+
+    # Top-level scalars and simple values
+    for key, value in entries.items():
+        if key in skip:
+            continue
+        if isinstance(value, dict):
+            # Emit as [key] table
+            # Check if any sub-value is itself a dict (deeper nesting)
+            has_deep = any(isinstance(v, dict) for v in value.values())
+            if has_deep:
+                lines.append(f"[{key}]")
+                _emit_table(key, value)
+            else:
+                # Flat dict: emit as [key] with key=value lines
+                lines.append(f"[{key}]")
+                for sub_key, sub_value in value.items():
+                    if isinstance(sub_value, list):
+                        lines.append(f"{sub_key} = {toml_value(sub_value)}")
+                    elif sub_value is not None:
+                        lines.append(f"{sub_key} = {toml_value(sub_value)}")
+                lines.append("")
+        elif isinstance(value, list):
+            lines.append(f"{key} = {toml_value(value)}")
+        elif value is not None:
+            lines.append(f"{key} = {toml_value(value)}")
+
+    # model_providers section
+    providers = entries.get("model_providers")
+    if isinstance(providers, dict):
+        for pid, pcfg in providers.items():
+            if not isinstance(pcfg, dict):
+                continue
+            lines.append(f"\n[model_providers.{toml_header_key_segment(str(pid))}]")
+            for k, v in pcfg.items():
+                lines.append(f"{k} = {toml_value(v)}")
+
+    # projects section
+    projects = entries.get("projects")
+    if isinstance(projects, dict):
+        for path, pcfg in projects.items():
+            if not isinstance(pcfg, dict):
+                continue
+            lines.append(f"\n[projects.{toml_header_key_segment(str(path))}]")
+            for k, v in pcfg.items():
+                lines.append(f"{k} = {toml_value(v)}")
+
+    return "\n".join(lines)
