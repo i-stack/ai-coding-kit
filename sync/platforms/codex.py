@@ -183,6 +183,6 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     print(f"Wrote: {xc_gen}")
     merge_managed_blocks(xc / "config.toml", shared, generated)
 
-    # Export env vars to ~/.zshrc
-    if cfg.get("env"):
+    # Export env vars to ~/.zshrc (controlled by export_env_to_zshrc flag)
+    if cfg.get("export_env_to_zshrc") and cfg.get("env"):
         _sync_zshrc_env()

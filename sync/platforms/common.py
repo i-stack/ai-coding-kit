@@ -278,7 +278,7 @@ def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> 
     Deeper nested dicts become [parent.child] tables.
     Returns a TOML string suitable for insertion into managed blocks.
     """
-    skip = ignore or {"env", "_comment", "projects", "model_providers"}
+    skip = ignore or {"env", "_comment", "projects", "model_providers", "export_env_to_zshrc"}
     lines: list[str] = []
 
     def _emit_table(parent_key: str, sub: dict[str, Any]) -> None:
@@ -308,6 +308,9 @@ def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> 
         if key in skip:
             continue
         if isinstance(value, dict):
+            # Insert blank line separator before [table] when following a scalar
+            if lines and lines[-1] != "":
+                lines.append("")
             # Emit as [key] table
             # Check if any sub-value is itself a dict (deeper nesting)
             has_deep = any(isinstance(v, dict) for v in value.values())
@@ -334,7 +337,10 @@ def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> 
         for pid, pcfg in providers.items():
             if not isinstance(pcfg, dict):
                 continue
-            lines.append(f"\n[model_providers.{toml_header_key_segment(str(pid))}]")
+            # Ensure single blank line separator before each provider
+            if lines and lines[-1] != "":
+                lines.append("")
+            lines.append(f"[model_providers.{toml_header_key_segment(str(pid))}]")
             for k, v in pcfg.items():
                 lines.append(f"{k} = {toml_value(v)}")
 
@@ -344,7 +350,10 @@ def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> 
         for path, pcfg in projects.items():
             if not isinstance(pcfg, dict):
                 continue
-            lines.append(f"\n[projects.{toml_header_key_segment(str(path))}]")
+            # Ensure single blank line separator before each project
+            if lines and lines[-1] != "":
+                lines.append("")
+            lines.append(f"[projects.{toml_header_key_segment(str(path))}]")
             for k, v in pcfg.items():
                 lines.append(f"{k} = {toml_value(v)}")
 
