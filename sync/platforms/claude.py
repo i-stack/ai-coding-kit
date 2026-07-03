@@ -27,6 +27,11 @@ def xcode_claude_json_path() -> Path:
     return Path.home() / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json"
 
 
+def xcode_claude_dir() -> Path:
+    """Xcode Claude Agent .claude config directory (settings + hooks)."""
+    return Path.home() / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
+
+
 def _repo_hooks_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "hooks"
 
@@ -168,14 +173,51 @@ def _sync_xcode_claude_json(servers: dict[str, Any]) -> None:
     print(f"Replaced MCP servers in {path} ({mode}).")
 
 
+def _sync_xcode_claude_settings(
+    managed: dict[str, Any], env: dict[str, Any], hooks: dict[str, Any]
+) -> None:
+    """Sync team-shared settings, env, and hooks to Xcode Claude Agent dir."""
+    xc_dir = xcode_claude_dir()
+    xc_dir.mkdir(parents=True, exist_ok=True)
+    _remove_obsolete_generated_settings(xc_dir / "settings.generated.json")
+
+    if managed:
+        print(f"Prepared Xcode Claude settings ({len(managed)} team-shared keys).")
+
+    # Merge env and hooks into Xcode settings.json
+    settings_path = xc_dir / "settings.json"
+    settings = read_json_object(settings_path)
+
+    if managed:
+        settings = merge_object(settings, managed)
+
+    if isinstance(env, dict) and env:
+        settings["env"] = merge_object(settings.get("env"), env)
+        print(f"Merged env into Xcode {settings_path} ({len(env)} vars).")
+
+    if hooks:
+        existing = settings.get("hooks", {})
+        existing.update(hooks)
+        settings["hooks"] = existing
+        print(f"Merged hooks into Xcode {settings_path} ({len(hooks)} event(s)).")
+
+    write_json(settings_path, settings)
+
+
+def _remove_obsolete_generated_settings(path: Path) -> None:
+    if path.exists():
+        path.unlink()
+        print(f"Removed obsolete generated settings file: {path}")
+
+
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers and Claude Code platform config.
 
     Steps:
       1. Write ~/.claude.json with MCP servers (preserving other top-level keys).
-      2. Sync Xcode Claude Agent config.
-      3. Generate ~/.claude/settings.generated.json for team-shared settings.
-      4. Merge env and hooks into ~/.claude/settings.json.
+      2. Sync MCP servers to Xcode Claude Agent (.claude.json).
+      3. Merge team-shared settings, env, and hooks into ~/.claude/settings.json.
+      4. Sync team-shared settings, env, and hooks to Xcode Claude Agent.
       5. Install hook shell scripts.
     """
     # ── 1. ~/.claude.json — MCP servers ──
@@ -188,19 +230,19 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     # ── 2. Xcode Claude Agent ──
     _sync_xcode_claude_json(mcp_servers)
 
-    # ── 3. settings.generated.json — team-shared settings ──
+    # ── 3. settings.json — merge team-shared settings, env, and hooks ──
     managed = generate_managed_settings(cfg)
-    gen_path = claude_settings_generated_json_path()
-    gen_path.parent.mkdir(parents=True, exist_ok=True)
-    write_json(gen_path, managed)
+    _remove_obsolete_generated_settings(claude_settings_generated_json_path())
     if managed:
-        print(f"Wrote {gen_path} ({len(managed)} team-shared keys).")
+        print(f"Prepared Claude settings ({len(managed)} team-shared keys).")
     else:
-        print(f"[claude] No team-shared settings to generate — {gen_path} unchanged.")
+        print("[claude] No team-shared settings in platform config.")
 
-    # ── 4. settings.json — merge env and hooks into user settings ──
     settings_path = claude_settings_json_path()
     settings = read_json_object(settings_path)
+
+    if managed:
+        settings = merge_object(settings, managed)
 
     # 4a. Merge env
     env = cfg.get("env", {})
@@ -222,3 +264,6 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
         print(f"Merged hooks into {settings_path} ({len(config_hooks)} event(s)).")
 
     write_json(settings_path, settings)
+
+    # ── 5. Xcode Claude Agent — settings ──
+    _sync_xcode_claude_settings(managed, env, config_hooks)

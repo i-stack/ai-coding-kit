@@ -146,13 +146,13 @@ class ClaudeSyncTests(unittest.TestCase):
         self.assertEqual(data.get("customKey"), "keep-me")
         self.assertIn("sample", data["mcpServers"])
 
-    # ── settings.generated.json ─────────────────────────────────────────────────
+    # ── settings.json team-shared settings ───────────────────────────────────────
 
-    def test_settings_generated_json_contains_team_shared_keys(self) -> None:
-        """settings.generated.json must contain every team-shared key from claude.json."""
+    def test_settings_json_contains_team_shared_keys(self) -> None:
+        """settings.json must contain every team-shared key from claude.json."""
         _run_claude_sync(self.root, self.platform_cfg)
 
-        generated = self._read_json(self.home / ".claude" / "settings.generated.json")
+        settings = self._read_json(self.home / ".claude" / "settings.json")
 
         # All non-internal, non-env, non-hooks, non-host keys must be present
         team_shared_expected = {
@@ -168,10 +168,10 @@ class ClaudeSyncTests(unittest.TestCase):
             "respondToBashCommands": True,
         }
         for key, value in team_shared_expected.items():
-            self.assertEqual(generated[key], value, f"key={key}")
+            self.assertEqual(settings[key], value, f"key={key}")
 
         self.assert_nested_equal(
-            generated,
+            settings,
             {
                 "permissions": {
                     "allow": [
@@ -184,36 +184,45 @@ class ClaudeSyncTests(unittest.TestCase):
                     "defaultMode": "default",
                 },
             },
-            "generated",
+            "settings",
         )
 
-    def test_settings_generated_json_excludes_host_specific_keys(self) -> None:
-        """settings.generated.json must not leak host-specific keys."""
+    def test_settings_json_excludes_host_specific_keys(self) -> None:
+        """settings.json must not receive host-specific keys from claude.json."""
         _run_claude_sync(self.root, self.platform_cfg)
 
-        generated = self._read_json(self.home / ".claude" / "settings.generated.json")
+        settings = self._read_json(self.home / ".claude" / "settings.json")
 
-        # Enforce that NO host-specific key enters the generated file
+        # Enforce that NO host-specific key is introduced by platform config sync
         for host_key in claude_module._HOST_SKIP:
             self.assertNotIn(
                 host_key,
-                generated,
-                f"Host-specific key '{host_key}' leaked into settings.generated.json",
+                settings,
+                f"Host-specific key '{host_key}' leaked into settings.json",
             )
 
-    def test_settings_generated_json_excludes_internal_keys(self) -> None:
-        """Internal / handled-separately keys must not appear in generated JSON."""
+    def test_settings_json_excludes_internal_keys(self) -> None:
+        """Internal-only keys must not appear in settings.json."""
         _run_claude_sync(self.root, self.platform_cfg)
 
-        generated = self._read_json(self.home / ".claude" / "settings.generated.json")
+        settings = self._read_json(self.home / ".claude" / "settings.json")
 
-        for excluded in ("_comment", "_hostSettings", "env", "hooks", "export_env_to_zshrc"):
+        for excluded in ("_comment", "_hostSettings", "export_env_to_zshrc"):
             self.assertNotIn(
-                excluded, generated, f"Key '{excluded}' should not be in settings.generated.json"
+                excluded, settings, f"Key '{excluded}' should not be in settings.json"
             )
 
-    def test_settings_generated_json_skipped_when_no_team_shared_keys(self) -> None:
-        """When claude.json contains only env/hooks, generated file should be empty object."""
+    def test_obsolete_settings_generated_json_removed(self) -> None:
+        """Old settings.generated.json should be removed because Claude Code does not load it."""
+        generated_path = self.home / ".claude" / "settings.generated.json"
+        self._write_json(generated_path, {"model": "stale"})
+
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        self.assertFalse(generated_path.exists())
+
+    def test_settings_json_has_no_team_shared_keys_when_cfg_only_has_env_hooks(self) -> None:
+        """When claude.json contains only env/hooks, settings.json only receives env/hooks."""
         minimal_cfg = {
             "env": {"FOO": "bar"},
             "hooks": {
@@ -224,8 +233,10 @@ class ClaudeSyncTests(unittest.TestCase):
         }
         _run_claude_sync(self.root, minimal_cfg)
 
-        generated = self._read_json(self.home / ".claude" / "settings.generated.json")
-        self.assertEqual(generated, {})
+        settings = self._read_json(self.home / ".claude" / "settings.json")
+        self.assertNotIn("model", settings)
+        self.assertEqual(settings["env"], {"FOO": "bar"})
+        self.assertIn("SessionStart", settings["hooks"])
 
     # ── Env merge ──────────────────────────────────────────────────────────────
 
@@ -368,6 +379,61 @@ class ClaudeSyncTests(unittest.TestCase):
         # Root level should NOT have mcpServers when projects exist
         self.assertNotIn("mcpServers", result)
 
+    # ── Xcode Claude Agent settings ────────────────────────────────────────────
+
+    def test_xcode_claude_settings_receive_team_shared_keys(self) -> None:
+        """Team-shared keys must be merged into Xcode Claude Agent settings.json."""
+        xc_dir = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
+        self._write_json(xc_dir / "settings.generated.json", {"model": "stale"})
+
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        xc_settings = xc_dir / "settings.json"
+        self.assertTrue(xc_settings.exists(), f"Missing {xc_settings}")
+        settings = self._read_json(xc_settings)
+
+        self.assertEqual(settings["model"], "claude-sonnet-4-6")
+        self.assertTrue(settings["alwaysThinkingEnabled"])
+        self.assertEqual(settings["permissions"]["defaultMode"], "default")
+        self.assertFalse((xc_settings.parent / "settings.generated.json").exists())
+
+        # Should NOT leak host-specific keys
+        for host_key in claude_module._HOST_SKIP:
+            self.assertNotIn(host_key, settings, f"Host key '{host_key}' leaked into Xcode settings")
+
+    def test_xcode_claude_settings_env_merged(self) -> None:
+        """env vars must be merged into the Xcode Claude Agent settings.json."""
+        # Pre-seed Xcode settings.json with some existing content
+        xc_settings_dir = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
+        xc_settings_dir.mkdir(parents=True, exist_ok=True)
+        self._write_json(
+            xc_settings_dir / "settings.json",
+            {"env": {"XC_LEGACY": "keep-me"}},
+        )
+
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        settings = self._read_json(xc_settings_dir / "settings.json")
+        self.assertEqual(settings["env"]["XC_LEGACY"], "keep-me")
+        self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
+        self.assertEqual(settings["env"]["ANTHROPIC_BASE_URL"], "https://claude.example/v1")
+
+    def test_xcode_claude_settings_hooks_merged(self) -> None:
+        """hooks must be merged into the Xcode Claude Agent settings.json."""
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        xc_settings = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude/settings.json"
+        self.assertTrue(xc_settings.exists(), f"Missing {xc_settings}")
+        settings = self._read_json(xc_settings)
+
+        self.assertIn("hooks", settings)
+        self.assertIn("SessionStart", settings["hooks"])
+        session_hooks = settings["hooks"]["SessionStart"][0]["hooks"]
+        self.assertEqual(session_hooks[0]["type"], "command")
+        self.assertEqual(session_hooks[0]["timeout"], 10)
+        expected_command = str(Path(self.home / ".claude" / "hooks" / "xmcp-init.sh"))
+        self.assertEqual(session_hooks[0]["command"], expected_command)
+
     # ── Full property mapping ──────────────────────────────────────────────────
 
     def test_claude_json_properties_are_mapped_or_excluded_as_expected(self) -> None:
@@ -394,27 +460,26 @@ class ClaudeSyncTests(unittest.TestCase):
 
         _run_claude_sync(self.root, self.platform_cfg)
 
-        generated = self._read_json(self.home / ".claude" / "settings.generated.json")
+        settings = self._read_json(self.home / ".claude" / "settings.json")
 
-        # ── Keys expected in generated ──
-        self.assertEqual(generated["model"], "claude-sonnet-4-6")
-        self.assertEqual(generated["effortLevel"], "medium")
-        self.assertTrue(generated["alwaysThinkingEnabled"])
-        self.assertEqual(generated["outputStyle"], "Explanatory")
-        self.assertTrue(generated["includeGitInstructions"])
-        self.assertTrue(generated["respectGitignore"])
-        self.assertTrue(generated["fileCheckpointingEnabled"])
-        self.assertTrue(generated["autoCompactEnabled"])
-        self.assertTrue(generated["autoMemoryEnabled"])
-        self.assertTrue(generated["respondToBashCommands"])
-        self.assertEqual(generated["permissions"]["defaultMode"], "default")
+        # ── Team-shared keys expected in settings.json ──
+        self.assertEqual(settings["model"], "claude-sonnet-4-6")
+        self.assertEqual(settings["effortLevel"], "medium")
+        self.assertTrue(settings["alwaysThinkingEnabled"])
+        self.assertEqual(settings["outputStyle"], "Explanatory")
+        self.assertTrue(settings["includeGitInstructions"])
+        self.assertTrue(settings["respectGitignore"])
+        self.assertTrue(settings["fileCheckpointingEnabled"])
+        self.assertTrue(settings["autoCompactEnabled"])
+        self.assertTrue(settings["autoMemoryEnabled"])
+        self.assertTrue(settings["respondToBashCommands"])
+        self.assertEqual(settings["permissions"]["defaultMode"], "default")
 
-        # ── Keys excluded from generated ──
-        for excluded_key in ("_comment", "_hostSettings", "env", "hooks", "export_env_to_zshrc"):
-            self.assertNotIn(excluded_key, generated)
+        # ── Internal-only keys excluded from settings.json ──
+        for excluded_key in ("_comment", "_hostSettings", "export_env_to_zshrc"):
+            self.assertNotIn(excluded_key, settings)
 
         # ── Verify settings.json has env and hooks ──
-        settings = self._read_json(self.home / ".claude" / "settings.json")
         self.assertIn("env", settings)
         self.assertIn("hooks", settings)
 
