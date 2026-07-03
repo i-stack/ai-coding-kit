@@ -1,0 +1,7 @@
+{
+  "name": "filesystem",
+  "type": "stdio",
+  "command": "/opt/homebrew/bin/npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/song/Desktop/"],
+  "platforms": ["claude", "codex", "continue"]
+}

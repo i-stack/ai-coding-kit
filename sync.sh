@@ -5,22 +5,26 @@
 # 用法:
 #   bash sync.sh                 # 同步所有平台的 MCP 和配置
 #   bash sync.sh --force         # 强制执行同步（跳过检查提示）
-#   bash sync.sh --init          # 仅初始化环境（创建模板文件）
 #
-# 配置文件:
-#   env/mcp/              — MCP 服务器定义（每个文件一个服务）
-#   env/platforms/        — 各平台专属配置（遵循官方规范）
+# 配置文件（已提交到 Git，开箱即用）:
+#   env/mcp/              — MCP 服务器定义（敏感值用 ${VAR} 占位）
+#   env/platforms/        — 各平台专属配置（敏感值用 ${VAR} 占位）
 #   env/templates/        — 新增 MCP/平台的模板
 #
+# 用户唯一需要配置的文件:
+#   env/secrets.json       — 填写 API Keys / Tokens
+#   （从 env/secrets.json.example 复制并编辑）
+#
 # 此脚本会：
-#   1. 检查 env/mcp/ 目录是否存在配置文件
+#   1. 检查 env/secrets.json 是否存在（不存在则提示创建）
 #   2. 执行 sync/sync_all.sh 同步配置到各 AI 编码工具
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MCP_DIR="$SCRIPT_DIR/env/mcp"
-PLATFORMS_DIR="$SCRIPT_DIR/env/platforms"
+SECRETS_FILE="$SCRIPT_DIR/env/secrets.json"
+SECRETS_EXAMPLE="$SCRIPT_DIR/env/secrets.json.example"
 
 # --- 颜色输出 ---
 RED='\033[0;31m'
@@ -35,35 +39,31 @@ echo_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 echo_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 # --- 参数解析 ---
-MODE="sync"
-if [ "${1:-}" = "--init" ]; then
-  MODE="init"
-elif [ "${1:-}" = "--force" ]; then
-  MODE="force"
+FORCE=false
+if [ "${1:-}" = "--force" ]; then
+  FORCE=true
 fi
 
-# --- 检查配置 ---
-check_config() {
-  local has_config=false
-
-  if [ -d "$MCP_DIR" ] && [ -n "$(ls -A "$MCP_DIR"/*.json 2>/dev/null || true)" ]; then
-    has_config=true
+# --- 检查 secrets.json ---
+check_secrets() {
+  if [ ! -f "$SECRETS_FILE" ]; then
+    echo_error "env/secrets.json 不存在！"
+    echo ""
+    echo -e "  ${CYAN}# 这是你唯一需要配置的文件：${NC}"
+    echo -e "  ${CYAN}cp env/secrets.json.example env/secrets.json${NC}"
+    echo -e "  ${CYAN}\$EDITOR env/secrets.json${NC}"
+    echo ""
+    echo -e "  填入你的 API Keys，然后重新运行 bash sync.sh"
+    exit 1
   fi
+}
 
-  if [ "$has_config" = false ]; then
+# --- 检查 MCP 配置 ---
+check_mcp() {
+  if [ ! -d "$MCP_DIR" ] || [ -z "$(ls -A "$MCP_DIR"/*.json 2>/dev/null || true)" ]; then
     echo_warn "env/mcp/ 目录下没有 MCP 配置文件。"
-    echo_warn "请按照以下步骤创建配置："
-    echo ""
-    echo -e "  ${CYAN}# 1. 从模板创建 MCP 服务器配置${NC}"
-    echo -e "  ${CYAN}cp env/templates/mcp.template.json env/mcp/my-server.json${NC}"
-    echo -e "  ${CYAN}$EDITOR env/mcp/my-server.json${NC}"
-    echo ""
-    echo -e "  ${CYAN}# 2. 从模板创建平台配置${NC}"
-    echo -e "  ${CYAN}cp env/templates/platform.template.json env/platforms/codex.json${NC}"
-    echo -e "  ${CYAN}$EDITOR env/platforms/codex.json${NC}"
-    echo ""
-    echo_warn "配置完成后，重新运行: bash sync.sh"
-    exit 0
+    echo_warn "MCP 配置文件已包含在仓库中 — 请确认 env/mcp/*.json 存在。"
+    exit 1
   fi
 }
 
@@ -97,8 +97,12 @@ echo -e "${CYAN}║      ai-coding-kit 一键同步工具 v3.0         ║${NC}"
 echo -e "${CYAN}╚══════════════════════════════════════════════╝${NC}"
 echo ""
 
-check_config
+check_secrets
+check_mcp
 
-if [ "$MODE" = "force" ] || [ "$MODE" = "sync" ]; then
+if [ "$FORCE" = true ]; then
+  run_sync
+else
+  echo_step "env/secrets.json 已就绪，即将同步配置..."
   run_sync
 fi

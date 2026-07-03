@@ -7,22 +7,92 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MCP_DIR = REPO_ROOT / "env" / "mcp"
 PLATFORMS_DIR = REPO_ROOT / "env" / "platforms"
+SECRETS_PATH = REPO_ROOT / "env" / "secrets.json"
+
+_SECRET_REF_RE = re.compile(r'\$\{([^}]+)\}')
+
+
+# ── Secrets resolution ───────────────────────────────────────────────────────
+
+def _flatten_secrets(data: dict[str, Any], prefix: str = "") -> dict[str, str]:
+    """Recursively flatten nested dict into {prefix.key: str_value} entries.
+
+    Skips _comment keys at any level.
+    Example: {"codex": {"url": "https://...", "key": "sk-..."}}
+          -> {"codex.url": "https://...", "codex.key": "sk-..."}
+    """
+    flat: dict[str, str] = {}
+    for k, v in data.items():
+        if k.startswith("_"):
+            continue
+        full_key = f"{prefix}.{k}" if prefix else k
+        if isinstance(v, dict):
+            flat.update(_flatten_secrets(v, full_key))
+        elif isinstance(v, (str, int, float)):
+            flat[full_key] = str(v)
+        elif isinstance(v, list):
+            flat[full_key] = json.dumps(v, ensure_ascii=False)
+    return flat
+
+
+def load_secrets() -> dict[str, str]:
+    """Load secrets from env/secrets.json.
+
+    Returns a flat dot-notation dict, e.g. {"github.token": "...", "codex.url": "...", "codex.key": "..."}.
+    Supports per-platform nested format: {"codex": {"url": "...", "key": "..."}}
+
+    If secrets.json doesn't exist, returns {} and prints a warning.
+    """
+    if not SECRETS_PATH.is_file():
+        print("[sync] ⚠ env/secrets.json not found — copy env/secrets.json.example and fill in your keys.")
+        return {}
+    try:
+        data = json.loads(SECRETS_PATH.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"[sync] Failed to load secrets: {exc}")
+        return {}
+    if not isinstance(data, dict):
+        return {}
+    return _flatten_secrets(data)
+
+
+def resolve_secrets(data: Any, secrets: dict[str, str]) -> Any:
+    """Recursively resolve ${VAR} references in strings using secrets dict.
+
+    Walks dicts, lists, and strings. Non-string values are returned as-is.
+    Each "${VAR}" occurrence in any string is replaced by secrets[VAR].
+    If VAR is not found in secrets, the placeholder is left unchanged.
+    """
+    if isinstance(data, str):
+        def _replacer(m: re.Match[str]) -> str:
+            key = m.group(1)
+            if key in secrets:
+                return secrets[key]
+            return m.group(0)
+        return _SECRET_REF_RE.sub(_replacer, data)
+    if isinstance(data, dict):
+        return {k: resolve_secrets(v, secrets) for k, v in data.items()}
+    if isinstance(data, list):
+        return [resolve_secrets(v, secrets) for v in data]
+    return data
 
 
 # ── Configuration loading ────────────────────────────────────────────────────
 
 def load_all_mcp() -> dict[str, Any]:
-    """Scan env/mcp/*.json and return a merged dict of {server_name: server_config}.
+    """Scan env/mcp/*.json, resolve secrets, and return {server_name: server_config}.
 
     Each file should contain:
       {"name": "server-name", "type": "stdio|sse", ..., "platforms": [...]}
 
+    Secrets (${VAR}) are resolved from env/secrets.json before returning.
     Returns {} if env/mcp/ is missing or empty (graceful degradation).
     """
     if not MCP_DIR.is_dir():
         print(f"[sync] {MCP_DIR} directory not found — no MCP servers loaded.")
         return {}
 
+    secrets = load_secrets()
     result: dict[str, Any] = {}
     for f in sorted(MCP_DIR.glob("*.json")):
         try:
@@ -33,8 +103,9 @@ def load_all_mcp() -> dict[str, Any]:
         if not isinstance(data, dict):
             print(f"[sync] Skipping {f.name}: not a JSON object.")
             continue
+        # Resolve secrets before stripping metadata
+        data = resolve_secrets(data, secrets)
         name = data.get("name", f.stem)
-        # Strip internal metadata: name, _comment
         clean = {k: v for k, v in data.items() if k not in ("name", "_comment")}
         result[name] = clean
     return result
@@ -43,6 +114,7 @@ def load_all_mcp() -> dict[str, Any]:
 def load_platform_config(platform: str) -> dict[str, Any]:
     """Load platform-specific config from env/platforms/<platform>.json.
 
+    Secrets (${VAR}) are resolved from env/secrets.json before returning.
     Returns {} if the file doesn't exist.
     """
     path = PLATFORMS_DIR / f"{platform}.json"
@@ -56,6 +128,8 @@ def load_platform_config(platform: str) -> dict[str, Any]:
     if not isinstance(data, dict):
         print(f"[sync] {path} must contain a JSON object — skipped.")
         return {}
+    secrets = load_secrets()
+    data = resolve_secrets(data, secrets)
     return {k: v for k, v in data.items() if k not in ("_comment",)}
 
 

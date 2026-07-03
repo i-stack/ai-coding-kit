@@ -1,0 +1,9 @@
+{
+  "name": "github",
+  "type": "sse",
+  "url": "https://api.githubcopilot.com/mcp/",
+  "headers": {
+    "Authorization": "Bearer ${github.token}"
+  },
+  "platforms": ["claude", "codex", "codebuddy", "gemini", "cline", "continue"]
+}

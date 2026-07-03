@@ -3,13 +3,12 @@
 # skills-engineering: local machine sync config (see scripts/config.local.sh.example)
 skills-engineering/scripts/config.local.sh
 
-# env/: local secrets and platform config.
-# Templates in env/templates/ are committed (no secrets).
-# Real configs in env/mcp/ and env/platforms/ are gitignored (contain secrets).
+# env/: only secrets.json is gitignored.
+# env/mcp/*.json and env/platforms/*.json are committed (use ${VAR} references, no real secrets).
+# User only needs to create env/secrets.json from env/secrets.json.example.
+env/secrets.json
 env/config.json
 env/config.json.example
-env/mcp/*.json
-env/platforms/*.json
 
 *__pycache__*/
 

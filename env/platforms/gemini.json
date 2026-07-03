@@ -1,0 +1,7 @@
+{
+  "env": {
+    "GEMINI_API_KEY": "${gemini.key}",
+    "GOOGLE_GEMINI_BASE_URL": "${gemini.url}",
+    "GEMINI_MODEL": "gemini-3.5-flash"
+  }
+}

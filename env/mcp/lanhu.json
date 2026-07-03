@@ -1,0 +1,11 @@
+{
+  "name": "lanhu",
+  "type": "stdio",
+  "command": "/bin/bash",
+  "args": ["/Users/song/Desktop/github/lanhu-mcp/run-stdio.sh"],
+  "env": {
+    "LANHU_USER_NAME": "寒江孤影",
+    "LANHU_USER_ROLE": "Developer"
+  },
+  "platforms": ["claude", "codex", "cline"]
+}
