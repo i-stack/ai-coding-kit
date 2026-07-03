@@ -99,23 +99,6 @@ def generate_shared_toml(cfg: dict[str, Any]) -> str:
         lines.append("# model_provider")
         lines.append('# preferred_auth_method = "apikey"')
 
-    # ── model_providers: only output when model_provider is actually set ──
-    # toml_section's special handler also processes model_providers (outside
-    # the ignore mechanism), so we remove it from cfg before calling toml_section
-    # to avoid duplication.
-    if model_provider:
-        providers = cfg.get("model_providers")
-        if isinstance(providers, dict) and providers:
-            for pid, pcfg in providers.items():
-                if not isinstance(pcfg, dict):
-                    continue
-                lines.extend(["", f"[model_providers.{toml_header_key_segment(str(pid))}]"])
-                # Ensure `name` is present (Codex requires it)
-                if "name" not in pcfg:
-                    lines.append(f"name = {toml_quote(str(pid))}")
-                for k, v in pcfg.items():
-                    lines.append(f"{k} = {toml_value(v)}")
-
     # ── everything else via toml_section ──
     # Strip model_providers from cfg so toml_section's special handler won't
     # duplicate it.  Custom ignore must also include keys that toml_section
@@ -128,6 +111,19 @@ def generate_shared_toml(cfg: dict[str, Any]) -> str:
     )
     if section.strip():
         lines.append(section)
+
+    # ── model_providers: output after root settings so later keys stay at root ──
+    providers = cfg.get("model_providers")
+    if isinstance(providers, dict) and providers:
+        for pid, pcfg in providers.items():
+            if not isinstance(pcfg, dict):
+                continue
+            lines.extend(["", f"[model_providers.{toml_header_key_segment(str(pid))}]"])
+            # Ensure `name` is present (Codex requires it)
+            if "name" not in pcfg:
+                lines.append(f"name = {toml_quote(str(pid))}")
+            for k, v in pcfg.items():
+                lines.append(f"{k} = {toml_value(v)}")
 
     return "\n".join(lines).rstrip()
 

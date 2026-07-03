@@ -34,11 +34,6 @@ bash "$SCRIPT_DIR/backup-config.sh" backup
 echo "[1/1] Sync config to Cursor / CodeBuddy / Codex / Claude / Cline / Xcode"
 python3 "$SCRIPT_DIR/sync_config.py" --target all
 
-# Source ~/.zshrc to load any env vars written by the sync.
-if [ -f "$HOME/.zshrc" ]; then
-  # shellcheck disable=SC1090
-  source "$HOME/.zshrc" 2>/dev/null || true
-  echo "[sync] Sourced ~/.zshrc — run 'source ~/.zshrc' in your terminal for immediate effect."
-fi
+echo "[sync] If env vars were updated, run 'source ~/.zshrc' in your terminal to apply them."
 
 echo "Done."

@@ -1,7 +1,7 @@
 import json
 import os
 import re
-import subprocess
+import shlex
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +11,7 @@ PLATFORMS_DIR = REPO_ROOT / "env" / "platforms"
 SECRETS_PATH = REPO_ROOT / "env" / "secrets.json"
 
 _SECRET_REF_RE = re.compile(r'\$\{([^}]+)\}')
+_ENV_VAR_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 
 
 # ── Secrets resolution ───────────────────────────────────────────────────────
@@ -160,19 +161,22 @@ def sync_env_to_zshrc(platform: str, env: dict[str, str]) -> None:
 
     The managed block format is:
       # BEGIN <PLATFORM> ENV SYNC (from env/platforms/<platform>.json)
-      export VAR="value"
+      export VAR='value'
       # END <PLATFORM> ENV SYNC
 
     Existing blocks for the same platform are replaced in-place; blocks for
     other platforms are left untouched.
 
-    The block is sourced in the current subprocess so downstream tools see the
-    vars, but the user still needs to `source ~/.zshrc` in their open terminal.
+    The user still needs to `source ~/.zshrc` in their open terminal.
     """
     if not env:
         return
 
-    lines = [f'export {k}="{v}"' for k, v in env.items()]
+    lines: list[str] = []
+    for k, v in env.items():
+        if not _ENV_VAR_NAME_RE.fullmatch(k):
+            raise ValueError(f"Invalid environment variable name for {platform}: {k!r}")
+        lines.append(f"export {k}={shlex.quote(str(v))}")
     if not lines:
         return
 
@@ -200,14 +204,7 @@ def sync_env_to_zshrc(platform: str, env: dict[str, str]) -> None:
 
     zshrc.write_text(new_text, encoding="utf-8")
     print(f"[{platform}] Updated env vars in {zshrc}.")
-
-    # Source so downstream tools see the vars in the current subprocess.
-    # Does NOT propagate to parent terminal — user must source manually.
-    try:
-        subprocess.run(["zsh", "-c", f"source {zshrc}"], check=True, capture_output=True)
-        print(f"[{platform}] Sourced {zshrc} (current process).")
-    except subprocess.CalledProcessError as exc:
-        print(f"[warn] [{platform}] source {zshrc} exited {exc.returncode}: {exc.stderr.decode().strip()}")
+    print(f"[{platform}] Run 'source {zshrc}' in your terminal to apply changes.")
 
 
 def filter_mcp_for_platform(mcp_all: dict[str, Any], platform: str) -> dict[str, Any]:
@@ -395,7 +392,7 @@ def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> 
 
     # model_providers section
     providers = entries.get("model_providers")
-    if isinstance(providers, dict):
+    if "model_providers" not in skip and isinstance(providers, dict):
         for pid, pcfg in providers.items():
             if not isinstance(pcfg, dict):
                 continue
@@ -408,7 +405,7 @@ def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> 
 
     # projects section
     projects = entries.get("projects")
-    if isinstance(projects, dict):
+    if "projects" not in skip and isinstance(projects, dict):
         for path, pcfg in projects.items():
             if not isinstance(pcfg, dict):
                 continue
