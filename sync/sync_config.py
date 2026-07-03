@@ -95,8 +95,7 @@ def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> No
 def main() -> None:
     mcp_all = load_all_mcp()
     if not mcp_all:
-        print("[sync] No MCP servers found in env/mcp/ — nothing to sync.")
-        return
+        print("[sync] No MCP servers found in env/mcp/ — continuing with empty MCP config.")
 
     all_targets = _auto_discover_targets()
     if not all_targets:

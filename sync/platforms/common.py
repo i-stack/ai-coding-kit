@@ -3,7 +3,7 @@ import os
 import re
 import shlex
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 MCP_DIR = REPO_ROOT / "env" / "mcp"
@@ -337,7 +337,7 @@ def toml_inline_table(values: dict[str, Any]) -> str:
     return "{ " + ", ".join(f"{k} = {toml_value(v)}" for k, v in values.items()) + " }"
 
 
-def toml_section(entries: dict[str, Any], *, ignore: set[str] | None = None) -> str:
+def toml_section(entries: dict[str, Any], *, ignore: Optional[set[str]] = None) -> str:
     """Convert a dict tree to TOML key-value lines and [table] sections.
 
     Skips keys in `ignore` (default: {'env', '_comment', 'projects', 'model_providers'}).

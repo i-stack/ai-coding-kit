@@ -10,6 +10,89 @@ CODEBUDDY_SKILLS_DIR = Path.home() / ".codebuddy" / "skills"
 CLAUDE_SKILLS_DIR = Path.home() / ".claude" / "skills"
 
 
+def _validate_model_entries(value: Any) -> list[dict[str, Any]]:
+    if not isinstance(value, list):
+        raise ValueError("platforms.codebuddy.models must be a list.")
+
+    for index, entry in enumerate(value):
+        if not isinstance(entry, dict):
+            raise ValueError(f"platforms.codebuddy.models[{index}] must be an object.")
+        model_id = entry.get("id")
+        if not isinstance(model_id, str) or not model_id:
+            raise ValueError(f"platforms.codebuddy.models[{index}].id must be a non-empty string.")
+    return value
+
+
+def _validate_available_models(value: Any) -> list[str]:
+    if not isinstance(value, list):
+        raise ValueError("platforms.codebuddy.availableModels must be a list.")
+
+    for index, model_id in enumerate(value):
+        if not isinstance(model_id, str) or not model_id:
+            raise ValueError(
+                f"platforms.codebuddy.availableModels[{index}] must be a non-empty string."
+            )
+    return value
+
+
+def _merge_model_entries(
+    existing_entries: list[Any], config_entries: list[dict[str, Any]]
+) -> list[Any]:
+    """Merge config-managed model entries into existing entries by id.
+
+    - Config-managed entries (identified by ``id``) appear first in config order.
+    - Existing entries with the same id are silently updated (config wins).
+    - User-added entries not in config are preserved after config entries.
+    - Non-dict entries with no id are preserved at the very end.
+    """
+    if not config_entries:
+        return existing_entries
+
+    config_by_id: dict[str, dict[str, Any]] = {}
+    for m in config_entries:
+        if isinstance(m, dict) and "id" in m:
+            config_by_id[m["id"]] = m
+
+    result: list[Any] = []
+
+    # Config-managed entries first (in config order)
+    for m in config_entries:
+        if isinstance(m, dict) and "id" in m:
+            result.append(m)
+
+    # User-added entries from existing (not in config), preserving order
+    for m in existing_entries:
+        if not isinstance(m, dict) or "id" not in m:
+            continue
+        mid = m["id"]
+        if mid not in config_by_id:
+            result.append(m)
+
+    # Trailing non-standard entries
+    for m in existing_entries:
+        if not isinstance(m, dict) or "id" not in m:
+            result.append(m)
+
+    return result
+
+
+def _merge_available_models(
+    existing_available: list[Any], config_available: list[Any]
+) -> list[Any]:
+    """Merge config-managed availableModels with user-added entries.
+
+    - Config-managed IDs appear first and replace any existing duplicates.
+    - User-added IDs not in the config are preserved after config entries.
+    """
+    if not config_available:
+        return existing_available
+
+    config_ids = set(config_available)
+    # User-added IDs not managed by our config
+    user_ids = [m for m in existing_available if m not in config_ids]
+    return list(config_available) + user_ids
+
+
 def _sync_models(cfg: dict[str, Any]) -> None:
     models = cfg.get("models")
     available_models = cfg.get("availableModels")
@@ -19,12 +102,24 @@ def _sync_models(cfg: dict[str, Any]) -> None:
         return
 
     existing = read_json_object(MODELS_TARGET)
+
     if models is not None:
-        existing["models"] = models
+        models = _validate_model_entries(models)
+        existing_entries = existing.get("models")
+        if not isinstance(existing_entries, list):
+            existing_entries = []
+        existing["models"] = _merge_model_entries(existing_entries, models)
+
     if available_models is not None:
-        existing["availableModels"] = available_models
+        available_models = _validate_available_models(available_models)
+        existing_avail = existing.get("availableModels")
+        if not isinstance(existing_avail, list):
+            existing_avail = []
+        existing["availableModels"] = _merge_available_models(existing_avail, available_models)
+
     write_json(MODELS_TARGET, existing)
-    print(f"Replaced models in {MODELS_TARGET}.")
+    print(f"Merged models into {MODELS_TARGET}.")
+
 
 
 def _sync_skills() -> None:
@@ -40,9 +135,29 @@ def _sync_skills() -> None:
             continue
 
         dest = CODEBUDDY_SKILLS_DIR / skill_dir.name
+        tmp = CODEBUDDY_SKILLS_DIR / f".{skill_dir.name}.tmp-sync"
+        backup = CODEBUDDY_SKILLS_DIR / f".{skill_dir.name}.backup-sync"
+
+        if tmp.exists():
+            shutil.rmtree(tmp)
+        if backup.exists():
+            shutil.rmtree(backup)
+
+        shutil.copytree(skill_dir, tmp)
+
         if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(skill_dir, dest)
+            dest.rename(backup)
+        try:
+            tmp.rename(dest)
+        except OSError:
+            if backup.exists() and not dest.exists():
+                backup.rename(dest)
+            raise
+        finally:
+            if tmp.exists():
+                shutil.rmtree(tmp)
+            if backup.exists():
+                shutil.rmtree(backup)
         synced.append(skill_dir.name)
 
     print(f"Synced {len(synced)} skills to {CODEBUDDY_SKILLS_DIR}: {', '.join(synced) or '(none)'}.")
