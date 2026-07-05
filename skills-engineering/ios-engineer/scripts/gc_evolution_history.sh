@@ -94,6 +94,21 @@ for v in "${sorted_dirs[@]}"; do
   fi
 done
 
+# Pre-count: how many snapshots would be deleted
+would_delete=0
+would_keep=0
+for v in "${sorted_dirs[@]}"; do
+  if grep -qx "$v" "$protected_file"; then
+    would_keep=$((would_keep + 1))
+  else
+    would_delete=$((would_delete + 1))
+  fi
+done
+
+if ! $DRY_RUN; then
+  echo "将删除 ${would_delete} 个快照" >&2
+fi
+
 echo "=== Evolution History GC ==="
 echo "Active version: $ACTIVE_VERSION"
 echo "Keep recent: $KEEP_RECENT"
