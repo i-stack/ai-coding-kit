@@ -13,5 +13,5 @@ env/secrets.json
 .cursor/
 .codex/
 .claude/
-docs/
+/docs/
 skills-engineering/ios-engineer/evolution/usage

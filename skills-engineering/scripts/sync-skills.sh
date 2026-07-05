@@ -174,6 +174,8 @@ sync_one_skill_to_target() {
 
   local rsync_flags=(-a --delete --delete-excluded \
     --include "/SKILL.md" \
+    --include "/AGENT-BRIEF.md" \
+    --include "/OUT-OF-SCOPE.md" \
     --include "/references/" --include "/references/**" \
     --exclude "*")
   if [[ "${DRY_RUN}" == "true" ]]; then

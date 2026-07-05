@@ -1,0 +1,24 @@
+{
+  "name": "skills-engineering",
+  "version": "3.0.0",
+  "description": "iOS Engineering Skills for Claude Code — architecture, concurrency, networking, performance, crash debugging, code review, and more.",
+  "author": {
+    "name": "skills-engineering"
+  },
+  "repository": "https://github.com/i-stack/ai-coding-kit",
+  "homepage": "https://github.com/i-stack/ai-coding-kit/tree/main/skills-engineering",
+  "skills": "./",
+  "keywords": [
+    "ios",
+    "swift",
+    "swiftui",
+    "uikit",
+    "xcode",
+    "engineering",
+    "claude-code",
+    "codex",
+    "cursor",
+    "skills"
+  ],
+  "license": "MIT"
+}
