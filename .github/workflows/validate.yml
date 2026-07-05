@@ -1,0 +1,49 @@
+name: Validate Skills
+
+on:
+  pull_request:
+    paths:
+      - 'skills-engineering/ios-engineer/**'
+  push:
+    branches: [main, feature_*]
+    paths:
+      - 'skills-engineering/ios-engineer/**'
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate ios-engineer
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills-engineering/ios-engineer
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ripgrep ruby > /dev/null
+
+      - name: Validate Rule IDs
+        run: bash scripts/validate_rule_ids.sh
+
+      - name: Validate Scenario Specs
+        run: bash scripts/validate_scenario_specs.sh
+
+      - name: Audit Reference Freshness
+        run: |
+          STALE_MONTHS=12 CRITICAL_MONTHS=18 bash scripts/audit_ref_freshness.sh
+
+      - name: Validate Usage Ledger
+        run: bash scripts/validate_usage_ledger.sh
+
+      - name: Run full skill evolution validation
+        run: |
+          SKIP_SNAPSHOT_CONSISTENCY=1 \
+          SKIP_BEHAVIOR_VALIDATION=1 \
+          bash scripts/validate_skill_evolution.sh
