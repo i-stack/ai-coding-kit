@@ -22,3 +22,4 @@ docs/.vitepress/.temp/
 
 skills-engineering/ios-engineer/evolution/usage/*
 !skills-engineering/ios-engineer/evolution/usage/usage.jsonl
+templates/portability-ecosystem.md

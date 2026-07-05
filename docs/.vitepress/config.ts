@@ -17,13 +17,11 @@ export default defineConfig({
   ],
 
   themeConfig: {
-    logo: false,
     siteTitle: 'ai-coding-kit',
 
     nav: [
       { text: 'Home', link: '/' },
       { text: 'iOS Engineer', link: '/ios-engineer/' },
-      { text: 'Playbooks', link: '/playbooks/portability-ecosystem' },
       { text: 'GitHub', link: 'https://github.com/i-stack/ai-coding-kit' },
     ],
 
@@ -36,15 +34,6 @@ export default defineConfig({
             { text: 'Overview', link: '/ios-engineer/' },
             { text: 'Rule Index', link: '/ios-engineer/rule-index' },
             { text: 'References', link: '/ios-engineer/references' },
-          ],
-        },
-      ],
-      '/playbooks/': [
-        {
-          text: 'Playbooks',
-          collapsed: false,
-          items: [
-            { text: '可移植性与社区生态提升', link: '/playbooks/portability-ecosystem' },
           ],
         },
       ],
