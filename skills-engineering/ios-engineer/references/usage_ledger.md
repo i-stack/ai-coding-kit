@@ -30,7 +30,7 @@
 | `tool` | string | 是 | 枚举：`codex` / `claude-code` / `cursor` / `manual` / `other` |
 | `session_id` | string \| null | 是 | 三端可填会话 ID 便于回溯；不需要时填 `null` |
 | `prompt_summary` | string | 是 | **摘要**，5-200 字符；禁贴原始 prompt、源码片段、可识别项目名 |
-| `task_type` | string | 是 | 枚举：`layout` / `parameter-pass-through` / `concurrency` / `review` / `migration` / `mcp-control` / `other` |
+| `task_type` | string | 是 | 枚举：`layout` / `parameter-pass-through` / `concurrency` / `review` / `migration` / `mcp-control` / `notifications` / `privacy` / `persistence` / `storekit` / `extensions` / `other` |
 | `expected_rules` | string[] | 是 | 元素必须是 [rule_index.md](rule_index.md) 中 `status=active` 的 ID（如 `GR-005`） |
 | `hit_rules` | string[] | 是 | 同上；可为空数组 |
 | `missed_rules` | string[] | 是 | **必须等于** `expected_rules - hit_rules` 的集合差；append 脚本自动计算填入 |
@@ -95,7 +95,7 @@ evolution-signal: 修正表达
 
 ## 5. 三端 system-prompt 片段（可粘贴）
 
-三端 system-prompt 各自加入下面对应段落。**核心约束统一**：仅在任务命中 ios-engineer 主题且 `task_type` 落在 6 个固定 slug + `other` 时才输出 audit 块；不要伪造 `hit-rules`，不确定就留空。
+三端 system-prompt 各自加入下面对应段落。**核心约束统一**：仅在任务命中 ios-engineer 主题且 `task_type` 落在 11 个固定 slug + `other` 时才输出 audit 块；不要伪造 `hit-rules`，不确定就留空。
 
 ### 5.1 Codex CLI
 
@@ -104,11 +104,12 @@ evolution-signal: 修正表达
 ```
 ## ios-engineer skill audit
 当任务涉及 iOS / Swift / SwiftUI / UIKit / Xcode 工程，且 task_type 能落在
-{layout, parameter-pass-through, concurrency, review, migration, mcp-control, other}
+{layout, parameter-pass-through, concurrency, review, migration, mcp-control,
+notifications, privacy, persistence, storekit, extensions, other}
 之内时，在最终回答之后追加一个 <usage-audit> 块（格式见 ios-engineer skill
 references/usage_ledger.md 第 4 节）：
 - tool: codex
-- task-type: 上述 7 选 1
+- task-type: 上述 12 选 1
 - prompt-summary: 5-200 字符脱敏摘要
 - expected-rules / hit-rules: 用 IR-XXX / SYM-XXX / ROUTE-XXX / OUT-XXX 形式，
   来源是 ios-engineer/references/rule_index.md 的 active 集合
@@ -128,7 +129,8 @@ references/usage_ledger.md 第 4 节）：
 <usage-audit> 块。格式严格遵守 ios-engineer/references/usage_ledger.md 第 4 节。
 - tool: claude-code
 - task-type 只能落在 {layout, parameter-pass-through, concurrency, review,
-  migration, mcp-control, other}
+  migration, mcp-control, notifications, privacy, persistence, storekit,
+  extensions, other}
 - expected-rules / hit-rules 用 ios-engineer/references/rule_index.md 中
   status=active 的 ID
 - 不确定 hit-rules 时留空，不要凭印象猜测
@@ -146,7 +148,7 @@ references/usage_ledger.md 第 4 节）：
 格式见 ios-engineer/references/usage_ledger.md 第 4 节。
 - tool: cursor
 - task-type ∈ {layout, parameter-pass-through, concurrency, review, migration,
-  mcp-control, other}
+  mcp-control, notifications, privacy, persistence, storekit, extensions, other}
 - expected-rules / hit-rules 用 IR-XXX / SYM-XXX / ROUTE-XXX / OUT-XXX
 - 不确定就留空，不猜
 - prompt-summary 5-200 字符脱敏
@@ -184,7 +186,7 @@ Step 4 的 summarize 脚本会按 `tool` 字段分桶，让不同工具间的 se
 | 常量 | 值 | 候选提案信号 | 含义 |
 |------|----|-------------|------|
 | `MISSED_RULE_THRESHOLD` | 3 | 新增能力 | 同一 `rule_id` 在 `missed_rules` 中累计 ≥ 3 次 → 现有规则可能表达不到位或缺触发条件 |
-| `TASK_TYPE_OTHER_THRESHOLD` | 5 | 新增能力（新 task_type） | `task_type=other` 累计 ≥ 5 条 → 现有 6 个 slug 覆盖不全，可能需新增场景 |
+| `TASK_TYPE_OTHER_THRESHOLD` | 5 | 新增能力（新 task_type） | `task_type=other` 累计 ≥ 5 条 → 现有 11 个 slug 覆盖不全，可能需新增场景 |
 | `DEVIATION_THRESHOLD` | 2 | 修正表达 | 同一 deviation 字符串重复 ≥ 2 次 → 稳定失败模式，对应规则需收紧表达 |
 | `TOOL_DIVERGENCE_THRESHOLD` | 0.4 | self-grading 偏差对比 | 同一 `rule_id` 在不同 `tool` 间 hit_rate 差异 ≥ 40%（且每端 expected ≥ 5） → 工具/模型对规则理解分裂，需独立回放确认 |
 

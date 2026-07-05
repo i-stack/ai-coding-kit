@@ -1,0 +1,47 @@
+{
+  "id": "persistence",
+  "version": 1,
+  "category": "behavior",
+  "input": "Core Data 加了新字段后迁移失败，数据丢了。现在想迁到 SwiftData，但不知道能不能平滑过渡",
+  "primary_refs": [
+    "references/persistence.md"
+  ],
+  "output_contract": "four-segment",
+  "expected_hits": [
+    {
+      "key": "migration-strategy",
+      "desc": "区分轻量级迁移和重量级迁移场景，给出对应策略",
+      "anchor": "references/persistence.md",
+      "rule_id": "ROUTE-023"
+    },
+    {
+      "key": "backup-before-migration",
+      "desc": "迁移前必须备份数据库，失败时不清空数据",
+      "anchor": "references/persistence.md"
+    },
+    {
+      "key": "context-threading",
+      "desc": "指出 Core Data context 的线程模型约束",
+      "anchor": "references/persistence.md"
+    }
+  ],
+  "failure_signals": [
+    {
+      "key": "migrate-without-backup",
+      "desc": "建议直接清空 persistent store 重建而不备份"
+    },
+    {
+      "key": "cross-context-usage",
+      "desc": "建议跨 context 传递 NSManagedObject"
+    },
+    {
+      "key": "mixed-frc-swiftdata",
+      "desc": "在 SwiftData 方案中建议混用 NSFetchedResultsController"
+    }
+  ],
+  "scoring": {
+    "pass": "所有 expected_hits 命中且无 failure_signals 触发",
+    "partial": "至少半数 expected_hits 命中且未触发任何核心 failure_signals",
+    "fail": "命中任一 failure_signals 或 expected_hits 命中不到一半"
+  }
+}

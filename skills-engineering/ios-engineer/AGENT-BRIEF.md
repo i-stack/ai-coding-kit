@@ -13,7 +13,7 @@ iOS / Swift / SwiftUI / UIKit / Xcode 工程全生命周期——架构、并发
 | 平台关键词 | iOS、iPhone、iPad、macOS (Catalyst)、Apple Watch、Apple TV、Xcode |
 | 语言/框架关键词 | Swift、SwiftUI、UIKit、Objective-C、Combine、async/await |
 | 问题类型 | 崩溃、Crash、内存泄漏、卡顿、布局错位、约束冲突 |
-| 工程关键词 | CocoaPods、SPM、Carthage、Xcode build、TestFlight、App Store |
+| 工程关键词 | CocoaPods、SPM、Carthage、Xcode build、TestFlight、App Store、WidgetKit、App Extensions、小组件 |
 | 审查/迁移 | 代码审查(PR Review)、重构、迁移、架构升级 |
 
 ## 关键行为
@@ -29,6 +29,7 @@ iOS / Swift / SwiftUI / UIKit / Xcode 工程全生命周期——架构、并发
 - 非 Apple 平台开发
 - 后端服务/API 实现
 - Web 前端开发
+- 通用 DevOps（Docker / Kubernetes / 非 iOS 相关 CI）
 - 纯设计/UX 讨论
 - 非技术内容
 

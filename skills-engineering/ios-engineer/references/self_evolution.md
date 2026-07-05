@@ -55,8 +55,9 @@
 4. 运行验证
 - 至少执行结构校验、引用校验和场景校验。
 - 若候选改动影响输出结构、排障纪律或迁移门禁，必须补跑相关验证场景。
+- 对外统一入口使用 [scripts/validate.sh](../scripts/validate.sh)：`--all` 跑完整门禁，`--quick` 跑快速结构校验，`--scenarios` 跑场景规格和内部链接校验；`validate_skill_evolution.sh` / `validate_scenario_specs.sh` / `validate_rule_ids.sh` / `validate_usage_ledger.sh` 保留为内部子检查或专项排障入口。
 - 使用 [scripts/validate_skill_proposal.sh](../scripts/validate_skill_proposal.sh) 为提案写入验证记录，并把提案状态推进到 `validated` 或 `rejected`。
-- 若已经回放具体场景，使用 [scripts/record_validation_scenario.sh](../scripts/record_validation_scenario.sh) 把 `通过 / 部分通过 / 不通过`、命中点、偏差点和改进建议写入同一份验证记录；当所有场景均完成且结果满足条件时，提案可自动进入 `ready_to_promote`。场景规格沉淀在 [evolution/scenarios/](../evolution/scenarios/)，写入的 `scenario` 字段必须落在那 6 个固定 slug 内，否则后续 grader 无法对账。
+- 若已经回放具体场景，使用 [scripts/record_validation_scenario.sh](../scripts/record_validation_scenario.sh) 把 `通过 / 部分通过 / 不通过`、命中点、偏差点和改进建议写入同一份验证记录；当所有场景均完成且结果满足条件时，提案可自动进入 `ready_to_promote`。场景规格沉淀在 [evolution/scenarios/](../evolution/scenarios/)，写入的 `scenario` 字段必须落在固定 slug 内，否则后续 grader 无法对账。
 - 若提案已进入 `ready_to_promote`，使用 [scripts/check_skill_promotion_readiness.sh](../scripts/check_skill_promotion_readiness.sh) 查看提示，再使用 [scripts/approve_skill_promotion.sh](../scripts/approve_skill_promotion.sh) 记录授权并把提案推进到 `approved`。
 
 5. 通过后再晋升
@@ -84,7 +85,7 @@
 - 命中的验证场景没有回归。
 
 建议执行：
-- 运行 [scripts/validate_skill_evolution.sh](../scripts/validate_skill_evolution.sh) 做基础校验。
+- 运行 [scripts/validate.sh](../scripts/validate.sh) `--all` 做完整门禁；本地快速检查可用 `--quick`，只验证场景规格可用 `--scenarios`。
 - 运行 [scripts/update_skill_proposal_status.sh](../scripts/update_skill_proposal_status.sh) 维护提案状态；允许的状态只有 `draft`、`validated`、`ready_to_promote`、`approved`、`promoted`、`rejected`。
 - 按 [validation_scenarios.md](validation_scenarios.md) 选择受影响的场景做前向验证。
 - 运行 [scripts/record_validation_scenario.sh](../scripts/record_validation_scenario.sh) 追加结构化场景验证结论。
@@ -108,7 +109,7 @@
 ## 真实任务观测
 - 真实任务命中数据沉淀在 [evolution/usage/usage.jsonl](../evolution/usage/usage.jsonl)，schema、写入协议、三端 audit 块格式与 Codex / Claude Code / Cursor 各自的 system-prompt 片段统一沉淀在 [usage_ledger.md](usage_ledger.md)。
 - 写入路径有两条：单条用 [scripts/append_usage_entry.sh](../scripts/append_usage_entry.sh)；批量从 audit 块灌入用 [scripts/extract_usage_audit.sh](../scripts/extract_usage_audit.sh)。两条路径都会原子拒绝非法条目，不污染 ledger。
-- ledger 的合法性由 [scripts/validate_usage_ledger.sh](../scripts/validate_usage_ledger.sh) 把守，集成在伞形校验的 `[8/12]` 步：rule_id 必须在 [rule_index.md](rule_index.md) active 集合内，`task_type` 必须在 6 个固定场景 slug + `other` 之内，`missed_rules == expected_rules - hit_rules`。
+- ledger 的合法性由 [scripts/validate_usage_ledger.sh](../scripts/validate_usage_ledger.sh) 把守，集成在统一校验的 `[8/14]` 步：rule_id 必须在 [rule_index.md](rule_index.md) active 集合内，`task_type` 必须在固定场景 slug + `other` 之内，`missed_rules == expected_rules - hit_rules`。
 - ledger 是后续 summarize / 提案聚类（Step 4）的数据源。三端 audit 块由 LLM 自评，存在 self-grading 偏差——data 应被视作**有偏的草稿**，真正可信的命中率仍要靠 [validation_scenarios.md](validation_scenarios.md) + [evolution/scenarios/*.json](../evolution/scenarios/) 的回归场景集独立回放确认。
 - 不要只记败例：平稳成功的任务也要追加，否则采样偏差会让命中率统计失真。
 - 定期跑 [scripts/summarize_usage_ledger.sh](../scripts/summarize_usage_ledger.sh) 看汇总报表与提案候选信号（高频 missed_rules / `task_type=other` 累积 / 重复 deviation / 工具间 hit_rate 差异）；脚本只读不写仓库，默认输出 markdown 到 stdout，`--json` 输出机器可读，`--since` / `--tool` 缩窄数据集。阈值硬编码在脚本顶部（missed≥3 / other≥5 / dev≥2 / 工具差≥40%）。
@@ -161,3 +162,32 @@
 - 脚本对 `CRITICAL` / `UNDATED` / `INVALID` 任一非零即非零退出，便于接入 CI 或定时检查；
 - 阈值可按需用环境变量覆盖；
 - STALE / CRITICAL ref 应优先进入"## 触发信号"列表的最后一条，开新提案做内容复核或退役判定。
+
+## 进化历史 GC 策略
+
+`evolution/history/` 每次晋升产生全量快照，随版本积累会快速膨胀。以下策略控制目录体积：
+
+**保留规则**：
+- 始终保留最近 10 个版本的完整快照。
+- 每 10 个版本（v10, v20, v30...）保留一个里程碑快照作为长期还原点。
+- 其他版本的快照在晋升下一个版本后自动清理。
+
+**清理脚本**：
+```bash
+# 示例：仅保留最近 10 版 + 每 10 版里程碑
+bash scripts/gc_evolution_history.sh
+```
+
+**清理触发时机**：
+- 每次新版本晋升成功后自动触发 GC（在 [scripts/promote_skill_evolution.sh](../scripts/promote_skill_evolution.sh) 末尾调用）。
+- 也可手动运行（不会删除当前 active 版本及最近 10 版的快照）。
+- 如需临时跳过自动清理，可设置 `SKIP_EVOLUTION_GC=1` 后再执行晋升脚本；跳过后应手动运行一次 GC。
+
+**受保护快照（永不删除）**：
+- `active_version.json` 指向的当前版本快照。
+- 里程碑版本快照（版本号能被 10 整除且 ≥ v10）。
+- 最近 10 个版本的快照。
+
+**干运行模式**：
+- `gc_evolution_history.sh --dry-run` 仅列出将被删除的目录，不实际删除。
+- 首次部署建议先干运行确认列表。

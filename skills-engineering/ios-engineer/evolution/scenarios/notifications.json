@@ -1,0 +1,48 @@
+{
+  "id": "notifications",
+  "version": 1,
+  "category": "behavior",
+  "input": "推送到达后通知扩展里下载图片偶尔失败，而且用户点击通知跳转的页面不对，帮我排查",
+  "primary_refs": [
+    "references/notifications.md"
+  ],
+  "output_contract": "four-segment",
+  "expected_hits": [
+    {
+      "key": "extension-memory-limit",
+      "desc": "识别 Notification Service Extension 内存限制（~24MB）和 30 秒超时",
+      "anchor": "references/notifications.md",
+      "rule_id": "ROUTE-021"
+    },
+    {
+      "key": "four-segment-output",
+      "desc": "输出保持根因 / 为什么 / 修法 / 验证",
+      "anchor": "SKILL.md:12",
+      "rule_id": "GR-004"
+    },
+    {
+      "key": "extension-lifecycle-awareness",
+      "desc": "指出 Extension 只有配置相同 Keychain Access Group 才能访问共享 Keychain item，且不应在 Extension 内发起长时网络请求",
+      "anchor": "references/notifications.md"
+    }
+  ],
+  "failure_signals": [
+    {
+      "key": "ignore-extension-constraints",
+      "desc": "未考虑 Extension 的内存/时间/沙盒限制，直接建议在 Extension 内做重操作"
+    },
+    {
+      "key": "push-to-ui-routing",
+      "desc": "跳过推送到达 → 用户点击 → 路由跳转的链路分析"
+    },
+    {
+      "key": "hardcoded-routing",
+      "desc": "建议在 AppDelegate 内硬编码通知路由映射"
+    }
+  ],
+  "scoring": {
+    "pass": "所有 expected_hits 命中且无 failure_signals 触发",
+    "partial": "至少半数 expected_hits 命中且未触发任何核心 failure_signals",
+    "fail": "命中任一 failure_signals 或 expected_hits 命中不到一半"
+  }
+}

@@ -13,7 +13,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/append_usage_entry.sh \
   --tool <codex|claude-code|cursor|manual|other> \
-  --task-type <layout|parameter-pass-through|concurrency|review|migration|mcp-control|other> \
+  --task-type <layout|parameter-pass-through|concurrency|review|migration|mcp-control|notifications|privacy|persistence|storekit|extensions|other> \
   --prompt-summary "<5-200 char Chinese summary>" \
   --expected-rules "ID1,ID2,..." \
   --hit-rules "ID1,..." \
@@ -81,7 +81,7 @@ tool, task_type, prompt_summary, expected_raw, hit_raw, deviations_raw,
 outcome, evolution_signal, session_id, now, rule_index_path, ledger_path = ARGV
 
 ALLOWED_TOOLS = %w[codex claude-code cursor manual other].freeze
-ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control other].freeze
+ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control notifications privacy persistence storekit extensions other].freeze
 ALLOWED_OUTCOMES = %w[pass partial fail].freeze
 ALLOWED_SIGNALS = ["none", "修正表达", "新增能力", "合并重复", "退役规则"].freeze
 ID_FORMAT = /\A[A-Z]+-\d{3}\z/

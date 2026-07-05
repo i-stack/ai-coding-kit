@@ -14,7 +14,7 @@ description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering
 - **与认知拓展分工**：未命中本模式适用场景时，主答后按 `cognitive-expansion` skill 全文执行；`【深潜】`/`【拓展】` 加深拓展，不与 Step 0–6 重复堆砌。
 
 ## 核心铁律
-- [IR-001] 始终使用简体中文。
+- [IR-001] 始终使用简体中文。例外条款：代码块内的注释、Swift / Objective-C API 名称、编译错误信息字面值、崩溃堆栈、工具命令输出、日志字面值不强制翻译，可保留原文；与用户的对话、方案描述、诊断结论、规则输出、建议说明等自然语言内容仍强制简体中文。
 - [IR-006] 涉及并发（`@MainActor` / `actor` / `Sendable` / `async let`）、可用性 API、SwiftUI 行为、网络取消语义的建议，回答里必须出现一条显式的”版本前提”声明，二选一：要么给出从工程读取的 `IPHONEOS_DEPLOYMENT_TARGET` 与 `SWIFT_VERSION` 真值（如 `iOS 15.0 / Swift 5.9`），要么以”假设 iOS ≥ N / Swift ≥ M，如不符请纠正”形式显式声明假设值。两者缺一或只给其中一项即视为违反本铁律。能读工程时优先读真值；只有在无法读取或成本过高时才允许退到显式假设。本 skill 不预设默认基线。具体落点见 [examples.md](references/examples.md) §1/§2/§4/§5/§6 模板的”版本前提”块与 [review_checklists.md](references/review_checklists.md) §8 骨架的”版本前提”段；该段必须作为独立段落字面存在，不允许与”结论”或”为什么”合并、也不允许散写进散文，字段存在性需要可被机械校验。
 - [IR-011] 命中认知对手模式适用场景时，必须输出认知校准结构：复述、最强反驳、隐藏假设、失效条件、可证伪条件、立场翻转、迎合自检、置信度、结论；不得省略最强反驳、立场翻转或迎合自检。完整触发条件、步骤与禁止行为见 [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md)。
 
@@ -26,6 +26,7 @@ description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering
 - 升级到 ROUTE-017 剧本必须显式满足以下任一条件：跨多日 / 跨多模块 / 已尝试常规排障无果 / 需要分阶段落地。
 - 仅"问题复杂"或"涉及多个 ref"不算升级条件 — 多 ref 用 ROUTE 主读 + 追加机制覆盖即可。
 - 升级判据满足时，ROUTE-017 取代 SYM 主读，但 SYM 表仍作症状定位辅助。
+- 以下量化信号至少命中一条时，**强制**走 ROUTE-017（不要求全部满足）：当前会话已加载 ≥ 5 份 ref 仍未解决 / 修改涉及 ≥ 3 个独立模块 / 同一问题已跨 ≥ 2 轮对话仍未解决 / 预估代码变更 ≥ 50 行且跨 ≥ 3 个文件。
 - 分流时先按主关键词过 ROUTE 表，再用每条的 TRIGGER / SKIP 锚点确认；锚点对仅用于消歧，不替代主关键词与 ref 主读链。
 
 ### 症状导航
@@ -92,7 +93,7 @@ description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering
   - TRIGGER：「搜索预算 / 子代理分流 / 多轮排查策略 / 日志取证预算 / 该用哪个 MCP / MCP 还是裸命令」。
   - SKIP：具体排障 → ROUTE-001；具体性能分析 → ROUTE-010。
 - [ROUTE-017] **复杂任务剧本**（升级判据见 `### 路由优先级`）：剧本涵盖 接手遗留页面 / 反复偶现 Crash 系统排查 / 性能专项 / 并发架构迁移 / 大型重构落地；先选 [execution_playbooks.md](references/execution_playbooks.md) 对应剧本，再按剧本引用的主读 ref 展开。
-  - TRIGGER：「接手遗留页面 / 性能专项 / 反复偶现 crash / 并发架构迁移 / 大型重构」；同时满足跨多日 / 跨多模块 / 已尝试常规排障无果 / 需要分阶段落地任一升级判据。
+  - TRIGGER：「接手遗留页面 / 性能专项 / 反复偶现 crash / 并发架构迁移 / 大型重构」；满足以下任一条件：（质性）跨多日 / 跨多模块 / 已尝试常规排障无果 / 需要分阶段落地；（量化）会话已加载 ≥ 5 份 ref 仍未解决 / 修改涉及 ≥ 3 个独立模块 / 同一问题已跨 ≥ 2 轮对话仍未解决 / 预估代码变更 ≥ 50 行且跨 ≥ 3 个文件。
   - SKIP：单点问题 / 单 ref 即可解决 → 走对应 ROUTE-001~016；仅"问题复杂"或"涉及多个 ref"不算升级条件。
 - [ROUTE-018] **Skill 自进化 / 规则缺失冲突退役 / Skill 验证场景**：主读 [self_evolution.md](references/self_evolution.md)；具体场景规格或回放追加 [validation_scenarios.md](references/validation_scenarios.md)。
   - TRIGGER：「skill / 规则缺失 / 规则冲突 / 验证场景 / 提案 / 自进化」；元工程 / SkillOps 维护任务。
@@ -100,6 +101,21 @@ description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering
 - [ROUTE-020] **Git 工作流 / pbxproj 与 storyboard 冲突 / 锁文件提交 / 分支与 hotfix**：主读 [git_workflow.md](references/git_workflow.md)；涉及 PR 拆分与 ownership 追加 [team_collaboration.md](references/team_collaboration.md)；涉及 CI / 发布 tag 追加 [build_release_and_ci.md](references/build_release_and_ci.md)。
   - TRIGGER：「pbxproj 冲突 / storyboard 合并 / Podfile.lock 或 Package.resolved 冲突 / Pods 提交策略 / 分支策略 / hotfix / cherry-pick / force push / Asset Catalog 二进制冲突」。
   - SKIP：仅源码 merge 冲突无 Xcode 工程文件 → 走 ROUTE-015；构建配置 / CI 失败根因 → 走 ROUTE-013；技术债 / PR 拆分通用规则 → 走 ROUTE-015。
+- [ROUTE-021] **Push Notifications / 远程推送 / 本地通知 / 通知服务扩展 / 富媒体通知 / 通知权限**：主读 [notifications.md](references/notifications.md)；涉及后台任务追加 [performance_optimization.md](references/performance_optimization.md)；涉及证书与签名追加 [build_release_and_ci.md](references/build_release_and_ci.md)。
+  - TRIGGER：「推送 / 通知 / UNUserNotificationCenter / APNs / Notification Service Extension / 富媒体通知 / 通知权限 / 静默推送 / provisional authorization」。
+  - SKIP：是推送到达后的 UI 渲染问题 → ROUTE-006；是网络重试 / 连接问题 → ROUTE-008。
+- [ROUTE-022] **隐私权限 / 定位 / 相机 / 相册 / 麦克风 / 通讯录 / HealthKit / ATT 追踪 / 权限请求最佳实践**：主读 [privacy_permissions.md](references/privacy_permissions.md)；涉及 Info.plist 描述文案追加 [build_release_and_ci.md](references/build_release_and_ci.md)；涉及审核拒审风险追加 [migration_strategy.md](references/migration_strategy.md)。
+  - TRIGGER：「隐私 / 权限 / 定位 / CLLocationManager / 相机 / 相册 / PHPhotoLibrary / 麦克风 / ATT / AppTrackingTransparency / 权限被拒 / Info.plist 描述 / 审核被拒」。
+  - SKIP：是权限获取后对数据的处理逻辑 → 按具体处理类型分流（照片 → ROUTE-006、位置数据建模 → ROUTE-004）；是 StoreKit / 内购相关的审核被拒 → ROUTE-024。
+- [ROUTE-023] **SwiftData / Core Data / 持久化 / 数据迁移 / Model Schema / 轻量级迁移 / 重量级迁移**：主读 [persistence.md](references/persistence.md)；涉及数据建模追加 [domain_modeling.md](references/domain_modeling.md)；涉及并发访问追加 [swift_concurrency.md](references/swift_concurrency.md)。
+  - TRIGGER：「SwiftData / Core Data / NSPersistentContainer / NSManagedObjectContext / 持久化 / 数据库迁移 / Model Schema 变更 / 轻量级迁移 / 重量级迁移 / @Model / FetchRequest」。
+  - SKIP：是内存缓存而非持久化 → ROUTE-008 或 ROUTE-005；是性能问题而非持久化方案 → ROUTE-010。
+- [ROUTE-024] **StoreKit / 内购 / 订阅 / IAP / 收据验证 / 恢复购买 / 促销优惠**：主读 [storekit_iap.md](references/storekit_iap.md)；涉及服务端验证追加 [networking_patterns.md](references/networking_patterns.md)；涉及审核合规追加 [privacy_permissions.md](references/privacy_permissions.md)。
+  - TRIGGER：「StoreKit / 内购 / IAP / 订阅 / 收据验证 / 恢复购买 / 促销优惠 / Product / Transaction / StoreKit 2 / App Store 审核」。
+  - SKIP：是支付后的 UI 展示 → ROUTE-005；是 App Store Connect 配置问题 → 提示用户检查 App Store Connect 后台，不在代码层面处理。
+- [ROUTE-025] **App Extensions / Widget / Share Extension / Watch App / Siri Intent / Action Extension / Notification Content Extension**：主读 [app_extensions.md](references/app_extensions.md)；涉及跨 Target 数据共享追加 [persistence.md](references/persistence.md)；涉及构建配置追加 [build_release_and_ci.md](references/build_release_and_ci.md)。
+  - TRIGGER：「Widget / WidgetKit / 小组件 / Share Extension / Watch App / Siri Intent / Action Extension / App Group / 跨 Target 数据共享 / 扩展」。
+  - SKIP：是主 App 的 UI / 架构问题 → ROUTE-002 或 ROUTE-006；是构建签名问题 → ROUTE-013。
 
 ## 输出模板
 按输出类型触发对应模板，与任务分流正交：

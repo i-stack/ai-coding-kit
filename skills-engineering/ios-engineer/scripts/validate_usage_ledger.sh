@@ -26,7 +26,7 @@ ledger_path = "evolution/usage/usage.jsonl"
 index_path = "references/rule_index.md"
 
 ALLOWED_TOOLS = %w[codex claude-code cursor manual other].to_set.freeze
-ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control other].to_set.freeze
+ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control notifications privacy persistence storekit extensions other].to_set.freeze
 ALLOWED_OUTCOMES = %w[pass partial fail].to_set.freeze
 ALLOWED_SIGNALS = ["none", "修正表达", "新增能力", "合并重复", "退役规则"].to_set.freeze
 ID_FORMAT = /\A[A-Z]+-\d{3}\z/

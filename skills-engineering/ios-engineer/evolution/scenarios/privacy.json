@@ -1,0 +1,47 @@
+{
+  "id": "privacy",
+  "version": 1,
+  "category": "behavior",
+  "input": "App 首次启动请求相机权限，用户拒绝后功能不可用，也没有引导去设置。另外 ATT 弹窗时机不对，审核被拒了",
+  "primary_refs": [
+    "references/privacy_permissions.md"
+  ],
+  "output_contract": "four-segment",
+  "expected_hits": [
+    {
+      "key": "permission-timing",
+      "desc": "指出权限必须在用户明确行为上下文内请求，不可在启动时批量弹",
+      "anchor": "references/privacy_permissions.md",
+      "rule_id": "ROUTE-022"
+    },
+    {
+      "key": "denied-degradation",
+      "desc": "给出权限被拒后的降级路径：禁用按钮 / 引导文案 / 跳转设置",
+      "anchor": "references/privacy_permissions.md"
+    },
+    {
+      "key": "att-pre-permission",
+      "desc": "ATT 弹窗前需要 pre-permission 说明弹窗",
+      "anchor": "references/privacy_permissions.md"
+    }
+  ],
+  "failure_signals": [
+    {
+      "key": "no-plist-check",
+      "desc": "未检查 Info.plist 中 *UsageDescription key 是否存在"
+    },
+    {
+      "key": "reattempt-denied",
+      "desc": "建议在 denied 状态下重试弹出系统权限弹窗（无效操作）"
+    },
+    {
+      "key": "no-app-review-risk",
+      "desc": "未提及审核拒审风险"
+    }
+  ],
+  "scoring": {
+    "pass": "所有 expected_hits 命中且无 failure_signals 触发",
+    "partial": "至少半数 expected_hits 命中且未触发任何核心 failure_signals",
+    "fail": "命中任一 failure_signals 或 expected_hits 命中不到一半"
+  }
+}
