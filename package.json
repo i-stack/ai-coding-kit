@@ -1,0 +1,50 @@
+{
+  "name": "@i-stack/ai-coding-kit",
+  "version": "3.0.0",
+  "description": "One kit for all AI coding tools — Agent Skills management, MCP configuration sync, iOS engineering rules, and Universal RAG Gateway",
+  "homepage": "https://github.com/i-stack/ai-coding-kit#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/i-stack/ai-coding-kit.git"
+  },
+  "license": "MIT",
+  "author": "i-stack",
+  "bin": {
+    "ai-coding-kit": "./skills-engineering/scripts/sync-skills.sh",
+    "ai-coding-kit-sync": "./sync.sh",
+    "ai-coding-kit-list-skills": "./skills-engineering/scripts/list-skills.sh",
+    "ai-coding-kit-install-hooks": "./install-hooks.sh"
+  },
+  "files": [
+    "skills-engineering/",
+    "sync/",
+    "env/",
+    "rag-gateway/",
+    "hooks/",
+    ".githooks/",
+    "sync.sh",
+    "install-hooks.sh",
+    "README.md",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "ai-coding",
+    "agent-skills",
+    "mcp",
+    "model-context-protocol",
+    "ios",
+    "swift",
+    "rag",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini",
+    "codebuddy",
+    "skill-engineering"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}
