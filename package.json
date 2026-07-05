@@ -1,6 +1,7 @@
 {
   "name": "@i-stack/ai-coding-kit",
   "version": "3.0.0",
+  "type": "module",
   "description": "One kit for all AI coding tools — Agent Skills management, MCP configuration sync, iOS engineering rules, and Universal RAG Gateway",
   "homepage": "https://github.com/i-stack/ai-coding-kit#readme",
   "repository": {
