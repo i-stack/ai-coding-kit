@@ -364,8 +364,8 @@ class ClaudeSyncTests(unittest.TestCase):
         xc_path.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "projects": {
-                "/Users/test/project1": {"otherKey": "val1"},
-                "/Users/test/project2": {"otherKey": "val2"},
+                "/Users/you/project1": {"otherKey": "val1"},
+                "/Users/you/project2": {"otherKey": "val2"},
             }
         }
         self._write_json(xc_path, data)
@@ -373,7 +373,7 @@ class ClaudeSyncTests(unittest.TestCase):
         _run_claude_sync(self.root, self.platform_cfg)
 
         result = self._read_json(xc_path)
-        for proj_name in ("/Users/test/project1", "/Users/test/project2"):
+        for proj_name in ("/Users/you/project1", "/Users/you/project2"):
             self.assertIn("mcpServers", result["projects"][proj_name])
             self.assertIn("sample", result["projects"][proj_name]["mcpServers"])
         # Root level should NOT have mcpServers when projects exist
