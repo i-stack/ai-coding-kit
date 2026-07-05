@@ -15,4 +15,5 @@ env/secrets.json
 .codex/
 .claude/
 node_modules/
-skills-engineering/ios-engineer/evolution/usage
+skills-engineering/ios-engineer/evolution/usage/*
+!skills-engineering/ios-engineer/evolution/usage/usage.jsonl
