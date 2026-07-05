@@ -17,7 +17,6 @@ export default defineConfig({
   ],
 
   themeConfig: {
-    logo: false,
     siteTitle: 'ai-coding-kit',
 
     nav: [
