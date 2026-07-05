@@ -1,0 +1,13 @@
+{
+    "name": "moonvy",
+    "type": "stdio",
+    "command": "node",
+    "args": [
+        "~/Desktop/github/moonvy-design-mcp/server.js"
+    ],
+    "platforms": [
+        "claude",
+        "codex",
+        "cline"
+    ]
+}

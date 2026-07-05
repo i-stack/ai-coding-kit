@@ -1,0 +1,78 @@
+{
+  "proposal_id": "20260705-162659-architecture-expansion-v74",
+  "approved_at": "2026-07-05T17:07:00+0800",
+  "active_version": "v73",
+  "validation": {
+    "structural": true,
+    "scenario": true,
+    "risk": "medium"
+  },
+  "changes": [
+    {
+      "file": "skills-engineering/ios-engineer/SKILL.md",
+      "type": "enhancement",
+      "description": "IR-001 add exception clauses, ROUTE-017 add quantifiable upgrade signals, add ROUTE-021~025"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/rule_index.md",
+      "type": "enhancement",
+      "description": "Add ROUTE-021~025 records, update IR-001 summary"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/self_evolution.md",
+      "type": "enhancement",
+      "description": "Add evolution history GC strategy section"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/validation_scenarios.md",
+      "type": "enhancement",
+      "description": "Slug list 6→11, add scenarios 7~11"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/notifications.md",
+      "type": "addition",
+      "description": "Push Notifications / APNs reference"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/privacy_permissions.md",
+      "type": "addition",
+      "description": "Privacy permissions reference"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/persistence.md",
+      "type": "addition",
+      "description": "SwiftData / Core Data persistence reference"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/storekit_iap.md",
+      "type": "addition",
+      "description": "StoreKit IAP reference"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/references/app_extensions.md",
+      "type": "addition",
+      "description": "App Extensions reference"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/evolution/scenarios/*.json",
+      "type": "addition",
+      "description": "5 new scenario specs (notifications, privacy, persistence, storekit, extensions)"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/scripts/validate.sh",
+      "type": "addition",
+      "description": "Unified validation entry point"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/scripts/gc_evolution_history.sh",
+      "type": "addition",
+      "description": "Snapshot GC script"
+    },
+    {
+      "file": "skills-engineering/ios-engineer/evolution/hooks/",
+      "type": "addition",
+      "description": "Migrated hooks directory"
+    }
+  ],
+  "status": "approved"
+}

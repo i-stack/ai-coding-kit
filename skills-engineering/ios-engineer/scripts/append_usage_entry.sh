@@ -13,7 +13,7 @@ usage() {
   cat <<'USAGE'
 Usage: bash scripts/append_usage_entry.sh \
   --tool <codex|claude-code|cursor|manual|other> \
-  --task-type <layout|parameter-pass-through|concurrency|review|migration|mcp-control|other> \
+  --task-type <layout|parameter-pass-through|concurrency|review|migration|mcp-control|notifications|privacy|persistence|storekit|extensions|other> \
   --prompt-summary "<5-200 char Chinese summary>" \
   --expected-rules "ID1,ID2,..." \
   --hit-rules "ID1,..." \
@@ -71,7 +71,9 @@ if [ ! -d "$LOCK_DIR" ]; then
   exit 1
 fi
 
-cleanup() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
+cleanup() {
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+}
 trap cleanup EXIT
 
 now="$(date '+%Y-%m-%dT%H:%M:%S%z')"
@@ -81,7 +83,7 @@ tool, task_type, prompt_summary, expected_raw, hit_raw, deviations_raw,
 outcome, evolution_signal, session_id, now, rule_index_path, ledger_path = ARGV
 
 ALLOWED_TOOLS = %w[codex claude-code cursor manual other].freeze
-ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control other].freeze
+ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control notifications privacy persistence storekit extensions other].freeze
 ALLOWED_OUTCOMES = %w[pass partial fail].freeze
 ALLOWED_SIGNALS = ["none", "修正表达", "新增能力", "合并重复", "退役规则"].freeze
 ID_FORMAT = /\A[A-Z]+-\d{3}\z/
@@ -93,17 +95,14 @@ errors << "task_type '#{task_type}' not in #{ALLOWED_TASK_TYPES.inspect}" unless
 errors << "outcome '#{outcome}' not in #{ALLOWED_OUTCOMES.inspect}" unless ALLOWED_OUTCOMES.include?(outcome)
 errors << "evolution_signal '#{evolution_signal}' not in #{ALLOWED_SIGNALS.inspect}" unless ALLOWED_SIGNALS.include?(evolution_signal)
 
-# prompt_summary length 5-200 (chars, not bytes)
 ps_len = prompt_summary.length
 errors << "prompt_summary length must be 5-200 chars (got #{ps_len})" unless ps_len.between?(5, 200)
 
-# Active rule_id set from rule_index.md
 active_ids = []
 File.foreach(rule_index_path) do |line|
-  m = line.match(/\A\|\s*([A-Z]+-\d{3})\s*\|\s*active\s*\|/)
-  active_ids << m[1] if m
+  match = line.match(/\A\|\s*([A-Z]+-\d{3})\s*\|\s*active\s*\|/)
+  active_ids << match[1] if match
 end
-active_set = active_ids.to_set rescue active_ids
 
 split = ->(raw) { raw.split(",").map(&:strip).reject(&:empty?) }
 
@@ -125,8 +124,6 @@ unless errors.empty?
   exit 1
 end
 
-# Compute missed_rules = expected - hit (preserve expected order)
-hit_set = hit_rules.to_set rescue hit_rules
 missed_rules = expected_rules.reject { |r| hit_rules.include?(r) }
 
 entry = {

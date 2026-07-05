@@ -5,10 +5,10 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-echo "[1/13] Validate YAML structure"
+echo "[1/14] Validate YAML structure"
 ruby -e 'require "yaml"; YAML.load_file("SKILL.md"); YAML.load_file("agents/openai.yaml"); puts "YAML OK"'
 
-echo "[2/13] Validate SKILL.md size"
+echo "[2/14] Validate SKILL.md size"
 line_count="$(wc -l < SKILL.md | tr -d ' ')"
 if [ "$line_count" -gt 500 ]; then
   echo "SKILL.md too long: ${line_count} lines"
@@ -16,7 +16,7 @@ if [ "$line_count" -gt 500 ]; then
 fi
 echo "SKILL.md lines: ${line_count}"
 
-echo "[3/13] Validate referenced files exist"
+echo "[3/14] Validate referenced files exist"
 missing=0
 while IFS= read -r path; do
   [ -z "$path" ] && continue
@@ -31,7 +31,7 @@ if [ "$missing" -ne 0 ]; then
 fi
 echo "Reference files OK"
 
-echo "[4/13] Validate layering guardrails"
+echo "[4/14] Validate layering guardrails"
 if rg -q '^## (调用预算|重试与限流|上下文压缩|防循环退出条件|输出要求)$' references/root_cause_enforcement.md; then
   echo "root_cause_enforcement.md should not define MCP control sections"
   exit 1
@@ -44,7 +44,7 @@ fi
 
 echo "Layering guardrails OK"
 
-echo "[5/13] Validate internal markdown links"
+echo "[5/14] Validate internal markdown links"
 ruby <<'RUBY'
 broken = 0
 Dir.glob('references/*.md').sort.each do |file|
@@ -65,16 +65,16 @@ exit 1 if broken > 0
 RUBY
 echo "Internal links OK"
 
-echo "[6/13] Validate scenario specs"
+echo "[6/14] Validate scenario specs"
 bash scripts/validate_scenario_specs.sh
 
-echo "[7/13] Validate rule IDs"
+echo "[7/14] Validate rule IDs"
 bash scripts/validate_rule_ids.sh
 
-echo "[8/13] Validate usage ledger"
+echo "[8/14] Validate usage ledger"
 bash scripts/validate_usage_ledger.sh
 
-echo "[9/13] Validate no orphan references"
+echo "[9/14] Validate no orphan references"
 ruby <<'RUBY'
 referenced = {}
 # SKILL.md 直接引用
@@ -102,7 +102,7 @@ end
 RUBY
 echo "No orphan references"
 
-echo "[10/13] Validate unique ownership + retired word regression"
+echo "[10/14] Validate unique ownership + retired word regression"
 ruby <<'RUBY'
 # pattern => [expected_owner_basename, description]
 UNIQUE_OWNERS = {
@@ -145,7 +145,7 @@ exit 1 if violations > 0
 RUBY
 echo "Unique ownership + retired words OK"
 
-echo "[11/13] Validate threshold doc/script sync"
+echo "[11/14] Validate threshold doc/script sync"
 ruby <<'RUBY'
 script_path = "scripts/summarize_usage_ledger.sh"
 doc_path = "references/usage_ledger.md"
@@ -191,18 +191,90 @@ end
 RUBY
 echo "Threshold doc/script sync OK"
 
-echo "[12/13] Validate snapshot consistency with active version"
+echo "[12/14] Validate snapshot consistency with active version"
 if [ "${SKIP_SNAPSHOT_CONSISTENCY:-0}" = "1" ]; then
   echo "Skipped (SKIP_SNAPSHOT_CONSISTENCY=1)"
 else
   bash scripts/check_snapshot_consistency.sh
 fi
 
-echo "[13/13] Run behavior validation scenarios"
+echo "[13/14] Run behavior validation scenarios"
 if [ "${SKIP_BEHAVIOR_VALIDATION:-0}" = "1" ]; then
   echo "Skipped (SKIP_BEHAVIOR_VALIDATION=1)"
 else
   SKIP_SNAPSHOT_CONSISTENCY=1 bash scripts/run_behavior_validation.sh
 fi
+
+echo "[14/14] Validate slug list sync (validation_scenarios.md ↔ ALLOWED_TASK_TYPES ↔ CANONICAL_SLUGS)"
+ruby <<'RUBY'
+scenarios_path    = "references/validation_scenarios.md"
+ledger_validator  = "scripts/validate_usage_ledger.sh"
+spec_validator    = "scripts/validate_scenario_specs.sh"
+
+# 1. Extract slugs from validation_scenarios.md
+# Looks for the line: 建议使用固定场景标识：`slug1`、`slug2`、...
+scenario_slugs = []
+File.foreach(scenarios_path) do |line|
+  if line.include?("建议使用固定场景标识")
+    scenario_slugs = line.scan(/`([a-z][a-z0-9-]*)`/).flatten
+    break
+  end
+end
+if scenario_slugs.empty?
+  puts "FAIL: could not parse slug list from #{scenarios_path}"
+  exit 1
+end
+
+# 2. Extract ALLOWED_TASK_TYPES from validate_usage_ledger.sh (exclude 'other')
+ledger_types = []
+File.foreach(ledger_validator) do |line|
+  m = line.match(/ALLOWED_TASK_TYPES\s*=\s*%w\[([^\]]+)\]/)
+  if m
+    ledger_types = m[1].split.reject { |s| s == "other" }
+    break
+  end
+end
+if ledger_types.empty?
+  puts "FAIL: could not parse ALLOWED_TASK_TYPES from #{ledger_validator}"
+  exit 1
+end
+
+# 3. Extract CANONICAL_SLUGS from validate_scenario_specs.sh
+canonical_slugs = []
+in_block = false
+File.foreach(spec_validator) do |line|
+  in_block = true  if line =~ /CANONICAL_SLUGS\s*=\s*%w\[/
+  if in_block
+    break if line.include?("].freeze")
+    canonical_slugs += line.scan(/\b([a-z][a-z0-9-]+)\b/).flatten
+  end
+end
+if canonical_slugs.empty?
+  puts "FAIL: could not parse CANONICAL_SLUGS from #{spec_validator}"
+  exit 1
+end
+
+errors = []
+
+# scenario_slugs ↔ ledger_types
+missing = scenario_slugs - ledger_types
+extra   = ledger_types   - scenario_slugs
+errors << "In validation_scenarios.md but not ALLOWED_TASK_TYPES: #{missing.join(', ')}" unless missing.empty?
+errors << "In ALLOWED_TASK_TYPES but not validation_scenarios.md: #{extra.join(', ')}"   unless extra.empty?
+
+# scenario_slugs ↔ canonical_slugs
+missing2 = scenario_slugs - canonical_slugs
+extra2   = canonical_slugs - scenario_slugs
+errors << "In validation_scenarios.md but not CANONICAL_SLUGS: #{missing2.join(', ')}" unless missing2.empty?
+errors << "In CANONICAL_SLUGS but not validation_scenarios.md: #{extra2.join(', ')}"  unless extra2.empty?
+
+if errors.empty?
+  puts "Slug sync OK (#{scenario_slugs.length} slugs: #{scenario_slugs.join(', ')})"
+else
+  errors.each { |e| puts e }
+  exit 1
+end
+RUBY
+echo "Slug sync OK"
 
 echo "Base validation passed"

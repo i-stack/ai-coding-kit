@@ -3,13 +3,17 @@
 # skills-engineering: local machine sync config (see scripts/config.local.sh.example)
 skills-engineering/scripts/config.local.sh
 
-# env/: local secrets and platform config. Copy env/config.json.example and fill in tokens.
-env/config.json
+# env/: only secrets.json is gitignored.
+# env/mcp/*.json and env/platforms/*.json are committed (use ${VAR} references, no real secrets).
+# User only needs to create env/secrets.json from env/secrets.json.example.
+env/secrets.json
 
 *__pycache__*/
+.analysis_output/
 
 .cursor/
 .codex/
 .claude/
-docs/
-skills-engineering/ios-engineer/evolution/usage
+node_modules/
+skills-engineering/ios-engineer/evolution/usage/*
+!skills-engineering/ios-engineer/evolution/usage/usage.jsonl

@@ -2,11 +2,10 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from .common import mcp_servers, read_json_object, write_json
+from .common import read_json_object, write_json
 
 _STORAGE_SUFFIX = "saoudrizwan.claude-dev/settings/cline_mcp_settings.json"
 
-# Cline can be installed in any of these editors; sync to all that are present.
 _CANDIDATE_MCP_PATHS = [
     Path.home() / f"Library/Application Support/{editor}/User/globalStorage/{_STORAGE_SUFFIX}"
     for editor in ("Cursor", "Code", "Code - Insiders")
@@ -49,6 +48,7 @@ def _sync_skills() -> None:
     print(f"Synced {len(synced)} skills to {CLINE_SKILLS_DIR}: {', '.join(synced) or '(none)'}.")
 
 
-def sync(data: dict[str, Any]) -> None:
-    _sync_mcp(mcp_servers(data, "cline"))
+def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
+    """Sync MCP servers and skills to Cline (VSCode extension)."""
+    _sync_mcp(mcp_servers)
     _sync_skills()

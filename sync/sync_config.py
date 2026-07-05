@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 """
-Sync env/config.json into Cursor, Codex, Claude Code, Cline, and Xcode.
+Sync MCP servers and platform configs into native formats.
 
-The source stays outside this directory because it is runtime configuration, not
-sync tool code. Platform-specific rendering lives in sync/platforms/.
+Sources:
+  env/mcp/*.json          — MCP server definitions (platform-agnostic)
+  env/platforms/*.json    — platform-specific configs (follow each platform's spec)
 
-Platforms with complex rendering (Claude, Codex, Cline) are registered in TARGETS.
-Simple JSON-MCP platforms can be declared directly in env/config.json without code:
-
-    "platforms": {
-        "zed": { "type": "json-mcp", "path": "~/.config/zed/mcp.json" }
-    }
+Platforms are auto-discovered from env/platforms/; adding a new platform only
+requires a config file and (if complex rendering is needed) a renderer module.
 """
 import argparse
-import importlib
 import sys
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
 from platforms import claude, cline, codebuddy, codex, cursor, gemini
-from platforms.common import load_config, mcp_servers, read_json_object, write_json
+from platforms.common import discover_platforms, filter_mcp_for_platform, load_all_mcp, load_platform_config, sync_env_to_zshrc
 
-_continue = importlib.import_module("platforms.continue")
+# continue.py contains 'continue' keyword which can't be a Python import name.
+import importlib as _importlib
+_continue = _importlib.import_module("platforms.continue")
 
-SyncFn = Callable[[dict[str, Any]], None]
+# sync_fn signature: (mcp_servers: dict, platform_cfg: dict) -> None
+SyncFn = Callable[[dict[str, Any], dict[str, Any]], None]
 
-TARGETS: dict[str, SyncFn] = {
+# Platforms that have custom renderer logic (not pure JSON-MCP).
+# Registered here, discovered from env/platforms/ for pure JSON-MCP platforms.
+RENDERERS: dict[str, SyncFn] = {
     "cursor": cursor.sync,
     "codebuddy": codebuddy.sync,
     "codex": codex.sync,
@@ -37,58 +37,70 @@ TARGETS: dict[str, SyncFn] = {
 }
 
 
-def _build_declarative_targets(data: dict[str, Any]) -> dict[str, SyncFn]:
-    """Return sync functions for platforms declared as type=json-mcp in config.
+def _auto_discover_targets() -> dict[str, SyncFn]:
+    """Build the full target map: registered renderers + auto-discovered JSON-MCP platforms."""
+    all_targets: dict[str, SyncFn] = dict(RENDERERS)
+    discovered = discover_platforms()
 
-    Example config entry:
-        "platforms": {
-            "zed": { "type": "json-mcp", "path": "~/.config/zed/mcp.json" }
-        }
-    """
-    result: dict[str, SyncFn] = {}
-    for name, cfg in data.get("platforms", {}).items():
-        if not isinstance(cfg, dict) or cfg.get("type") != "json-mcp":
-            continue
-        path_str = cfg.get("path", "")
-        if not path_str:
-            print(f"[warn] platforms.{name} is type=json-mcp but missing 'path' — skipped.")
-            continue
-        target_path = Path(path_str).expanduser()
+    # Platforms that are config-only (no sync target) — skip silently
+    _config_only = {"rag-gateway"}
 
-        def make_sync(p: Path, pname: str) -> SyncFn:
-            def _sync(d: dict[str, Any]) -> None:
-                if p.is_symlink():
-                    p.unlink()
-                existing = read_json_object(p)
-                existing["mcpServers"] = mcp_servers(d, pname)
-                write_json(p, existing)
-                print(f"Replaced MCP servers in {p}.")
-
-            return _sync
-
-        result[name] = make_sync(target_path, name)
-    return result
-
-
-def _warn_orphans(data: dict[str, Any], all_targets: dict[str, SyncFn]) -> None:
-    """Warn about platforms that have config entries but no sync handler."""
-    for name, cfg in data.get("platforms", {}).items():
+    for name in discovered:
         if name in all_targets:
+            continue  # already has a custom renderer
+        if name in _config_only:
+            continue  # config-only platform, not a sync target
+        cfg = load_platform_config(name)
+        mcp_target = cfg.get("mcp_target")
+        if not mcp_target:
+            print(f"[warn] platform '{name}' has no custom renderer and no 'mcp_target' — skipped.")
             continue
-        if isinstance(cfg, dict) and cfg.get("type") == "json-mcp":
-            continue
-        print(f"[warn] platforms.{name} has config but no sync handler — skipped.")
+
+        from pathlib import Path as _Path
+        from platforms.common import sync_json_mcp as _sync_json_mcp
+
+        target_path = _Path(mcp_target).expanduser()
+
+        def _make_sync(p: _Path, pname: str) -> SyncFn:
+            def _s(mcp_servers: dict[str, Any], _platform_cfg: dict[str, Any]) -> None:
+                _sync_json_mcp(p, mcp_servers)
+            return _s
+
+        all_targets[name] = _make_sync(target_path, name)
+        print(f"[sync] Auto-discovered JSON-MCP platform: {name} -> {target_path}")
+
+    return all_targets
+
+
+def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> None:
+    """Automatically write env vars to ~/.zshrc if platform config declares
+    an export_env_to_zshrc block.
+
+    Convention: env/platforms/<platform>.json may contain:
+
+        "export_env_to_zshrc": {
+            "VAR_NAME": "value"
+        }
+
+    Each key in the object is treated as an env var to export.
+    When present, the orchestrator calls sync_env_to_zshrc() so that each
+    platform's sync() doesn't need to handle zshrc manually.
+    """
+    env = platform_cfg.get("export_env_to_zshrc")
+    if not isinstance(env, dict) or not env:
+        return
+    sync_env_to_zshrc(platform, env)
 
 
 def main() -> None:
-    data = load_config()
-    if data is None:
+    mcp_all = load_all_mcp()
+    if not mcp_all:
+        print("[sync] No MCP servers found in env/mcp/ — continuing with empty MCP config.")
+
+    all_targets = _auto_discover_targets()
+    if not all_targets:
+        print("[sync] No sync targets discovered — check env/platforms/.")
         return
-
-    declarative = _build_declarative_targets(data)
-    all_targets: dict[str, SyncFn] = {**TARGETS, **declarative}
-
-    _warn_orphans(data, all_targets)
 
     valid = sorted(all_targets.keys())
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -101,10 +113,18 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.target == "all":
-        for sync in all_targets.values():
-            sync(data)
+        for name in valid:
+            fn = all_targets[name]
+            mcp_servers = filter_mcp_for_platform(mcp_all, name)
+            platform_cfg = load_platform_config(name)
+            fn(mcp_servers, platform_cfg)
+            _auto_export_env_to_zshrc(name, platform_cfg)
     elif args.target in all_targets:
-        all_targets[args.target](data)
+        fn = all_targets[args.target]
+        mcp_servers = filter_mcp_for_platform(mcp_all, args.target)
+        platform_cfg = load_platform_config(args.target)
+        fn(mcp_servers, platform_cfg)
+        _auto_export_env_to_zshrc(args.target, platform_cfg)
     else:
         print(f"[error] Unknown target '{args.target}'. Valid: all, {', '.join(valid)}", file=sys.stderr)
         raise SystemExit(1)

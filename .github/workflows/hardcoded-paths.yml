@@ -1,0 +1,42 @@
+name: Check Hardcoded Paths
+
+on:
+  pull_request:
+  push:
+    branches: [main, feature_*]
+
+concurrency:
+  group: hardcoded-paths-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  hardcoded-paths:
+    name: Check hardcoded paths
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Scan for hardcoded personal paths
+        run: |
+          echo "Scanning committed files for hardcoded personal paths..."
+          RESULT_FILE=$(mktemp)
+          trap 'rm -f "$RESULT_FILE"' EXIT
+
+          find . -type f \
+            -not -path './.git/*' \
+            -not -path './node_modules/*' \
+            -print0 | while IFS= read -r -d '' f; do
+              matches=$(grep -In '/Users/' "$f" 2>/dev/null | grep -v '/Users/you/' | grep -v '/Users/YourName/' || true)
+              if [ -n "$matches" ]; then
+                echo "::error file=$f::Hardcoded personal path found"
+                echo "$matches"
+                echo "VIOLATION" >> "$RESULT_FILE"
+              fi
+          done
+
+          if grep -q "VIOLATION" "$RESULT_FILE" 2>/dev/null; then
+            echo ""
+            echo "::error::Hardcoded personal paths detected. Replace with placeholders like '~/path/to/your/project' or '/Users/you/...'"
+            exit 1
+          fi
+          echo "No hardcoded personal paths found"

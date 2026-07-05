@@ -1,0 +1,15 @@
+{
+    "path": "~/.continue/config.yaml",
+    "models": [
+        {
+            "name": "deepseek-v4-pro",
+            "provider": "openai",
+            "model": "deepseek-v4-pro",
+            "apiKey": "${continue.key}",
+            "apiBase": "${continue.url}",
+            "defaultCompletionOptions": {
+                "maxTokens": 128000
+            }
+        }
+    ]
+}

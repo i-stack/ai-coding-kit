@@ -1,0 +1,13 @@
+# iOS Engineer Skill — 核心治理文件
+skills-engineering/ios-engineer/SKILL.md            @i-stack/core
+skills-engineering/ios-engineer/references/          @i-stack/core
+skills-engineering/ios-engineer/scripts/             @i-stack/core
+skills-engineering/ios-engineer/evolution/           @i-stack/core
+
+# 技能工程基础设施
+skills-engineering/scripts/                          @i-stack/core
+env/platforms/                                       @i-stack/core
+
+# CI / 治理自动化
+.github/workflows/                                   @i-stack/core
+.githooks/                                           @i-stack/core

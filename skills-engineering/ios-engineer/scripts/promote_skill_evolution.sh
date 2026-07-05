@@ -105,4 +105,16 @@ if [ -n "$proposal_file" ]; then
   bash scripts/update_skill_proposal_status.sh "$proposal_file" promoted >/dev/null
 fi
 
+if [ "${SKIP_EVOLUTION_GC:-0}" != "1" ]; then
+  # Dry-run first to surface deletion count before committing
+  gc_dry="$(bash scripts/gc_evolution_history.sh --dry-run 2>/dev/null)" || true
+  delete_count="$(echo "$gc_dry" | grep -c '\[DELETE\]' || true)"
+  if [ "${delete_count:-0}" -gt 0 ]; then
+    echo "Note: GC will remove ${delete_count} old history snapshot(s). Set SKIP_EVOLUTION_GC=1 before this script to skip GC." >&2
+  fi
+  if ! bash scripts/gc_evolution_history.sh; then
+    echo "Warning: evolution history GC failed; promotion already completed. Run scripts/gc_evolution_history.sh manually." >&2
+  fi
+fi
+
 echo "Promoted ${new_version}"

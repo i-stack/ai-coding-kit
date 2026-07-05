@@ -18,7 +18,7 @@
 
 | ID | Status | 摘要 | SKILL.md 锚点 |
 |----|--------|------|---------------|
-| IR-001 | active | 始终使用简体中文 | `## 核心铁律` |
+| IR-001 | active | 输出语言定锚（与用户输入语言一致）；代码注释/API 名/编译错误/崩溃堆栈/命令输出/日志字面值可保留原文；对话/方案/诊断/规则输出的自然语言内容须匹配用户语言 | `## 核心铁律` |
 | IR-006 | active | 涉及并发 / 可用性 API / SwiftUI 行为 / 网络取消语义的输出，"结论"前必须有独立"版本前提"块（真值或显式假设），字段存在性可机械校验 | 同上 |
 | IR-011 | active | 命中认知对手模式时必须输出复述/最强反驳/隐藏假设/失效条件/可证伪条件/立场翻转/迎合自检/置信度/结论 | 同上 |
 
@@ -75,6 +75,11 @@ GR-NNN 规则由独立 global skill 承载，跨平台通用（不限 iOS）；i
 | ROUTE-017 | active | 复杂任务剧本（升级判据见 SKILL.md `### 路由优先级`）→ execution_playbooks.md | 同上 |
 | ROUTE-018 | active | Skill 自进化 / 规则缺失冲突退役 / Skill 验证场景 → self_evolution.md | 同上 |
 | ROUTE-020 | active | Git 工作流 / pbxproj 与 storyboard 冲突 / 锁文件提交 / 分支与 hotfix → git_workflow.md | 同上 |
+| ROUTE-021 | active | Push Notifications / 远程推送 / 本地通知 / 通知服务扩展 / 富媒体通知 / 通知权限 → notifications.md | 同上 |
+| ROUTE-022 | active | 隐私权限 / 定位 / 相机 / 相册 / 麦克风 / 通讯录 / HealthKit / ATT 追踪 / 权限请求 → privacy_permissions.md | 同上 |
+| ROUTE-023 | active | SwiftData / Core Data / 持久化 / 数据迁移 / Model Schema / 轻量级迁移 / 重量级迁移 → persistence.md | 同上 |
+| ROUTE-024 | active | StoreKit / 内购 / 订阅 / IAP / 收据验证 / 恢复购买 / 促销优惠 → storekit_iap.md | 同上 |
+| ROUTE-025 | active | App Extensions / Widget / Share Extension / Watch App / Siri Intent / Action Extension / Notification Content Extension → app_extensions.md | 同上 |
 
 ## 输出模板 OUT-NNN
 

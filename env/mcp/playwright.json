@@ -1,0 +1,19 @@
+{
+    "name": "playwright",
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--extension"
+    ],
+    "env": {},
+    "platforms": [
+        "claude",
+        "codex",
+        "codebuddy",
+        "gemini",
+        "cline",
+        "continue"
+    ]
+}

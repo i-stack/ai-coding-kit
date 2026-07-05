@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .common import mcp_servers, platform_config
+from .common import load_platform_config
 
 
 def dump_yaml_scalar(v: Any) -> str:
@@ -73,23 +73,23 @@ def dump_yaml(data: Any, indent_level: int = 0) -> str:
 def update_yaml_root_key(yaml_text: str, key_name: str, new_key_yaml: str) -> str:
     lines = yaml_text.splitlines()
     new_lines = []
-    
+
     in_key = False
     key_replaced = False
-    
+
     for line in lines:
         stripped = line.strip()
         is_empty_or_comment = not stripped or stripped.startswith("#")
-        
+
         is_root_key = False
         if not is_empty_or_comment and not line.startswith(" "):
             if ":" in line:
                 is_root_key = True
-                
+
         if is_root_key:
             if in_key:
                 in_key = False
-            
+
             curr_key = line.split(":", 1)[0].strip()
             if curr_key == key_name:
                 in_key = True
@@ -97,41 +97,40 @@ def update_yaml_root_key(yaml_text: str, key_name: str, new_key_yaml: str) -> st
                     new_lines.append(new_key_yaml)
                     key_replaced = True
                 continue
-        
+
         if in_key:
             continue
-            
+
         new_lines.append(line)
-        
+
     if not key_replaced:
         if new_lines and new_lines[-1].strip():
             new_lines.append("")
         new_lines.append(new_key_yaml)
-        
+
     return "\n".join(new_lines) + "\n"
 
 
-def sync(data: dict[str, Any]) -> None:
-    cfg = platform_config(data, "continue")
+def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
+    """Sync MCP servers and models to Continue (YAML format)."""
     path_str = cfg.get("path", "~/.continue/config.yaml")
     target_path = Path(path_str).expanduser()
-    
+
     if not target_path.exists():
         print(f"[warn] Continue configuration file does not exist at {target_path}. Skipping.")
         return
 
     yaml_text = target_path.read_text(encoding="utf-8")
-    
+
     # 1. Sync mcpServers
-    servers = mcp_servers(data, "continue")
     continue_servers = []
-    for name, srv_cfg in sorted(servers.items()):
+    for name, srv_cfg in sorted(mcp_servers.items()):
         if not isinstance(srv_cfg, dict):
             continue
         srv = {"name": name}
         for k, v in srv_cfg.items():
             srv[k] = v
-            
+
         # Continue schema mapping for SSE / Remote servers
         if "url" in srv:
             if "type" not in srv:
@@ -140,16 +139,16 @@ def sync(data: dict[str, Any]) -> None:
                 headers = srv.pop("headers")
                 if headers:
                     srv["requestOptions"] = {"headers": headers}
-                    
+
         continue_servers.append(srv)
-        
+
     if not continue_servers:
         new_mcp_yaml = "mcpServers: []"
     else:
         new_mcp_yaml = "mcpServers:\n" + dump_yaml(continue_servers, indent_level=2)
-    
+
     yaml_text = update_yaml_root_key(yaml_text, "mcpServers", new_mcp_yaml)
-    
+
     # 2. Sync models (only if present in configuration)
     models = cfg.get("models")
     if models is not None:
@@ -162,6 +161,6 @@ def sync(data: dict[str, Any]) -> None:
                 new_models_yaml = "models:\n" + dump_yaml(models, indent_level=2)
             yaml_text = update_yaml_root_key(yaml_text, "models", new_models_yaml)
             print("Replaced models in Continue config.")
-            
+
     target_path.write_text(yaml_text, encoding="utf-8")
     print(f"Replaced MCP servers in {target_path}.")

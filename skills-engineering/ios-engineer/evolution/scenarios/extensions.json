@@ -1,0 +1,47 @@
+{
+  "id": "extensions",
+  "version": 1,
+  "category": "behavior",
+  "input": "Widget 刷新偶尔不更新数据，而且点击 Widget 跳转到主 App 时会闪退。Share Extension 也访问不到主 App 的用户 token",
+  "primary_refs": [
+    "references/app_extensions.md"
+  ],
+  "output_contract": "four-segment",
+  "expected_hits": [
+    {
+      "key": "app-group-sharing",
+      "desc": "识别 Extension 与主 App 的数据共享必须通过 App Group / Keychain Group",
+      "anchor": "references/app_extensions.md",
+      "rule_id": "ROUTE-025"
+    },
+    {
+      "key": "widget-timeline-budget",
+      "desc": "指出 Widget getTimeline 内的内存和时间 budget，建议主 App 预处理",
+      "anchor": "references/app_extensions.md"
+    },
+    {
+      "key": "widget-url-routing",
+      "desc": "指出 systemSmall widget 仅支持单个 widgetURL，需要防御无效 deep link",
+      "anchor": "references/app_extensions.md"
+    }
+  ],
+  "failure_signals": [
+    {
+      "key": "direct-access-main-app",
+      "desc": "建议 Extension 直接访问主 App 沙盒目录或 UserDefaults.standard"
+    },
+    {
+      "key": "heavy-work-in-timeline",
+      "desc": "建议在 getTimeline 内做重请求或复杂 image processing"
+    },
+    {
+      "key": "no-extension-lifecycle",
+      "desc": "忽略 Extension 独立进程、内存受限、随时可能被终止的事实"
+    }
+  ],
+  "scoring": {
+    "pass": "所有 expected_hits 命中且无 failure_signals 触发",
+    "partial": "至少半数 expected_hits 命中且未触发任何核心 failure_signals",
+    "fail": "命中任一 failure_signals 或 expected_hits 命中不到一半"
+  }
+}

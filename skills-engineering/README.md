@@ -4,7 +4,18 @@
 ![Agent](https://img.shields.io/badge/agent-skill--engineering-34C759)
 ![Sync](https://img.shields.io/badge/sync-Codex%20%7C%20Claude%20%7C%20Cursor%20%7C%20Gemini-5856D6)
 
-用于维护、同步与演进工程化 Agent Skill 的仓库。当前主技能为 `ios-engineer`，覆盖 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务中的架构、并发、网络、UI、性能、测试、审查、迁移和发布风险控制。
+用于维护、同步与演进工程化 Agent Skill 的仓库。
+
+## 当前技能
+
+| 技能 | 类型 | 描述 |
+|------|------|------|
+| `ios-engineer` | 平台技能 | iOS / Swift / SwiftUI / UIKit / Xcode 工程全生命周期 |
+| `cognitive-expansion` | 全局技能 | 每次回复后的认知拓展，打破知识茧房 |
+| `engineering-discipline` | 全局技能 | 工程纪律：安全合规、前置确认、四段式输出 |
+| `epistemic-integrity` | 全局技能 | 真值接地：反幻觉、验证方法论、求真边界 |
+| `logical-reasoning` | 全局技能 | 论证纪律：可追溯逻辑链、层级分明 |
+| `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解 |
 
 本仓库同时提供三类能力：
 
@@ -30,22 +41,34 @@
 ```text
 .
 ├── README.md
-├── cognitive-expansion/
+├── ios-engineer/              # iOS 工程主技能
+│   ├── SKILL.md               # 技能主入口
+│   ├── AGENT-BRIEF.md         # Agent 快速决策参考
+│   ├── OUT-OF-SCOPE.md        # 范围外声明
+│   ├── references/            # 28+ 参考细则文件
+│   ├── scripts/               # 演进治理脚本
+│   └── evolution/             # 变更历史与提案
+├── cognitive-expansion/       # 认知拓展技能
 │   ├── SKILL.md
+│   ├── AGENT-BRIEF.md
+│   ├── OUT-OF-SCOPE.md
 │   └── references/
-├── scripts/
+├── engineering-discipline/    # 工程纪律技能（同构）
+├── epistemic-integrity/       # 真值接地技能（同构）
+├── logical-reasoning/         # 逻辑论证技能（同构）
+├── problem-analysis/          # 问题分析技能（同构）
+├── scripts/                   # 仓库级脚本
 │   ├── bootstrap.sh
-│   ├── sync-agent-preamble.sh
 │   ├── sync-skills.sh
+│   ├── sync-agent-preamble.sh
 │   ├── verify-sync.sh
+│   ├── list-skills.sh
 │   ├── config.local.sh.example
 │   └── templates/
-└── ios-engineer/
-    ├── SKILL.md
-    ├── agents/
-    ├── references/
-    ├── scripts/
-    └── evolution/
+├── docs/                      # 各 skill 使用文档（供人类阅读）
+├── .agents/                   # Agent 调用规范与文档写作规范
+├── .claude-plugin/            # Claude Code 插件清单（一键安装）
+└── .out-of-scope/             # 仓库级范围外声明
 ```
 
 关键目录：
@@ -54,6 +77,10 @@
 - `ios-engineer/scripts/`：技能演进、校验、提案、验证、晋升、回滚、usage ledger 写入与汇总脚本。
 - `ios-engineer/evolution/`：技能演进数据，包括 `proposals/`、`validations/`、`approvals/`、`history/`、`scenarios/`、`usage/`。
 - `scripts/`：仓库级脚本，负责同步技能、同步 Agent preamble 与同步结果校验；本地机器专属配置放在 `scripts/config.local.sh`（模板为 `scripts/config.local.sh.example`），路径由仓库根 `.gitignore` 排除，会被 sync 脚本自动 source。
+- `docs/`：各 skill 的独立使用文档，供人类阅读，不参与 Agent 运行时加载。
+- `.agents/`：`invocation.md`（多 skill 并行加载规范）和 `writing-docs.md`（文档写作规范）。
+- `.claude-plugin/plugin.json`：Claude Code 插件清单，支持一键安装为 Claude 插件。
+- `.out-of-scope/repository-scope.md`：仓库级范围外声明（安全合规等跨 skill 通用约束）。
 - 提交/推送守卫：合并入 `ai-coding-kit` 后由仓库根的 [../.githooks/](../.githooks/) 统一管理，详见外层根 README 的「Git 钩子」章节。
 
 ## 快速开始
@@ -373,7 +400,7 @@ bash install-hooks.sh
 4. `sync/sync_all.sh` —— 把 MCP / Codex 共享配置同步到 Cursor / Codex / Claude / Xcode（来自 `sync/` subtree，与本守卫并存）。
 
 任何一步失败都会 `exit 1` 并阻止 `git push`，保证远端指向的版本与本地 Agent 正在加载的版本一致。  
-例外：若仅缺少本地 `env/config.json`，`sync/sync_all.sh` 会按“未配置本地密钥文件”处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
+例外：若仅缺少本地 `env/secrets.json`，`sync/sync_all.sh` 会按"未配置本地密钥文件"处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
 
 ### 紧急绕过
 
@@ -394,3 +421,18 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all
 - 修改托管 preamble 时只改 `scripts/templates/agent-preamble.md.tmpl`，再运行 `./scripts/sync-agent-preamble.sh --dry-run` 检查输出。
 - 推送前（或 `SKILL_BYPASS=1` 推送后）手动跑 `./scripts/verify-sync.sh` 确认各已启用缓存与 preamble 状态一致，避免 Agent 侧加载漂移版本。
 - 本机专属配置（如 `CURSOR_PROJECT_ROOTS`）写进 `scripts/config.local.sh`（由 `scripts/config.local.sh.example` 复制）；该路径在仓库根 `.gitignore` 中已排除，切勿提交进仓库。
+
+## 变更记录
+
+仓库结构与工具链的变化记录于此；各 skill 内部规则变化通过 `ios-engineer/evolution/` 管理。
+
+### 3.0.0 — 2026-07-05
+
+- 新增各 skill 目录的 `AGENT-BRIEF.md`（Agent 快速决策参考）和 `OUT-OF-SCOPE.md`（范围外声明）
+- 新增 `docs/`：每个 skill 的独立使用文档
+- 新增 `.agents/`：`invocation.md` 和 `writing-docs.md`
+- 新增 `.claude-plugin/plugin.json`：Claude Code 插件清单
+- 新增 `.out-of-scope/repository-scope.md`：仓库级范围外声明
+- 新增 `scripts/list-skills.sh`：列出所有已注册 skill 及描述
+- 新增 `scripts/templates/epistemic-integrity.mdc.tmpl`：补齐 Cursor `.mdc` 生成链路
+- 修复 `scripts/verify-sync.sh`：补齐 `epistemic-integrity` 和 `problem-analysis` 的 preamble 检查

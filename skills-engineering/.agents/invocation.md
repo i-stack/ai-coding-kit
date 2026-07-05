@@ -1,0 +1,41 @@
+# Agent 调用规范
+
+## 调用流程
+
+1. **接收任务** → 解析用户意图和关键词
+2. **Skill 匹配** → 遍历已注册 skill 的 `AGENT-BRIEF.md`，判断是否命中触发条件
+3. **加载 Skill** → 命中后依次完整读取：
+   - `<skill>/SKILL.md` — 主入口和核心规则
+   - `<skill>/references/<reference>.md` — 按路由表加载相关细则
+   - `<skill>/OUT-OF-SCOPE.md` — 确认问题在 skill 范围内
+4. **执行规则** → 严格按 skill 规则执行回答
+5. **记录审计** → iOS 工程任务完成后追加 `<usage-audit>` 块
+
+## 多 Skill 并行
+
+多个 skill 同时命中时并行加载：
+- `ios-engineer` + 全局 skills（engineering-discipline、cognitive-expansion 等）可同时生效
+- 全局 skills 提供正交约束层（输出结构、论证质量、真值接地）
+- 平台 skills 提供领域知识和具体修法
+
+## Skill 命名约定
+
+| 类型 | 格式 | 示例 |
+|------|------|------|
+| 平台 skill | `<platform>-engineer` | `ios-engineer` |
+| 全局技能 | `<domain>-<descriptor>` | `cognitive-expansion`, `engineering-discipline` |
+| 引用文件 | `snake_case.md` | `cognitive_expansion.md`, `swift_concurrency.md` |
+
+## Agent 判定速查
+
+遇到以下关键词时，对应 skill 应在 1 个 turn 内加载：
+
+| 关键词 | Skill | 优先级 |
+|--------|-------|--------|
+| iOS / Swift / SwiftUI / Xcode / CocoaPods | ios-engineer | P0 |
+| 卡顿 / 崩溃 / 内存泄漏 / 布局错位 | ios-engineer | P0 |
+| 校准 / 真实 / 不确定 / 核验路径 | epistemic-integrity | P1 |
+| 逻辑 / 推断 / 因果 / 论证 | logical-reasoning | P1 |
+| 根因 / 修复 / 安全 / 敏感信息 | engineering-discipline | P1 |
+| 第一性原理 / 深层需求 / 问题偏差 | problem-analysis | P1 |
+| 盲区 / 邻域 / 拓展 / 带走 | cognitive-expansion | P2（回答后追加） |

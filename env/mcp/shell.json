@@ -1,0 +1,14 @@
+{
+    "name": "shell",
+    "type": "stdio",
+    "command": "/opt/homebrew/bin/npx",
+    "args": [
+        "-y",
+        "shell-mcp-server"
+    ],
+    "platforms": [
+        "claude",
+        "codex",
+        "continue"
+    ]
+}

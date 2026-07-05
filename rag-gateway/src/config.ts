@@ -30,7 +30,7 @@ function optionalEnv(key: string, fallback: string): string {
 	return process.env[key] ?? fallback;
 }
 
-// ── env/config.json loading ─────────────────────────────────────────────────
+// ── env/platforms/rag-gateway.json loading ───────────────────────────────────
 
 /**
  * Apply parsed config env values to an env-like object.
@@ -52,54 +52,57 @@ export function applyGatewayConfigEnv(
 	}
 }
 
-function objectRecord(value: unknown): Record<string, unknown> {
-	return value !== null && typeof value === "object" && !Array.isArray(value)
-		? (value as Record<string, unknown>)
-		: {};
-}
+/**
+ * Read the gateway platform config from env/platforms/rag-gateway.json.
+ * The file structure is:
+ *   { "env": { "EMBEDDING_API_KEY": "...", ... } }
+ */
+export function gatewayEnvFromConfig(): Record<string, unknown> {
+	// Resolve env/platforms/rag-gateway.json relative to this source file.
+	// dist/config.js → ../../env/platforms/rag-gateway.json
+	const configPath = resolve(
+		dirname(fileURLToPath(import.meta.url)),
+		"../../env/platforms/rag-gateway.json",
+	);
 
-export function gatewayEnvFromConfig(values: Record<string, unknown>): Record<string, unknown> {
-	const platforms = objectRecord(values.platforms);
-	const ragGateway = objectRecord(platforms["rag-gateway"]);
-	const legacyGateway = objectRecord(platforms.gateway);
-	return {
-				...objectRecord(legacyGateway.env),
-		...objectRecord(ragGateway.env),
-	};
-}
+	if (!existsSync(configPath)) {
+		return {};
+	}
 
-// Resolve env/config.json relative to this source file.
-// dist/config.js → ../../env/config.json
-const CONFIG_JSON_PATH = resolve(
-	dirname(fileURLToPath(import.meta.url)),
-	"../../env/config.json",
-);
+	try {
+		const raw = readFileSync(configPath, "utf-8");
+		const values: Record<string, unknown> = JSON.parse(raw);
+		const env = values?.env;
+		return env !== null && typeof env === "object" && !Array.isArray(env)
+			? (env as Record<string, unknown>)
+			: {};
+	} catch {
+		return {};
+	}
+}
 
 /**
- * Load env/config.json and apply platforms["rag-gateway"].env keys to process.env.
+ * Load env/platforms/rag-gateway.json and apply env keys to process.env.
  * .env values take precedence (already loaded by `import "dotenv/config"` above).
  * Silently degrades to .env-only if the file is missing or malformed.
  */
-function loadConfigJson(): void {
-	if (!existsSync(CONFIG_JSON_PATH)) {
-		console.warn(`[config] env/config.json not found at ${CONFIG_JSON_PATH}; using .env only`);
-		return;
-	}
+function loadGatewayConfigJson(): void {
 	try {
-		const raw = readFileSync(CONFIG_JSON_PATH, "utf-8");
-		const values: Record<string, unknown> = JSON.parse(raw);
-		const gatewayEnv = gatewayEnvFromConfig(values);
+		const gatewayEnv = gatewayEnvFromConfig();
 		applyGatewayConfigEnv(gatewayEnv, process.env);
-		console.info(`[config] Loaded env/config.json platforms["rag-gateway"].env (${Object.keys(gatewayEnv).length} keys)`);
+		const keyCount = Object.keys(gatewayEnv).length;
+		if (keyCount > 0) {
+			console.info(`[config] Loaded env/platforms/rag-gateway.json env (${keyCount} keys)`);
+		}
 	} catch (err) {
-		console.warn(`[config] Failed to parse env/config.json: ${(err as Error).message}; using .env only`);
+		console.warn(`[config] Failed to load rag-gateway config: ${(err as Error).message}; using .env only`);
 	}
 }
 
 export function loadConfig(): GatewayConfig {
 	// Phase 1: dotenv already ran at import-time (top of file).
-	// Phase 2: apply env/config.json defaults for any keys still unset.
-	loadConfigJson();
+	// Phase 2: apply env/platforms/rag-gateway.json defaults for any keys still unset.
+	loadGatewayConfigJson();
 
 	const embeddingModel = optionalEnv("EMBEDDING_MODEL", "bge-m3");
 

@@ -1,0 +1,57 @@
+{
+    "_comment": "Gemini CLI platform configuration. Schema: https://github.com/google-gemini/gemini-cli/blob/main/packages/cli/src/config/settingsSchema.ts",
+    "model": {
+        "name": "gemini-3.5-flash",
+        "maxSessionTurns": -1,
+        "compressionThreshold": 0.5,
+        "skipNextSpeakerCheck": true
+    },
+    "context": {
+        "fileName": "GEMINI.md",
+        "includeDirectoryTree": true,
+        "importFormat": "tree",
+        "fileFiltering": {
+            "respectGitIgnore": true,
+            "respectGeminiIgnore": true,
+            "enableFileWatcher": true,
+            "enableRecursiveFileSearch": true,
+            "enableFuzzySearch": true
+        }
+    },
+    "tools": {
+        "sandbox": "sandbox-exec",
+        "sandboxNetworkAccess": true,
+        "useRipgrep": true,
+        "shell": {
+            "enableInteractiveShell": true
+        }
+    },
+    "skills": {
+        "enabled": true
+    },
+    "hooksConfig": {
+        "enabled": true
+    },
+    "security": {
+        "folderTrust": {
+            "enabled": true
+        }
+    },
+    "experimental": {
+        "directWebFetch": true,
+        "enableAgents": true,
+        "autoMemory": true,
+        "contextManagement": true
+    },
+    "contextManagement": {
+        "historyWindow": {
+            "maxTokens": 200000,
+            "retainedTokens": 10000
+        }
+    },
+    "export_env_to_zshrc": {
+        "GEMINI_API_KEY": "${gemini.key}",
+        "GOOGLE_GEMINI_BASE_URL": "${gemini.url}",
+        "GEMINI_MODEL": "gemini-3.5-flash"
+    }
+}

@@ -26,6 +26,11 @@ CANONICAL_SLUGS = %w[
   review
   migration
   mcp-control
+  notifications
+  privacy
+  persistence
+  storekit
+  extensions
 ].freeze
 
 OUTPUT_CONTRACTS = %w[four-segment findings-first free].freeze

@@ -51,6 +51,8 @@ check_skill_dir() {
     return
   fi
   [[ -f "$dir/SKILL.md" ]]    || note_fail "$dir/SKILL.md missing"
+  [[ -f "$dir/AGENT-BRIEF.md" ]] || note_fail "$dir/AGENT-BRIEF.md missing"
+  [[ -f "$dir/OUT-OF-SCOPE.md" ]] || note_fail "$dir/OUT-OF-SCOPE.md missing"
   [[ -d "$dir/references" ]]  || note_fail "$dir/references/ missing"
   for stale in evolution proposals history scripts agents validations scenarios approvals usage; do
     if [[ -d "$dir/$stale" ]]; then
@@ -85,6 +87,12 @@ check_preamble_tilde() {
   fi
   if ! grep -q 'engineering-discipline/references/engineering_discipline.md' "$file"; then
     note_fail "$file missing engineering-discipline full-text load instruction"
+  fi
+  if ! grep -q 'problem-analysis/references/problem_analysis.md' "$file"; then
+    note_fail "$file missing problem-analysis full-text load instruction"
+  fi
+  if ! grep -q 'epistemic-integrity/references/epistemic_integrity.md' "$file"; then
+    note_fail "$file missing epistemic-integrity full-text load instruction"
   fi
 }
 
@@ -148,7 +156,7 @@ if [[ $FAIL -eq 0 ]]; then
   if [[ $CHECKED -eq 0 ]]; then
     echo "OK: no sync targets enabled; nothing to verify."
   else
-    echo "OK: ${CHECKED} target(s) clean (all skills: SKILL.md + references/ only); preambles tilde-ified"
+    echo "OK: ${CHECKED} target(s) clean (all skills: SKILL.md + AGENT-BRIEF.md + OUT-OF-SCOPE.md + references/); preambles tilde-ified"
   fi
 fi
 exit $FAIL

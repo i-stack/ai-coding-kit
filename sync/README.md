@@ -1,167 +1,156 @@
 # sync
 
-`sync/` renders one local config file into each host's native format.
+`sync/` reads MCP server definitions and platform configs, **injects secrets** from `env/secrets.json`, then renders them into each platform's native format.
 
-Canonical source:
-
-```text
-env/config.json
-```
-
-Template:
+## 快速开始（3 步）
 
 ```bash
-cp env/config.json.example env/config.json
-$EDITOR env/config.json
+# 1. 复制 secrets 模板（唯一需要创建的文件）
+cp env/secrets.json.example env/secrets.json
+
+# 2. 编辑填写你的 API Keys
+$EDITOR env/secrets.json
+
+# 3. 一键同步到所有平台
+bash sync.sh
 ```
 
-## MCP Server Platform Filtering
+## 架构
 
-By default every MCP server is synced to every platform. Add an optional `platforms` array to limit which platforms receive a server:
+```text
+env/
+├── secrets.json            ← 你唯一需要配置的文件（gitignored）
+├── secrets.json.example    ← 模板（已提交，列出所有需要的 Key）
+│
+├── mcp/                    ← MCP 服务器定义（已提交，开箱即用）
+│   ├── github.json         ← token 用 ${github.token} 占位
+│   ├── apifox.json
+│   └── ...
+│
+├── platforms/              ← 平台配置（已提交，开箱即用）
+│   ├── codex.json          ← url/key 用 ${codex.url}/${codex.key} 占位
+│   ├── claude.json
+│   └── ...
+│
+└── templates/              ← 模板（供新增 MCP/平台时参考）
+    ├── mcp.template.json
+    └── platform.template.json
+```
+
+## 占位符机制
+
+所有配置文件的敏感值使用 `${platform.field}` 占位，同步时从 `env/secrets.json` 注入：
 
 ```json
-"mcpServers": {
-    "XcodeBuildMCP": {
-        "command": "npx",
-        "args": ["-y", "xcodebuildmcp@latest", "mcp"],
-        "platforms": ["claude", "codex"]
-    },
-    "design-handoff": {
-        "url": "http://localhost:8000/mcp",
-        "platforms": ["claude", "cline"]
-    },
-    "github": {
-        "url": "https://api.githubcopilot.com/mcp/"
-    }
+// env/mcp/github.json（已提交）
+{ "headers": { "Authorization": "Bearer ${github.token}" } }
+
+// env/platforms/codex.json（已提交）
+{ "model_providers": { "dataeyes": {
+    "base_url": "${codex.url}",
+    "env_key": "DATAEYES_API_KEY"
+  }},
+  "env": { "DATAEYES_API_KEY": "${codex.key}" }
 }
+
+// env/secrets.json（不提交，用户填写 — 每个平台一个对象）
+{
+  "github": { "token": "ghp_xxx" },
+  "codex":  { "url": "https://api.example.com/v1", "key": "sk-xxx" },
+  ...
+}
+
+// 运行时解析为：
+{ "headers": { "Authorization": "Bearer ghp_xxx" } }
+{ "base_url": "https://api.example.com/v1", ... }
 ```
 
-- `"platforms": ["claude", "codex"]` — only claude and codex receive this server.
-- No `platforms` field — all platforms receive this server (existing behavior preserved).
+## MCP Server File Format
 
-The `platforms` key is stripped from the output; target config files never see it.
-
-## Design
-
-The architecture is deliberately split into three layers:
-
-| Layer | Owner | Purpose |
-|------|-------|---------|
-| Source | `env/config.json` | One maintained config file: MCP catalog, shared env, and platform-specific env/config. |
-| Renderer | `sync/platforms/*.py` | Converts source schema into each platform's required file format. |
-| Orchestrator | `sync/sync_config.py` | Loads the source and dispatches to selected platform renderers. |
-| Target | Cursor / CodeBuddy / Codex / Claude / Xcode paths | Generated or merged files; never edited as the source of truth. |
-
-Platform independence lives inside the single config file:
+Each `env/mcp/<name>.json`:
 
 ```json
 {
-  "platforms": {
-    "gateway": { "env": {} },
-    "claude": { "env": {} },
-    "codex": { "env": {}, "features": {}, "projects": {} }
-  }
+  "name": "my-server",
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "my-mcp-package"],
+  "env": {},
+  "platforms": ["claude", "codex", "codebuddy"]
 }
 ```
 
-Values under `platforms.<name>.env` are scoped to that platform. No global `env.shared` — each platform owns its own env vars.
+- `type`: `"stdio"` (requires `command`/`args`) or `"sse"` (requires `url`/`headers`)
+- `platforms`: optional filter — omit to sync to all platforms, or list specific platforms
+- `env`: environment variables passed to the MCP server process
+- Secrets: use `${platform.field}` syntax, resolved from nested `env/secrets.json` at sync time
+
+## Platform Config Files
+
+Each `env/platforms/<name>.json` follows that platform's **official configuration spec**:
+
+| Platform | File | Follows |
+|----------|------|---------|
+| Codex | `codex.json` | [Codex config.toml schema](https://developers.openai.com/codex/config-reference) |
+| Claude | `claude.json` | Claude Code settings.json `env` + `hooks` |
+| CodeBuddy | `codebuddy.json` | CodeBuddy `models.json` schema |
+| Gemini | `gemini.json` | Gemini CLI env vars |
+| Continue | `continue.json` | Continue `config.yaml` models |
+| Cursor | `cursor.json` | (no platform config needed) |
+| Cline | `cline.json` | (no platform config needed) |
+| RAG Gateway | `rag-gateway.json` | Gateway env vars |
+
+The JSON keys map directly to the platform's native format — no field name translation needed.
 
 ## Targets
 
 | Target | Output |
-|------|--------|
-| Cursor | Replace `mcpServers` in `~/.cursor/mcp.json`, preserving other top-level keys. |
-| CodeBuddy | Replace `mcpServers` in `~/.codebuddy/mcp.json`, sync models to `~/.codebuddy/models.json`, and copy skills from `~/.claude/skills/` to `~/.codebuddy/skills/`. |
-| Codex CLI | `~/.codex/mcp.generated.toml` plus managed blocks in `~/.codex/config.toml`. |
-| Xcode Codex | `~/Library/Developer/Xcode/CodingAssistant/codex/` with the same TOML rendering. |
-| Claude Code | Replace `mcpServers` in `~/.claude.json`, preserving other top-level keys. |
-| Xcode Claude Agent | Replace `mcpServers` in `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json`; per-project when projects already exist. |
-| Claude settings | Merge `platforms.claude.env` into `~/.claude/settings.json` `env`, preserving unrelated env keys. |
-| RAG Gateway | `rag-gateway/src/config.ts` reads `platforms["rag-gateway"].env` directly from `env/config.json`; `.env` still wins at runtime. |
-| Continue | Replace `mcpServers` (with SSE header compatibility mapping) and update `models` in `~/.continue/config.yaml`. |
+|--------|--------|
+| Cursor | Replace `mcpServers` in `~/.cursor/mcp.json` |
+| CodeBuddy | Replace `mcpServers` in `~/.codebuddy/mcp.json`, sync `models.json`, skills |
+| Codex CLI | `~/.codex/mcp.generated.toml` + managed blocks in `config.toml` |
+| Xcode Codex | `~/Library/.../CodingAssistant/codex/` |
+| Claude Code | Replace `mcpServers` in `~/.claude.json` + Xcode Claude |
+| Claude settings | Merge `env` + `hooks` into `~/.claude/settings.json` |
+| Cline | Replace `mcpServers` in VSCode extension settings + skills sync |
+| Gemini CLI | Replace `mcpServers` in `~/.gemini/settings.json` + `~/.zshrc` env |
+| Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml` |
 
-Codex targets are TOML because Codex config is TOML. The maintained source remains JSON; `sync_config.py` is the adapter.
+## Adding a Platform
 
-## Adding Platforms
+1. Copy template: `cp env/templates/platform.template.json env/platforms/my-platform.json`
+2. Fill in config following the platform's official spec
+3. If the platform only needs `mcpServers` in a JSON file, add `"mcp_target": "~/.my-platform/mcp.json"` to the config
+4. If custom rendering is needed, create `sync/platforms/my_platform.py` with a `sync(mcp_servers, cfg)` function and register in `sync_config.py`
 
-**Complex platforms** (custom config format, multi-file writes, or extra logic) need a renderer module:
-
-1. Add `sync/platforms/<name>.py` with a `sync(data) -> None` function.
-2. Register it in `TARGETS` inside `sync/sync_config.py`.
-
-**Simple JSON-MCP platforms** (only need `mcpServers` written to a JSON file) can be declared directly in `env/config.json` without any Python:
-
-```json
-"platforms": {
-    "zed": { "type": "json-mcp", "path": "~/.config/zed/mcp.json" }
-}
-```
-
-`sync_config.py` auto-discovers all `type=json-mcp` entries and builds sync functions for them at runtime. Adding Zed, Kiro, or any other simple platform requires only a config change.
-
-Do not add another top-level sync script for each platform. The stable command should remain:
+## Adding an MCP Server
 
 ```bash
-python3 sync/sync_config.py --target <platform>
+cp env/templates/mcp.template.json env/mcp/my-new-server.json
+$EDITOR env/mcp/my-new-server.json
+bash sync.sh
 ```
-
-This keeps orchestration, CLI flags, and missing-config behavior in one place while letting each platform own its native rendering.
-
-## Codex Model Provider
-
-`platforms.codex.modelProvider` controls whether the generated Codex TOML pins a custom provider:
-
-```json
-"modelProvider": "custom"
-```
-
-Generates:
-
-```toml
-model_provider = "custom"
-
-[model_providers.custom]
-...
-```
-
-Omit `modelProvider` or set it to `null` / `""` to avoid generating `model_provider` and `[model_providers.*]`. In that mode, Codex uses its own default provider/model behavior, while other shared fields such as `[features]`, `[projects.*]`, and MCP blocks still sync.
 
 ## Commands
 
 ```bash
-bash sync/sync_all.sh
+bash sync.sh                              # sync all
+python3 sync/sync_config.py --target all  # sync all (Python direct)
+python3 sync/sync_config.py --target codex  # single platform
 ```
 
-Targeted runs:
+## Design Principles
 
-```bash
-python3 sync/sync_config.py --target cursor
-python3 sync/sync_config.py --target codebuddy
-python3 sync/sync_config.py --target codex
-python3 sync/sync_config.py --target claude
-python3 sync/sync_config.py --target gemini
-python3 sync/sync_config.py --target continue
-```
-
-## Managed Blocks
-
-Codex config files contain two generated regions:
-
-```text
-# BEGIN CODEX SHARED (from env/config.json)
-...
-# END CODEX SHARED
-
-# BEGIN MCP SYNC (from env/config.json)
-...
-# END MCP SYNC
-```
-
-Everything outside those markers is host-specific and preserved. Keep `developer_instructions`, sandbox, plugins, Xcode-only MCP, notifications, and local overrides outside managed blocks.
-
-JSON MCP targets treat `env/config.json` as authoritative: each run replaces the target `mcpServers` object so source-side deletes and edits propagate. Non-MCP top-level keys are preserved. Platform env blocks, such as Claude settings `env`, remain merge-based so unrelated local environment keys survive.
+1. **One file to configure**: user only edits `env/secrets.json` — each platform has its own `{url, key/token}` object
+2. **MCP separation**: one file per server — no monolithic config
+3. **Platform spec compliance**: config keys match the platform's native naming exactly
+4. **Zero field-name mapping**: renderers convert format (JSON→TOML, JSON→YAML), not field names
+5. **Auto-discovery**: platforms are discovered from `env/platforms/` directory
+6. **Secrets injection**: `${platform.field}` references are resolved from nested `env/secrets.json` at sync time
 
 ## Safety
 
-`env/config.json` is gitignored because it may contain API keys and MCP tokens. Commit only `env/config.json.example`.
-keys and MCP tokens. Commit only `env/config.json.example`.
+- `env/secrets.json` is **gitignored** — never committed
+- `env/mcp/*.json` and `env/platforms/*.json` are **committed** — use `${VAR}` placeholders, no real secrets
+- `env/secrets.json.example` is **committed** — shows required keys with placeholder values
+- `env/templates/` is **committed** — templates for adding new servers/platforms

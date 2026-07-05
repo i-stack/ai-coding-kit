@@ -1,0 +1,14 @@
+{
+    "name": "gateway",
+    "type": "sse",
+    "url": "http://localhost:3000/mcp/sse",
+    "headers": {},
+    "platforms": [
+        "claude",
+        "codex",
+        "codebuddy",
+        "gemini",
+        "cline",
+        "continue"
+    ]
+}

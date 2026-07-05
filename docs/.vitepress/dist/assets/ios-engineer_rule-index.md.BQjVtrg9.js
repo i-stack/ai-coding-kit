@@ -1,0 +1,29 @@
+import { _ as _export_sfc, C as resolveComponent, o as openBlock, c as createElementBlock, j as createBaseVNode, a as createTextVNode, E as createVNode, a2 as createStaticVNode } from "./chunks/framework.BcMzFyCJ.js";
+const __pageData = JSON.parse('{"title":"Rule Index","description":"","frontmatter":{},"headers":[],"relativePath":"ios-engineer/rule-index.md","filePath":"ios-engineer/rule-index.md","lastUpdated":1783251060000}');
+const _sfc_main = { name: "ios-engineer/rule-index.md" };
+function _sfc_render(_ctx, _cache, $props, $setup, $data, $options) {
+  const _component_Badge = resolveComponent("Badge");
+  return openBlock(), createElementBlock("div", null, [
+    _cache[0] || (_cache[0] = createBaseVNode("h1", {
+      id: "rule-index",
+      tabindex: "-1"
+    }, [
+      createTextVNode("Rule Index "),
+      createBaseVNode("a", {
+        class: "header-anchor",
+        href: "#rule-index",
+        "aria-label": 'Permalink to "Rule Index"'
+      }, "​")
+    ], -1)),
+    createVNode(_component_Badge, {
+      type: "tip",
+      text: "49 IDs registered"
+    }),
+    _cache[1] || (_cache[1] = createStaticVNode('<p>The canonical Rule ID registry for iOS Engineer. Every rule ID is defined here first, then referenced in <code>SKILL.md</code>. An automated validation script (<code>validate_rule_ids.sh</code>) ensures bidirectional consistency.</p><h2 id="iron-rules-ir-nnn" tabindex="-1">Iron Rules (IR-NNN) <a class="header-anchor" href="#iron-rules-ir-nnn" aria-label="Permalink to &quot;Iron Rules (IR-NNN)&quot;">​</a></h2><table tabindex="0"><thead><tr><th>ID</th><th>Status</th><th>Summary</th></tr></thead><tbody><tr><td>IR-001</td><td>active</td><td>Output language anchors to user&#39;s input language</td></tr><tr><td>IR-006</td><td>active</td><td>Version context block before conclusions on concurrency/availability/SwiftUI/network</td></tr><tr><td>IR-011</td><td>active</td><td>Cognitive adversary mode: restatement, counter-argument, hidden assumptions, falsifiability</td></tr></tbody></table><h2 id="global-rules-gr-nnn" tabindex="-1">Global Rules (GR-NNN) <a class="header-anchor" href="#global-rules-gr-nnn" aria-label="Permalink to &quot;Global Rules (GR-NNN)&quot;">​</a></h2><p>Carried by independent global skills, cross-platform. The ios-engineer skill mirrors them for reference.</p><table tabindex="0"><thead><tr><th>ID</th><th>Status</th><th>Summary</th></tr></thead><tbody><tr><td>GR-001</td><td>active</td><td>Security compliance — never expose credentials</td></tr><tr><td>GR-002</td><td>active</td><td>Pre-confirmation block when info is insufficient</td></tr><tr><td>GR-003</td><td>active</td><td>Single root cause (1 primary + max 1 secondary)</td></tr><tr><td>GR-004</td><td>active</td><td>Four-section output (cause → why → fix → verify)</td></tr><tr><td>GR-005</td><td>active</td><td>Minimal fix first</td></tr><tr><td>GR-006</td><td>active</td><td>Tool budget gate — 3 failures or 15 turns blocks</td></tr><tr><td>GR-007</td><td>active</td><td>No code formatting (prevents diff noise)</td></tr><tr><td>GR-008</td><td>active</td><td>Change coverage declaration</td></tr><tr><td>GR-010</td><td>active</td><td>Traceable logic chain with strength indicators</td></tr></tbody></table><h2 id="symptom-routing-sym-nnn" tabindex="-1">Symptom Routing (SYM-NNN) <a class="header-anchor" href="#symptom-routing-sym-nnn" aria-label="Permalink to &quot;Symptom Routing (SYM-NNN)&quot;">​</a></h2><table tabindex="0"><thead><tr><th>ID</th><th>Status</th><th>Summary</th></tr></thead><tbody><tr><td>SYM-001</td><td>active</td><td>Crash / assertion / force unwrap → root_cause_enforcement</td></tr><tr><td>SYM-002</td><td>active</td><td>UI misalignment / constraint conflicts / list jitter</td></tr><tr><td>SYM-003</td><td>active</td><td>State chaos / async write-back / stale request override</td></tr><tr><td>SYM-004</td><td>active</td><td>Request failure / auth refresh / pagination</td></tr><tr><td>SYM-005</td><td>active</td><td>Lag / slow launch / memory / energy</td></tr><tr><td>SYM-006</td><td>active</td><td>Naming chaos / force unwrap / access control</td></tr><tr><td>SYM-007</td><td>active</td><td>Legacy project chaos / fear of touching modules</td></tr></tbody></table><h2 id="task-routing-route-nnn" tabindex="-1">Task Routing (ROUTE-NNN) <a class="header-anchor" href="#task-routing-route-nnn" aria-label="Permalink to &quot;Task Routing (ROUTE-NNN)&quot;">​</a></h2><p>10 routing entries covering: debugging / architecture design / code review / migration / testing / dependency / build &amp; CI / security &amp; permission / data persistence / Core Skills (markdown/code generation).</p><h2 id="output-templates-out-nnn" tabindex="-1">Output Templates (OUT-NNN) <a class="header-anchor" href="#output-templates-out-nnn" aria-label="Permalink to &quot;Output Templates (OUT-NNN)&quot;">​</a></h2><p>6 output templates for: root cause analysis, architecture review, code review, migration plan, test design, and decision record.</p><hr><p>See the <a href="https://github.com/i-stack/ai-coding-kit/blob/feature_3.0.0/skills-engineering/ios-engineer/references/rule_index.md" target="_blank" rel="noreferrer">canonical rule_index.md</a> for the complete registry with status and anchor points.</p>', 14))
+  ]);
+}
+const ruleIndex = /* @__PURE__ */ _export_sfc(_sfc_main, [["render", _sfc_render]]);
+export {
+  __pageData,
+  ruleIndex as default
+};

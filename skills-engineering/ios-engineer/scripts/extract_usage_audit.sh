@@ -36,26 +36,26 @@ if [ ! -d "$LOCK_DIR" ]; then
   exit 1
 fi
 
-cleanup() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
+cleanup() {
+  rmdir "$LOCK_DIR" 2>/dev/null || true
+}
 trap cleanup EXIT
 
 ruby -rjson - "$input" "$LEDGER_FILE" <<'RUBY'
-require "set"
-
 input_path, ledger_path = ARGV
 text = File.read(input_path)
 index_path = "references/rule_index.md"
 
-ALLOWED_TOOLS = %w[codex claude-code cursor manual other].to_set.freeze
-ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control other].to_set.freeze
-ALLOWED_OUTCOMES = %w[pass partial fail].to_set.freeze
-ALLOWED_SIGNALS = ["none", "修正表达", "新增能力", "合并重复", "退役规则"].to_set.freeze
+ALLOWED_TOOLS = %w[codex claude-code cursor manual other].freeze
+ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control notifications privacy persistence storekit extensions other].freeze
+ALLOWED_OUTCOMES = %w[pass partial fail].freeze
+ALLOWED_SIGNALS = ["none", "修正表达", "新增能力", "合并重复", "退役规则"].freeze
 ID_FORMAT = /\A[A-Z]+-\d{3}\z/
 
-active_ids = Set.new
+active_ids = []
 File.foreach(index_path) do |line|
-  m = line.match(/\A\|\s*([A-Z]+-\d{3})\s*\|\s*active\s*\|/)
-  active_ids << m[1] if m
+  match = line.match(/\A\|\s*([A-Z]+-\d{3})\s*\|\s*active\s*\|/)
+  active_ids << match[1] if match
 end
 
 blocks = text.scan(/<usage-audit>(.*?)<\/usage-audit>/m).map { |m| m[0] }
@@ -88,10 +88,10 @@ blocks.each_with_index do |body, idx|
   end
   next if REQUIRED_KEYS.any? { |k| !data.key?(k) }
 
-  errors << "block #{block_no}: tool '#{data['tool']}' not in #{ALLOWED_TOOLS.to_a.inspect}" unless ALLOWED_TOOLS.include?(data["tool"])
-  errors << "block #{block_no}: task-type '#{data['task-type']}' not in #{ALLOWED_TASK_TYPES.to_a.inspect}" unless ALLOWED_TASK_TYPES.include?(data["task-type"])
-  errors << "block #{block_no}: outcome '#{data['outcome']}' not in #{ALLOWED_OUTCOMES.to_a.inspect}" unless ALLOWED_OUTCOMES.include?(data["outcome"])
-  errors << "block #{block_no}: evolution-signal '#{data['evolution-signal']}' not in #{ALLOWED_SIGNALS.to_a.inspect}" unless ALLOWED_SIGNALS.include?(data["evolution-signal"])
+  errors << "block #{block_no}: tool '#{data['tool']}' not in #{ALLOWED_TOOLS.inspect}" unless ALLOWED_TOOLS.include?(data["tool"])
+  errors << "block #{block_no}: task-type '#{data['task-type']}' not in #{ALLOWED_TASK_TYPES.inspect}" unless ALLOWED_TASK_TYPES.include?(data["task-type"])
+  errors << "block #{block_no}: outcome '#{data['outcome']}' not in #{ALLOWED_OUTCOMES.inspect}" unless ALLOWED_OUTCOMES.include?(data["outcome"])
+  errors << "block #{block_no}: evolution-signal '#{data['evolution-signal']}' not in #{ALLOWED_SIGNALS.inspect}" unless ALLOWED_SIGNALS.include?(data["evolution-signal"])
 
   ps = data["prompt-summary"]
   unless ps.length.between?(5, 200)

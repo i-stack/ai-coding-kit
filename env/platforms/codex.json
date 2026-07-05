@@ -1,0 +1,86 @@
+{
+    "model": "gpt-5.5",
+    "personality": "pragmatic",
+    "model_provider": "",
+    "model_reasoning_effort": "medium",
+    "model_verbosity": "medium",
+    "model_reasoning_summary": "auto",
+    "plan_mode_reasoning_effort": "medium",
+    "hide_agent_reasoning": true,
+    "sandbox_mode": "workspace-write",
+    "approval_policy": "on-request",
+    "allow_login_shell": true,
+    "default_permissions": ":workspace",
+    "web_search": "cached",
+    "file_opener": "cursor",
+    "project_doc_max_bytes": 32768,
+    "project_doc_fallback_filenames": ["CODEBUDDY.md", "CLAUDE.md"],
+    "model_providers": {
+        "dataeyes": {
+            "base_url": "${codex.url}",
+            "env_key": "DATAEYES_API_KEY",
+            "wire_api": "responses"
+        }
+    },
+    "history": {
+        "persistence": "save-all",
+        "max_bytes": 104857600
+    },
+    "sandbox_workspace_write": {
+        "network_access": true,
+        "writable_roots": [],
+        "exclude_tmpdir_env_var": false,
+        "exclude_slash_tmp": false
+    },
+    "tools": {
+        "view_image": true
+    },
+    "shell_environment_policy": {
+        "inherit": "all",
+        "ignore_default_excludes": false,
+        "exclude": []
+    },
+    "tui": {
+        "notifications": true,
+        "animations": true,
+        "show_tooltips": true
+    },
+    "agents": {
+        "max_threads": 6,
+        "max_depth": 1
+    },
+    "memories": {
+        "generate_memories": true,
+        "use_memories": true
+    },
+    "analytics": {
+        "enabled": true
+    },
+    "feedback": {
+        "enabled": true
+    },
+    "features": {
+        "skills": true,
+        "multi_agent": true,
+        "hooks": true,
+        "shell_snapshot": true,
+        "unified_exec": true,
+        "shell_tool": true,
+        "memories": true,
+        "personality": true,
+        "fast_mode": true,
+        "enable_request_compression": true,
+        "skill_mcp_dependency_install": true
+    },
+    "projects": {
+        "~/Desktop/iOS/bajoseekios": {
+            "trust_level": "trusted"
+        },
+        "~/Desktop/iOS/STBaseProject": {
+            "trust_level": "trusted"
+        }
+    },
+    "export_env_to_zshrc": {
+        "DATAEYES_API_KEY": "${codex.key}"
+    }
+}
