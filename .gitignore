@@ -9,6 +9,7 @@ skills-engineering/scripts/config.local.sh
 env/secrets.json
 
 *__pycache__*/
+.analysis_output/
 
 .cursor/
 .codex/

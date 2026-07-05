@@ -165,16 +165,22 @@
 
 ## 进化历史 GC 策略
 
-`evolution/history/` 每次晋升产生全量快照，随版本积累会快速膨胀。以下策略控制目录体积：
+`evolution/history/` 每次晋升产生全量快照，随版本积累会快速膨胀。`evolution/proposals/` 和 `evolution/approvals/` 同步联动清理，保持三者一致。以下策略控制目录体积：
 
 **保留规则**：
 - 始终保留最近 10 个版本的完整快照。
 - 每 10 个版本（v10, v20, v30...）保留一个里程碑快照作为长期还原点。
 - 其他版本的快照在晋升下一个版本后自动清理。
 
+**Proposals / Approvals 联动清理规则**：
+- 每个 history 版本的 `metadata.json` 记录了 `source: "proposal:<slug>"`，关联对应的 proposal 和 approval。
+- 当一个 proposal 的**所有**关联 history 版本均被 GC 删除时，该 proposal 及其 approval 同步清理。
+- 未关联任何 history 版本的 proposal / approval（仍在草案、验证中、已审批未晋升）**始终保留**。
+- 无对应 proposal 的孤立 approval 文件（残留文件）也会被清理。
+
 **清理脚本**：
 ```bash
-# 示例：仅保留最近 10 版 + 每 10 版里程碑
+# 示例：统一清理 history + proposals + approvals
 bash scripts/gc_evolution_history.sh
 ```
 
@@ -187,7 +193,9 @@ bash scripts/gc_evolution_history.sh
 - `active_version.json` 指向的当前版本快照。
 - 里程碑版本快照（版本号能被 10 整除且 ≥ v10）。
 - 最近 10 个版本的快照。
+- 关联到以上保留版本的 proposal / approval 文件。
+- 未关联任何 history 的进行中 proposal（WIP）始终保留。
 
 **干运行模式**：
-- `gc_evolution_history.sh --dry-run` 仅列出将被删除的目录，不实际删除。
+- `gc_evolution_history.sh --dry-run` 仅列出将被删除的内容，不实际删除。
 - 首次部署建议先干运行确认列表。
