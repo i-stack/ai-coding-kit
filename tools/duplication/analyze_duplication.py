@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-ios-engineer 去重分析工具
+通用去重分析工具
 步骤1: 对每个文件提取逻辑指纹
 步骤2: 汇总后对比相似度，定位重复逻辑
 """
@@ -14,16 +14,16 @@ from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 
+TOOL_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_ROOT = os.getcwd()
 ROOT = DEFAULT_ROOT
-OUTPUT = os.path.join(os.getcwd(), ".analysis_output")
+OUTPUT = os.path.join(TOOL_DIR, ".analysis_output")
 
 # ---- 配置 ----
 SKIP_DIRS = {
-    "evolution/history", "evolution/proposals", "evolution/approvals",
-    "evolution/validations", "evolution/scenarios", ".analysis_output",
+    ".analysis_output",
     ".git", ".hg", ".svn", ".venv", "venv", "node_modules", "__pycache__",
-    ".pytest_cache", ".mypy_cache", ".ruff_cache", "dist", "build"
+    ".pytest_cache", ".mypy_cache", ".ruff_cache", "dist", "build",
 }
 NOISY_FUNCTION_NAMES = {"usage"}
 MIN_FUNCTION_BODY_LINES = 4
@@ -46,14 +46,17 @@ def configure_paths(target_root, output_dir=None):
     OUTPUT = (
         os.path.abspath(output_dir)
         if output_dir
-        else os.path.join(os.getcwd(), ".analysis_output", directory_label(ROOT))
+        else os.path.join(TOOL_DIR, ".analysis_output", directory_label(ROOT))
     )
     os.makedirs(OUTPUT, exist_ok=True)
     return ROOT, OUTPUT
 
-def should_skip(path):
+def should_skip(path, skip_dirs=None):
+    """Check if path matches any skip directory pattern."""
+    if skip_dirs is None:
+        skip_dirs = SKIP_DIRS
     norm_parts = os.path.normpath(path).split(os.sep)
-    for d in SKIP_DIRS:
+    for d in skip_dirs:
         d_parts = d.split('/')
         n = len(d_parts)
         for i in range(len(norm_parts) - n + 1):
@@ -336,19 +339,19 @@ class FileFingerprint:
         }
 
 
-def step1_collect(target_dir, label):
+def step1_collect(target_dir, label, skip_dirs=None):
     """收集目标目录内所有文件的指纹"""
     fingerprints = []
     count = 0
     for root, dirs, files in os.walk(target_dir):
         # 过滤不需要的目录
-        dirs[:] = [d for d in dirs if not should_skip(os.path.join(root, d))]
+        dirs[:] = [d for d in dirs if not should_skip(os.path.join(root, d), skip_dirs)]
         for fname in files:
             if fname.startswith('.') or fname == "analyze_duplication.sh":
                 continue
             if fname.endswith(('.md', '.sh')):
                 fpath = os.path.join(root, fname)
-                if should_skip(fpath):
+                if should_skip(fpath, skip_dirs):
                     continue
                 try:
                     fp = FileFingerprint(fpath)
@@ -365,18 +368,18 @@ def step1_collect(target_dir, label):
     print(f"  [OK] {label}: {count} 个文件 → {out_file}")
     return fingerprints
 
-def collect_target_fingerprints(target_root):
+def collect_target_fingerprints(target_root, skip_dirs=None):
     """Collect all active markdown and shell files under the configured root."""
     fingerprints = []
     for root, dirs, files in os.walk(target_root):
-        dirs[:] = [d for d in dirs if not should_skip(os.path.join(root, d))]
+        dirs[:] = [d for d in dirs if not should_skip(os.path.join(root, d), skip_dirs)]
         for fname in files:
             if fname.startswith('.') or fname == "analyze_duplication.sh":
                 continue
             if not fname.endswith(('.md', '.sh')):
                 continue
             fpath = os.path.join(root, fname)
-            if should_skip(fpath):
+            if should_skip(fpath, skip_dirs):
                 continue
             try:
                 fingerprints.append(FileFingerprint(fpath))
@@ -774,8 +777,7 @@ def step2_analyze(all_fps, report_path):
     lines.append("- **MD 段落重复**: 若是规则正文重复，保留单一来源并改成交叉引用")
     lines.append("- **MD 章节重叠 / 规则 ID 跨引用**: 判断是索引引用还是内容重复，后者需合并")
     lines.append("- **脚本模式相似 / 工具链相似**: 只作为候选信号，不能单独作为去重依据")
-    lines.append("- `references/rule_index.md` 是规则索引，其跨引用是正常设计")
-    lines.append("- `evolution/history/` 下的版本快照是故意保留的档案，不在本次分析范围")
+    lines.append("- 通过 `--skip-dir` 跳过的目录是调用方有意排除的，不在本次分析范围")
     lines.append("")
 
     # 写报告
@@ -806,12 +808,25 @@ def build_parser():
         action="store_true",
         help="Also write all_fingerprints.json for debugging. By default only the report is written.",
     )
+    parser.add_argument(
+        "--skip-dir",
+        action="append",
+        default=None,
+        help="Additional directory path to skip (can be repeated). "
+             "Only universal paths (.git, node_modules, etc.) are skipped by default. "
+             "Use this for domain-specific directories like 'evolution/history'.",
+    )
     return parser
 
-def run_analysis(target, output_dir=None, write_fingerprints=False):
+def run_analysis(target, output_dir=None, write_fingerprints=False, extra_skip_dirs=None):
     target_root, output_root = configure_paths(target, output_dir)
     if not os.path.isdir(target_root):
         raise SystemExit(f"Target is not a directory: {target_root}")
+
+    # 合并通用跳过目录和额外指定目录
+    effective_skip_dirs = set(SKIP_DIRS)
+    if extra_skip_dirs:
+        effective_skip_dirs.update(extra_skip_dirs)
 
     print()
     print("=" * 60)
@@ -821,6 +836,8 @@ def run_analysis(target, output_dir=None, write_fingerprints=False):
     print()
     print(f"  目标目录: {target_root}")
     print(f"  输出目录: {output_root}")
+    if extra_skip_dirs:
+        print(f"  额外跳过: {', '.join(sorted(extra_skip_dirs))}")
     print()
 
     # 步骤1: 收集指纹
@@ -828,7 +845,7 @@ def run_analysis(target, output_dir=None, write_fingerprints=False):
     print("  阶段1: 文件单元指纹提取")
     print("─" * 40)
 
-    all_fps = collect_target_fingerprints(target_root)
+    all_fps = collect_target_fingerprints(target_root, effective_skip_dirs)
     print(f"  [OK] target: {len(all_fps)} 个文件")
 
     if write_fingerprints:
@@ -859,7 +876,7 @@ def run_analysis(target, output_dir=None, write_fingerprints=False):
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    return run_analysis(args.target, args.output_dir, args.write_fingerprints)
+    return run_analysis(args.target, args.output_dir, args.write_fingerprints, args.skip_dir)
 
 
 if __name__ == "__main__":

@@ -127,7 +127,7 @@ first() {
             self.assertFalse((output / "all_fingerprints.json").exists())
             self.assertFalse((target / ".analysis_output").exists())
 
-    def test_default_output_uses_cwd_analysis_dir_named_after_target(self) -> None:
+    def test_default_output_uses_tool_dir_analysis_dir_named_after_target(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             target = root / "target-name"
@@ -136,14 +136,9 @@ first() {
             original = "A short markdown file.\n"
             source.write_text(original, encoding="utf-8")
 
-            old_cwd = Path.cwd()
-            try:
-                os.chdir(root)
-                report_path = Path(dup.main([str(target)]))
-            finally:
-                os.chdir(old_cwd)
+            report_path = Path(dup.main([str(target)]))
 
-            expected_dir = root / ".analysis_output" / "target-name"
+            expected_dir = Path(dup.TOOL_DIR) / ".analysis_output" / "target-name"
             self.assertEqual(report_path.parent.resolve(), expected_dir.resolve())
             self.assertTrue(report_path.exists())
             self.assertEqual(source.read_text(encoding="utf-8"), original)
