@@ -4,7 +4,7 @@
 [![iOS Engineer Skill](https://img.shields.io/badge/iOS%20Engineer-Swift%20%7C%20SwiftUI%20%7C%20UIKit-0A84FF)](skills-engineering/ios-engineer/SKILL.md)
 [![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-8%20Platforms-663399)](sync/README.md)
 [![Universal RAG Gateway](https://img.shields.io/badge/Universal%20RAG%20Gateway-TypeScript%20%7C%20Fastify-34C759)](rag-gateway/README.md)
-[![Validate Skills](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml/badge.svg)](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml)
+[![Validate Skills](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml/badge.svg?branch=feature_3.0.0)](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml)
 [![Check Hardcoded Paths](https://github.com/i-stack/ai-coding-kit/actions/workflows/hardcoded-paths.yml/badge.svg)](https://github.com/i-stack/ai-coding-kit/actions/workflows/hardcoded-paths.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
