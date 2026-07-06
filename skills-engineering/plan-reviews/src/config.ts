@@ -1,14 +1,16 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 /**
  * Configuration for the plan-reviews knowledge base.
  *
- * Sources:
- *   1. Environment variables (dotenv from caller or .env)
- *   2. Defaults
+ * Sources (in priority order):
+ *   1. Programmatic overrides
+ *   2. Environment variables (EMBEDDING_API_KEY, EMBEDDING_BASE_URL)
+ *   3. env/secrets.json → embedding.key / embedding.url
+ *   4. Defaults
  *
- * All heavy-service dependencies from rag-gateway are removed.
- * The only external dependency retained is the Embedding API.
+ * The only external dependency is the Embedding API.
  */
 
 export interface PlanReviewsConfig {
@@ -39,6 +41,32 @@ function optionalEnv(key: string, fallback: string): string {
 	return process.env[key] ?? fallback;
 }
 
+interface EmbeddingSecrets {
+	key: string;
+	url: string;
+}
+
+/**
+ * Read the `embedding` field from env/secrets.json.
+ * Falls back to empty values if the file or field is missing.
+ */
+function loadEmbeddingSecrets(projectRoot: string): EmbeddingSecrets {
+	try {
+		const secretsPath = resolve(projectRoot, "env", "secrets.json");
+		if (!existsSync(secretsPath)) return { key: "", url: "" };
+		const raw = readFileSync(secretsPath, "utf-8");
+		const secrets = JSON.parse(raw);
+		const embedding = secrets?.embedding;
+		if (!embedding || typeof embedding !== "object") return { key: "", url: "" };
+		return {
+			key: typeof embedding.key === "string" ? embedding.key : "",
+			url: typeof embedding.url === "string" ? embedding.url : "",
+		};
+	} catch {
+		return { key: "", url: "" };
+	}
+}
+
 export function loadConfig(overrides?: Partial<PlanReviewsConfig>): PlanReviewsConfig {
 	const projectRoot = overrides?.projectRoot ?? discoverProjectRoot();
 	const embeddingModel = overrides?.embeddingModel
@@ -47,16 +75,19 @@ export function loadConfig(overrides?: Partial<PlanReviewsConfig>): PlanReviewsC
 	const vectorSize = rawVectorSize
 		? parseInt(rawVectorSize, 10)
 		: (DEFAULT_VECTOR_SIZES[embeddingModel] ?? 1024);
+
+	const secrets = loadEmbeddingSecrets(projectRoot);
 	const embeddingApiKey = overrides?.embeddingApiKey
-		?? optionalEnv("EMBEDDING_API_KEY", "");
+		?? (optionalEnv("EMBEDDING_API_KEY", "") || secrets.key);
+	const embeddingBaseUrl = overrides?.embeddingBaseUrl
+		?? (optionalEnv("EMBEDDING_BASE_URL", "") || secrets.url || "https://api.openai.com/v1");
 
 	return {
 		projectRoot,
 		indexPath: overrides?.indexPath
 			?? `${projectRoot}/.plan-reviews/.kb-index.json`,
 		embeddingApiKey,
-		embeddingBaseUrl: overrides?.embeddingBaseUrl
-			?? optionalEnv("EMBEDDING_BASE_URL", "https://api.openai.com/v1"),
+		embeddingBaseUrl,
 		embeddingModel,
 		vectorSize,
 		semanticEnabled: embeddingApiKey.length > 0,

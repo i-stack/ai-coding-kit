@@ -1,19 +1,8 @@
 # plan-reviews knowledge base
 
-> 本地嵌入式知识库 —— 将 `.plan-reviews/` 目录下的 plan-grill 和 cross-model-review 产物自动索引，提供语义搜索和实体图谱，**无需启动 rag-gateway 服务和数据库**。
+> 本地嵌入式知识库 —— 将 `.plan-reviews/` 目录下的 plan-grill 和 cross-model-review 产物自动索引，提供语义搜索和实体图谱，**零外部服务依赖、无需数据库**。
 
-## 为什么不用 rag-gateway？
-
-| rag-gateway | plan-reviews-kb |
-|---|---|
-| Fastify HTTP 服务（常驻进程） | 嵌入式库（import 即用） |
-| Qdrant 向量数据库（独立服务） | 内存余弦相似度（进程内计算） |
-| PostgreSQL 图数据库（独立服务） | 单 JSON 缓存文件（零原生依赖） |
-| LLM 实体提取（API 调用） | 结构化解析（PLAN.md 七段结构） |
-| MCP Server（SSE 传输） | 直接调用（同进程） |
-| 需要 Embedding API | 需要 Embedding API（唯一外部依赖） |
-
-核心思路：`.plan-reviews` 存储的是高度结构化的 PLAN.md 文件，数据量小（几十到几百个 plan），完全不需要重型基础设施。
+核心思路：`.plan-reviews` 存储的是高度结构化的 PLAN.md 文件，数据量小（几十到几百个 plan），通过内存余弦相似度 + 单 JSON 缓存文件即可实现全文搜索和知识图谱，完全不需要重型基础设施。
 
 ## 快速开始
 
@@ -134,17 +123,6 @@ const results = await kb.search({
 | `EMBEDDING_MODEL` | Embedding 模型 | `bge-m3` |
 | `VECTOR_SIZE` | 向量维度 | 根据模型自动推断 |
 
+> **配置方式**：在 `env/secrets.json` 中添加 `embedding` 字段，填入你的 `key` 和 `url`，即可自动映射为 `EMBEDDING_API_KEY` 和 `EMBEDDING_BASE_URL`。
+
 **无 Embedding API 也能用**：即使不配置 Embedding API，图谱搜索（实体/关系匹配）仍然完全可用。语义搜索会自动降级跳过。
-
-## 与 rag-gateway 的对应关系
-
-| rag-gateway 模块 | plan-reviews-kb 模块 | 差异 |
-|---|---|---|
-| `src/vector/qdrant.ts` | `src/vector.ts` | Qdrant 服务 → 内存余弦相似度 |
-| `src/db/graph.ts` | `src/store.ts` | PostgreSQL → JSON 缓存 |
-| `src/entity/extractor.ts` | `src/extractor.ts` | LLM 调用 → 结构化解析 |
-| `src/entity/store.ts` | `src/sync.ts` + `src/extractor.ts` | 实时管道 → 批量同步 |
-| `src/vector/embedding.ts` | `src/embed.ts` | **直接移植**（同逻辑） |
-| `src/vector/store.ts` | 内联到 `sync.ts` | 简化 |
-| `src/tool/registry.ts` | 不需要 | 无工具系统 |
-| `src/mcp/server.ts` | 不需要 | 直接调用 |
