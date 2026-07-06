@@ -15,7 +15,7 @@
 1. 阅读 `SKILL.md` + `references/plan_grill.md` 全文。
 2. 一次一个问题（PG-001），每问给推荐答案 + 理由（PG-002）。
 3. 能查代码回答的，直接查，不问用户（PG-003）。
-4. 决策树解析完且用户确认后，写 PLAN.md（PG-004），五段填实。
+4. 决策树解析完且用户确认后，写 PLAN.md（PG-004），七段填实（Goal / Constraints & assumptions / Approach / Key decisions & tradeoffs / Validation plan / Risks / Out of scope）。
 5. 确认前不执行计划。
 
 ## 不调用的情况
