@@ -3,16 +3,15 @@
 [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-8%2B%20AI%20Coding%20Tools-5856D6)](skills-engineering/README.md)
 [![iOS Engineer Skill](https://img.shields.io/badge/iOS%20Engineer-Swift%20%7C%20SwiftUI%20%7C%20UIKit-0A84FF)](skills-engineering/ios-engineer/SKILL.md)
 [![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-8%20Platforms-663399)](sync/README.md)
-[![Universal RAG Gateway](https://img.shields.io/badge/Universal%20RAG%20Gateway-TypeScript%20%7C%20Fastify-34C759)](rag-gateway/README.md)
 [![Validate Skills](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml/badge.svg?branch=feature_3.0.0)](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml)
 [![Check Hardcoded Paths](https://github.com/i-stack/ai-coding-kit/actions/workflows/hardcoded-paths.yml/badge.svg)](https://github.com/i-stack/ai-coding-kit/actions/workflows/hardcoded-paths.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **One kit. All your AI coding tools.** Agent Skills management, MCP configuration sync, iOS engineering rules, and a Universal RAG Gateway — unified for Cursor, CodeBuddy, Codex, Claude Code, Gemini CLI, Continue, Cline, and Xcode Coding Assistant.
+> **One kit. All your AI coding tools.** Agent Skills management, MCP configuration sync, and iOS engineering rules — unified for Cursor, CodeBuddy, Codex, Claude Code, Gemini CLI, Continue, Cline, and Xcode Coding Assistant.
 
 **ai-coding-kit** is a local-first AI coding workflow toolkit. Define your MCP servers, API keys, Agent Skills, and platform settings once — auto-sync to every AI coding host you use.
 
-面向 AI Coding / Agentic Coding / MCP（模型上下文协议）的多工具本地工程化工具包。为同时使用多个 AI 编码工具的开发者提供统一的 Agent Skill 维护、MCP 配置同步、iOS 工程规则和智能网关路由。
+面向 AI Coding / Agentic Coding / MCP（模型上下文协议）的多工具本地工程化工具包。为同时使用多个 AI 编码工具的开发者提供统一的 Agent Skill 维护、MCP 配置同步、iOS 工程规则和本地嵌入式知识库。
 
 ## Quick Start
 
@@ -43,7 +42,7 @@ bash sync.sh
 | **skills-engineering/** | Agent Skill 内容源、多端同步、受控演进 | [README](skills-engineering/README.md) |
 | **sync/** | MCP 配置同步引擎，注入 secrets 渲染到各平台原生格式 | [README](sync/README.md) |
 | **env/** | 配置数据源（secrets + MCP 定义 + 平台配置） | [README](env/README.md) |
-| **rag-gateway/** | TypeScript / Fastify 通用 RAG 网关（OpenAI 兼容 API） | [README](rag-gateway/README.md) |
+| **skills-engineering/plan-reviews/** | Plan 知识库 —— 自动索引 plan-grill/cross-model-review 产物，语义搜索 + 实体图谱 | [README](skills-engineering/plan-reviews/README.md) |
 | **hooks/** | 项目钩子脚本（xmcp 初始化等） | [README](hooks/README.md) |
 | **.githooks/** | Git 提交/推送守卫（pre-commit + pre-push） | [README](.githooks/README.md) |
 
@@ -76,7 +75,7 @@ bash install-hooks.sh
 
 - **Developers using multiple AI coding tools** — define MCP servers and Agent Skills once, sync everywhere.
 - **iOS / Swift engineers** — production-grade AI coding rules for Swift, SwiftUI, UIKit, concurrency, testing, and migration.
-- **AI infrastructure builders** — local memory, semantic retrieval, declarative tools, and OpenAI-compatible RAG gateway patterns.
+- **AI infrastructure builders** — local embedded knowledge base with semantic search and entity graph, zero external services.
 - **Team maintainers** — single source of truth for MCP configuration, API keys, and model settings.
 
 ## License

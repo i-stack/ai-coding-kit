@@ -4,7 +4,7 @@ title: ai-coding-kit
 hero:
   name: ai-coding-kit
   text: One Kit. All AI Coding Tools.
-  tagline: Agent Skills management, MCP configuration sync, iOS engineering rules, and Universal RAG Gateway — unified for 8+ AI coding platforms.
+  tagline: Agent Skills management, MCP configuration sync, and iOS engineering rules — unified for 8+ AI coding platforms.
   image: false
   actions:
     - theme: brand
@@ -24,9 +24,6 @@ features:
   - icon: 🍎
     title: iOS Engineering Rules
     details: Production-grade Swift / SwiftUI / UIKit rules with 40+ rule IDs, symptom routing, task triage, and auto-evolution — maintained by an Agent Skill system.
-  - icon: 🌐
-    title: Universal RAG Gateway
-    details: TypeScript / Fastify RAG gateway with OpenAI-compatible API — local memory, semantic retrieval, and multi-provider routing.
   - icon: 🔒
     title: Global Engineering Discipline
     details: Six global skills spanning security compliance, epistemic integrity, logical reasoning, cognitive expansion, and problem analysis — apply to any platform.
@@ -80,6 +77,5 @@ npm install -g @i-stack/ai-coding-kit
 | **skills-engineering/** | Agent Skill content, multi-platform sync, governed evolution |
 | **sync/** | MCP config sync engine — injects secrets, renders to native formats |
 | **env/** | Config data source (secrets + MCP definitions + platform configs) |
-| **rag-gateway/** | TypeScript / Fastify Universal RAG Gateway (OpenAI-compatible API) |
 | **hooks/** | Project hooks (xmcp init, etc.) |
 | **.githooks/** | Git commit/push guards (pre-commit + pre-push) |
