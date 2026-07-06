@@ -8,7 +8,7 @@
 |---|---|
 | Fastify HTTP 服务（常驻进程） | 嵌入式库（import 即用） |
 | Qdrant 向量数据库（独立服务） | 内存余弦相似度（进程内计算） |
-| PostgreSQL 图数据库（独立服务） | SQLite（better-sqlite3，零配置） |
+| PostgreSQL 图数据库（独立服务） | 单 JSON 缓存文件（零原生依赖） |
 | LLM 实体提取（API 调用） | 结构化解析（PLAN.md 七段结构） |
 | MCP Server（SSE 传输） | 直接调用（同进程） |
 | 需要 Embedding API | 需要 Embedding API（唯一外部依赖） |
@@ -20,7 +20,7 @@
 ```bash
 cd skills-engineering/plan-reviews
 npm install
-npx tsx src/sync.ts   # 同步 .plan-reviews/ 到本地知识库
+npm run sync   # 同步 .plan-reviews/ 到本地知识库
 ```
 
 ## 使用方式
@@ -75,14 +75,14 @@ const results = await kb.search({
 ├── 2026-07-06-xxx/                src/
 │   ├── PLAN.md        ──sync──→  ├── parser.ts     结构化解析 PLAN.md
 │   ├── PLAN-REVIEW-LOG.md  ──→   ├── extractor.ts  实体/关系提取（无 LLM）
-│   └── SUMMARY.md      ──→       ├── db.ts         SQLite 持久化
+│   └── SUMMARY.md      ──→       ├── store.ts      JSON 缓存持久化
 │                                  ├── embed.ts      Embedding API
 │                                  ├── vector.ts     内存向量索引（余弦相似度）
 │                                  ├── search.ts     组合搜索（语义+图谱）
 │                                  ├── sync.ts       增量同步引擎
 │                                  └── index.ts      主入口
 │
-└── .knowledge-base.db  ←── SQLite 数据库文件（自动生成）
+└── .kb-index.json  ←── JSON 缓存文件（自动生成）
 ```
 
 ## 数据流
@@ -99,7 +99,7 @@ const results = await kb.search({
        ↓
 5. embedBatch()           生成 Embedding 向量
        ↓
-6. upsertPlan/Entities/Chunks  写入 SQLite + 内存向量索引
+6. upsertPlan/Entities/Chunks  写入 JSON 缓存 + 内存向量索引
        ↓
 7. search()              语义相似度 + 图谱遍历 → 结果
 ```
@@ -141,7 +141,7 @@ const results = await kb.search({
 | rag-gateway 模块 | plan-reviews-kb 模块 | 差异 |
 |---|---|---|
 | `src/vector/qdrant.ts` | `src/vector.ts` | Qdrant 服务 → 内存余弦相似度 |
-| `src/db/graph.ts` | `src/db.ts` | PostgreSQL → SQLite |
+| `src/db/graph.ts` | `src/store.ts` | PostgreSQL → JSON 缓存 |
 | `src/entity/extractor.ts` | `src/extractor.ts` | LLM 调用 → 结构化解析 |
 | `src/entity/store.ts` | `src/sync.ts` + `src/extractor.ts` | 实时管道 → 批量同步 |
 | `src/vector/embedding.ts` | `src/embed.ts` | **直接移植**（同逻辑） |

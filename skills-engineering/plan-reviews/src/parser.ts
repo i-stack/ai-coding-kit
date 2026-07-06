@@ -175,7 +175,7 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 
 	for (const entry of entries) {
 		if (!entry.isDirectory()) continue;
-		// Skip the .knowledge-base.db file and any hidden dirs
+		// Skip hidden directories such as the JSON cache location.
 		if (entry.name.startsWith(".")) continue;
 
 		const planPath = path.join(plansDir, entry.name);

@@ -151,7 +151,7 @@ export class PlanStore {
 	 */
 	searchEntities(
 		query: string,
-		options?: { limit?: number; entityType?: string },
+		options?: { limit?: number; entityType?: string; planId?: string },
 	): PlanEntity[] {
 		const lower = query.toLowerCase();
 		const limit = options?.limit ?? 10;
@@ -164,6 +164,9 @@ export class PlanStore {
 
 		if (options?.entityType) {
 			results = results.filter((e) => e.type === options.entityType);
+		}
+		if (options?.planId) {
+			results = results.filter((e) => e.planId === options.planId);
 		}
 
 		// Sort by relevance: exact name match first, then substring

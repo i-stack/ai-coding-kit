@@ -61,6 +61,7 @@ export class SearchEngine {
 		const matchedEntities = this.store.searchEntities(query.query, {
 			limit: query.limit ?? 5,
 			entityType: query.entityType,
+			planId: query.planId,
 		});
 
 		if (matchedEntities.length === 0) return [];
