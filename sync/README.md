@@ -98,7 +98,6 @@ Each `env/platforms/<name>.json` follows that platform's **official configuratio
 | Continue | `continue.json` | Continue `config.yaml` models |
 | Cursor | `cursor.json` | (no platform config needed) |
 | Cline | `cline.json` | (no platform config needed) |
-| RAG Gateway | `rag-gateway.json` | Gateway env vars |
 
 The JSON keys map directly to the platform's native format — no field name translation needed.
 

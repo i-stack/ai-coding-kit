@@ -26,7 +26,6 @@ env/
 │   ├── codebuddy.json
 │   ├── continue.json
 │   ├── gemini.json
-│   └── rag-gateway.json
 │
 └── templates/                ← 新增 MCP/平台的参考模板
     ├── mcp.template.json

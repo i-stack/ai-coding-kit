@@ -42,14 +42,9 @@ def _auto_discover_targets() -> dict[str, SyncFn]:
     all_targets: dict[str, SyncFn] = dict(RENDERERS)
     discovered = discover_platforms()
 
-    # Platforms that are config-only (no sync target) — skip silently
-    _config_only = {"rag-gateway"}
-
     for name in discovered:
         if name in all_targets:
             continue  # already has a custom renderer
-        if name in _config_only:
-            continue  # config-only platform, not a sync target
         cfg = load_platform_config(name)
         mcp_target = cfg.get("mcp_target")
         if not mcp_target:

@@ -4,7 +4,10 @@ All notable changes to ai-coding-kit will be documented in this file.
 
 ---
 
-## [3.0.0] — 2026-07-05
+## [3.0.0] — 2026-07-06
+
+### Removed
+- **rag-gateway**: 移除 Universal RAG Gateway 模块，由 skills-engineering/plan-reviews 中更轻量的嵌入式知识库方案替代
 
 ### Added
 - **i18n 分层**: SKILL.md 英文元指令 + en-US 治理层镜像（rule_index / cognitive_adversary_mode / self_evolution），IR-001 从"强制中文"改为"语言匹配用户输入"
