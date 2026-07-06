@@ -1,0 +1,18 @@
+{
+  "proposal_id": "20260706-163822-add-plan-grill-architecture-analysis-mode",
+  "approved_at": "2026-07-06T16:38:00+0800",
+  "active_version": "v73",
+  "validation": {
+    "structural": true,
+    "scenario": false,
+    "risk": "low"
+  },
+  "changes": [
+    {
+      "file": "skills-engineering/ios-engineer/references/architecture_analysis.md",
+      "type": "enhancement",
+      "description": "Add quick architecture analysis mode for plan-grill PG-005 delegation, including output format, discipline constraints, and differentiation from full Phase 1-4 flow"
+    }
+  ],
+  "status": "approved"
+}

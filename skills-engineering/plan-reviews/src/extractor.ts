@@ -369,12 +369,16 @@ export function planToChunks(artifact: PlanArtifact): Array<{
 	if (artifact.sections.validation) {
 		chunks.push({ section: "validation", text: artifact.sections.validation });
 	}
+	if (artifact.architectureAnalysis) {
+		chunks.push({ section: "architecture_analysis", text: artifact.architectureAnalysis });
+	}
 	// Full plan text as one combined chunk for holistic search
 	const fullText = [
 		`Title: ${artifact.sections.title}`,
 		`Goal: ${artifact.sections.goal}`,
 		`Approach: ${artifact.sections.approach}`,
 		`Decisions: ${artifact.sections.decisions}`,
+		artifact.architectureAnalysis ? `Architecture analysis: ${artifact.architectureAnalysis}` : "",
 	].join("\n");
 	chunks.push({ section: "full", text: fullText });
 

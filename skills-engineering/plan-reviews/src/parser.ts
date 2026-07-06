@@ -181,6 +181,7 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 		const planPath = path.join(plansDir, entry.name);
 		const planFile = path.join(planPath, "PLAN.md");
 		const reviewFile = path.join(planPath, "PLAN-REVIEW-LOG.md");
+		const architectureFile = path.join(planPath, "architecture-analysis.md");
 
 		if (!fs.existsSync(planFile)) continue;
 
@@ -197,11 +198,15 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 				reviewers = meta.reviewers;
 				resolution = meta.resolution;
 			}
+			const architectureAnalysis = fs.existsSync(architectureFile)
+				? fs.readFileSync(architectureFile, "utf-8")
+				: undefined;
 
 			artifacts.push({
 				id: entry.name,
 				path: planPath,
 				sections,
+				architectureAnalysis,
 				hasReview: fs.existsSync(reviewFile),
 				resolution,
 				reviewers,
@@ -232,6 +237,7 @@ function extractDateFromId(id: string): string {
 export function getPlanMtime(planPath: string): number {
 	const planFile = path.join(planPath, "PLAN.md");
 	const reviewFile = path.join(planPath, "PLAN-REVIEW-LOG.md");
+	const architectureFile = path.join(planPath, "architecture-analysis.md");
 
 	let mtime = 0;
 	if (fs.existsSync(planFile)) {
@@ -239,6 +245,9 @@ export function getPlanMtime(planPath: string): number {
 	}
 	if (fs.existsSync(reviewFile)) {
 		mtime = Math.max(mtime, fs.statSync(reviewFile).mtimeMs);
+	}
+	if (fs.existsSync(architectureFile)) {
+		mtime = Math.max(mtime, fs.statSync(architectureFile).mtimeMs);
 	}
 	return mtime;
 }

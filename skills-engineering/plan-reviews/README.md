@@ -64,6 +64,7 @@ const results = await kb.search({
 ├── 2026-07-06-xxx/                src/
 │   ├── PLAN.md        ──sync──→  ├── parser.ts     结构化解析 PLAN.md
 │   ├── PLAN-REVIEW-LOG.md  ──→   ├── extractor.ts  实体/关系提取（无 LLM）
+│   ├── architecture-analysis.md ─→│                 PG-005 架构分析搜索 chunk
 │   └── SUMMARY.md      ──→       ├── store.ts      JSON 缓存持久化
 │                                  ├── embed.ts      Embedding API
 │                                  ├── vector.ts     内存向量索引（余弦相似度）

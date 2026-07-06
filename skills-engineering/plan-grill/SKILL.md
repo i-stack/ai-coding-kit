@@ -12,12 +12,13 @@ description: 需求对齐/盘问锁定计划——一次一个问题盘问决策
 - 不得以 preamble、Cursor 规则摘要或其它二次摘要代替该文件全文。
 - 本 skill 是 `cross-model-review` 的 Act 1；若需要跨模型对抗审查，盘问锁定后接力 `cross-model-review`。
 
-## 四条核心规则
+## 五条核心规则
 
 - [PG-001] **逐一提问**：一次只问一个问题，等用户回答后再继续。禁止一次抛出多个问题。
 - [PG-002] **给推荐答案**：每个问题须给出推荐答案 + 一句理由，让用户可以快速确认或反驳，而非从零思考。
 - [PG-003] **遍历设计树**：沿决策树分支逐一解决依赖；能通过探索代码库回答的问题，直接查代码，不问用户。
 - [PG-004] **锁定产出**：决策树解析完且与用户达成共识后，产出 `PLAN.md`（Goal / Constraints & assumptions / Approach / Key decisions & tradeoffs / Validation plan / Risks / Out of scope）。**确认前不执行计划。**
+- [PG-005] **架构分析委托**：PG-003 探索代码库时，若涉及跨文件/跨模块依赖分析，且已加载平台 engineer skill（如 `ios-engineer`），则暂停盘问，读取涉及文件，按平台 engineer 的「快速架构分析」模式产出到 `.plan-reviews/<plan-slug>/architecture-analysis.md`，并在后续 PLAN.md 中写入该相对路径，然后继续盘问。若未加载平台 engineer，则在 PLAN.md 中用文字描述依赖关系。plan-grill 自身不分析任何语言/框架的架构。
 
 细则见 [references/plan_grill.md](references/plan_grill.md)。
 

@@ -181,6 +181,49 @@
 - Phase 1 还没做就开始评分
 - 用"建议加强测试""建议解耦"这类无位置、无证据的空洞结论
 
+## 快速架构分析模式（plan-grill PG-005 委托用）
+
+当 plan-grill 的 PG-005 委托 ios-engineer 做快速架构分析时，**跳过完整 Phase 1-4**，只产出以下内容。
+
+### 适用条件
+- PG-003 盘问中涉及少量文件（通常 ≤10 个）的跨文件依赖关系。
+- 只需回答「调用链」「修改影响面」「模块耦合」，不需要健康度评分或重构路线图。
+- 与完整架构体检的区别：无 Phase 1-4 流程、无 10 必备字段、无健康度评分——只描述现状，不评价优劣。
+
+### 输出格式
+
+保存到 `.plan-reviews/<plan-slug>/architecture-analysis.md`：
+
+```markdown
+# 架构分析 — <plan-slug>
+
+## 涉及文件
+- `<文件绝对路径>` — <一句话职责>
+- ...
+
+## 调用链
+\```
+<入口类.方法>()
+  → <被调用类.方法>()  // <触发条件或数据传递说明>
+  → ...
+\```
+
+## 修改影响面
+- 修改 `<文件A>`：会影响 `<文件B>`（<原因简述>）、`<文件C>`（<原因简述>）
+- ...
+
+## 潜在风险（若有）
+- <简洁描述，无代码证据则标注「待确认」>
+- 若无风险写「本次分析未发现明显风险」
+```
+
+### 纪律
+- 不输出健康度评分、技术债等级、重构路线图。
+- 不输出优化建议或「建议重构 XXX」类结论。
+- 只描述**现状**（调用关系 + 影响面），不评价好坏。
+- 调用链用文本箭头（`→`）表示，不需要 Mermaid 图；但如果调用链复杂度高（≥5 层或 ≥4 条分支），可加 Mermaid 辅助。
+- 修改影响面必须指出**具体影响的文件和方法**，不能写「影响多个模块」这类模糊表述。
+
 ## 与其他 ref 的协作
 - 需要具体修法：按命中维度跳转到 [architecture_and_network.md](architecture_and_network.md) / [swift_concurrency.md](swift_concurrency.md) / [performance_optimization.md](performance_optimization.md) / [networking_patterns.md](networking_patterns.md) / [ui_state_patterns.md](ui_state_patterns.md)
 - 需要迁移风险门禁与阶段性回归：[migration_strategy.md](migration_strategy.md)

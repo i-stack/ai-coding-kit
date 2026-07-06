@@ -21,7 +21,6 @@
 		"reset": "tsx src/cli.ts reset",
 		"stats": "tsx src/cli.ts stats",
 		"visualize": "tsx src/cli.ts visualize",
-		"codegraph": "tsx src/cli.ts codegraph",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},

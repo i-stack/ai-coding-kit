@@ -27,6 +27,8 @@ export interface PlanArtifact {
 	path: string;
 	/** Parsed PLAN.md sections */
 	sections: PlanSections;
+	/** Optional PG-005 architecture analysis artifact */
+	architectureAnalysis?: string;
 	/** Whether a PLAN-REVIEW-LOG.md exists */
 	hasReview: boolean;
 	/** Review resolution: approved | failed | pending | deadlock */

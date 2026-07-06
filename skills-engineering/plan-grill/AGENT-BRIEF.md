@@ -2,7 +2,7 @@
 
 ## 一句话描述
 
-一次一个问题盘问实现方案的决策树，每个问题给推荐答案，能查代码就查代码，确认前不执行；产出 PLAN.md 供 cross-model-review 接力。
+一次一个问题盘问实现方案的决策树，每个问题给推荐答案，能查代码就查代码；跨文件依赖分析委托平台 engineer；确认前不执行；产出 PLAN.md 供 cross-model-review 接力。
 
 ## 何时调用
 
@@ -15,8 +15,9 @@
 1. 阅读 `SKILL.md` + `references/plan_grill.md` 全文。
 2. 一次一个问题（PG-001），每问给推荐答案 + 理由（PG-002）。
 3. 能查代码回答的，直接查，不问用户（PG-003）。
-4. 决策树解析完且用户确认后，写 PLAN.md（PG-004），七段填实（Goal / Constraints & assumptions / Approach / Key decisions & tradeoffs / Validation plan / Risks / Out of scope）。
-5. 确认前不执行计划。
+4. PG-003 涉及跨文件/跨模块依赖分析且已加载平台 engineer 时，暂停盘问，委托快速架构分析并把 `architecture-analysis.md` 路径写回 PLAN.md（PG-005）。
+5. 决策树解析完且用户确认后，写 PLAN.md（PG-004），七段填实（Goal / Constraints & assumptions / Approach / Key decisions & tradeoffs / Validation plan / Risks / Out of scope）。
+6. 确认前不执行计划。
 
 ## 不调用的情况
 

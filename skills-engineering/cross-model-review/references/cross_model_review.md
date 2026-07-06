@@ -86,6 +86,7 @@ grep -qxF ".plan-reviews/" .gitignore 2>/dev/null || printf "\n.plan-reviews/\n"
 规则：
 
 - `PLAN.md` 和 `PLAN-REVIEW-LOG.md` 是当前项目根的交付物。
+- 若 PLAN.md 引用了 `.plan-reviews/<slug>/architecture-analysis.md`，reviewer 必须把它作为只读输入，与 PLAN.md 一起审查。
 - reviewer 原始输出写入 `${RAW_DIR}/<reviewer>-round<N>.<txt|json>`。
 - 可选归档时，把项目根 `PLAN.md` / `PLAN-REVIEW-LOG.md` 同步到 `${REVIEW_DIR}/`，`raw/` 原样保留。
 - 创建 `.plan-reviews/` 时，默认把 `.plan-reviews/` 追加到当前项目根 `.gitignore`；审查证据默认是本地工作产物，除非用户明确要求纳入版本控制。
@@ -94,7 +95,7 @@ grep -qxF ".plan-reviews/" .gitignore 2>/dev/null || printf "\n.plan-reviews/\n"
 ### 审查 prompt（每轮发送给 reviewer）
 
 ```
-You are an adversarial reviewer for an implementation plan. Be skeptical and specific — your job is to find what breaks, not to be agreeable. Read the plan at PLAN.md and any repo files you need (you are read-only). Identify concrete flaws: security holes, race conditions, missing edge cases, schema conflicts, wrong assumptions, observability gaps, simpler alternatives. For each, give a one-line fix. Do NOT modify any files. End your reply with EXACTLY one line: `VERDICT: APPROVED` if the plan is sound enough to implement, or `VERDICT: REVISE` if it still has material problems.
+You are an adversarial reviewer for an implementation plan. Be skeptical and specific — your job is to find what breaks, not to be agreeable. Read the plan at PLAN.md, any architecture-analysis.md file referenced by PLAN.md, and any repo files you need (you are read-only). Identify concrete flaws: security holes, race conditions, missing edge cases, schema conflicts, wrong assumptions, observability gaps, simpler alternatives. For each, give a one-line fix. Do NOT modify any files. End your reply with EXACTLY one line: `VERDICT: APPROVED` if the plan is sound enough to implement, or `VERDICT: REVISE` if it still has material problems.
 ```
 
 ### Codex adapter
@@ -196,6 +197,7 @@ claude --resume "$SESSION_ID" -p "$RESUME_PROMPT" --permission-mode plan --outpu
 └── <YYYY-MM-DD>-<slug>/
     ├── PLAN.md              # plan-grill 锁定的计划
     ├── PLAN-REVIEW-LOG.md   # cross-model-review 完整论证记录
+    ├── architecture-analysis.md  # 可选，PG-005 快速架构分析
     ├── raw/                 # reviewer 原始输出（每轮每 reviewer 一个文件）
     │   ├── claude-round1.json
     │   └── gemini-round1.json
@@ -213,6 +215,7 @@ claude --resume "$SESSION_ID" -p "$RESUME_PROMPT" --permission-mode plan --outpu
    mkdir -p "${ARCHIVE_DIR}/raw"
    grep -qxF ".plan-reviews/" .gitignore 2>/dev/null || printf "\n.plan-reviews/\n" >> .gitignore
    cp PLAN.md PLAN-REVIEW-LOG.md "${ARCHIVE_DIR}/"
+   # 若 PLAN.md 引用了 PG-005 架构分析文件，也复制为 "${ARCHIVE_DIR}/architecture-analysis.md"。
    ```
 
 4. 用户可选写 `SUMMARY.md`（人工整理：关键盘问问题、发现的缺陷、修复要点）。

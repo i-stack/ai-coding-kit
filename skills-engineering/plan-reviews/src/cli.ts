@@ -11,7 +11,6 @@
 
 import { PlanReviewsKB } from "./index.js";
 import { generateKnowledgeGraph } from "./visualize.js";
-import { generateCodeGraph } from "./codegraph.js";
 
 const args = process.argv.slice(2);
 const command = args[0] ?? "help";
@@ -22,6 +21,8 @@ function parseOutputFlag(): string | undefined {
 	const idx = args.indexOf("--output");
 	return idx >= 0 && idx + 1 < args.length ? args[idx + 1] : undefined;
 }
+
+
 
 async function main() {
 	const kb = await PlanReviewsKB.init();
@@ -80,14 +81,6 @@ async function main() {
 			break;
 		}
 
-		case "codegraph": {
-			const output = parseOutputFlag();
-			const outputPath = generateCodeGraph({ output });
-			console.log(`Code architecture graph generated: ${outputPath}`);
-			console.log("Open it in your browser to explore.");
-			break;
-		}
-
 		default:
 			console.log("plan-reviews knowledge base CLI");
 			console.log("");
@@ -98,8 +91,7 @@ async function main() {
 			console.log("  reset            Full reset and re-sync");
 			console.log("  visualize        Generate interactive knowledge graph HTML");
 			console.log("    --output <path>  Custom output path (default: .plan-reviews/knowledge-graph.html)");
-			console.log("  codegraph        Generate code architecture graph HTML");
-			console.log("    --output <path>  Custom output path (default: .plan-reviews/code-graph.html)");
+
 			console.log("");
 			console.log("Environment:");
 			console.log("  EMBEDDING_API_KEY   Embedding API key (optional)");

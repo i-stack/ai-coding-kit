@@ -19,7 +19,7 @@ plan-grill 解决 AI 辅助编码的第 1 类失败模式：**你和 AI 对"构�
 
 problem-analysis 未完成时，plan-grill 不开始——否则会在错误前提上盘问。
 
-## 盘问规则（PG-001 ~ PG-004 详规）
+## 盘问规则（PG-001 ~ PG-005 详规）
 
 ### PG-001 逐一提问
 
@@ -87,6 +87,34 @@ Q: <问题>
 
 写入后告知用户：「PLAN.md 已锁定。如需跨模型对抗审查，接力 `cross-model-review`。」
 
+### PG-005 架构分析委托
+
+PG-003 探索代码库时，若涉及**跨文件/跨模块依赖分析**（如追踪类的调用链、理解模块间耦合关系、评估修改影响面），plan-grill 不亲自产出架构分析——因为 plan-grill 是平台无关的，不具备任何语言或框架的架构知识。
+
+**触发条件**：
+- PG-003 探索代码时，分析涉及多个源文件之间的依赖关系
+- 盘问中涉及「这个类的依赖是什么」「改了 A 会影响哪些模块」「调用链怎么走」等跨文件问题
+
+**执行方式（已加载平台 engineer 时）**：
+
+1. **暂停盘问**：告知用户——「PG-003 发现跨文件依赖，需要 _[平台 engineer 名称]_ 做快速架构分析，稍后继续盘问。」
+2. **定位源文件**：列出 PG-003 当前探索中涉及的所有源文件路径（绝对路径）。
+3. **读取并分析**：逐个读取这些源文件，按平台 engineer 的「快速架构分析」模式输出。注意：不是完整架构体检，不输出健康度评分、技术债等级、重构路线图——只描述调用关系 + 修改影响面。
+4. **保存文档**：写入 `.plan-reviews/<plan-slug>/architecture-analysis.md`；`<plan-slug>` 必须与后续 PLAN / cross-model-review 归档目录一致，若尚未锁定 slug，先使用本轮计划的临时 slug，并在 PLAN 中保留该相对路径。
+5. **写回计划上下文**：后续 PG-004 产出 PLAN.md 时，必须在 Constraints & assumptions 或 Risks 段写入 `Architecture analysis: .plan-reviews/<plan-slug>/architecture-analysis.md`，确保 cross-model-review reviewer 能按 PLAN.md 找到该文件。
+6. **回到盘问**：告知用户分析完成，继续 PG-003 盘问。`architecture-analysis.md` 中发现的潜在风险可升格为盘问决策点。
+
+**执行方式（未加载平台 engineer 时）**：
+
+- 在 PLAN.md 的 Approach 或 Risks 段中用文字描述关键依赖关系。
+- 不单独产出 architecture-analysis.md。
+- 不做任何语言/框架层面的架构推断。
+
+**注意事项**：
+- plan-grill 自身不分析任何语言/框架的架构，只做盘问和计划锁定。
+- 架构分析是平台 engineer 的职责，每个平台有自己特有的模块划分、分层方式和关注维度。
+- 产出的 architecture-analysis.md 必须通过 PLAN.md 明确引用；cross-model-review 只以 PLAN.md 及其引用文件作为稳定入口。
+
 ## 何时停止盘问
 
 满足以下全部条件才停：
@@ -114,6 +142,7 @@ Q: <问题>
 - [ ] 决策树是否还有未决叶子？
 - [ ] PLAN.md 七段是否都填实，无占位符？
 - [ ] blocking open questions 是否已清空？non-blocking risks 是否已记录？
+- [ ] 涉及跨文件依赖分析时，是否已委托平台 engineer 产出 architecture-analysis.md？（PG-005）
 
 ## 与 cross-model-review 的接力
 

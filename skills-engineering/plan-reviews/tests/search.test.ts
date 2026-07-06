@@ -2,7 +2,9 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { planToChunks } from "../src/extractor.js";
 import { PlanReviewsKB } from "../src/index.js";
+import { scanPlansDir } from "../src/parser.js";
 
 const tempRoots: string[] = [];
 
@@ -13,6 +15,58 @@ afterEach(() => {
 });
 
 describe("PlanReviewsKB search", () => {
+	it("indexes PG-005 architecture analysis artifacts as searchable chunks", () => {
+		const root = makeTempProject();
+		const planId = "2026-07-06-chat-rendering";
+		writePlan(
+			root,
+			planId,
+			"Chat Rendering Change",
+			[
+				"## Goal",
+				"Adjust chat rendering behavior.",
+				"",
+				"## Constraints & assumptions",
+				"- Architecture analysis: .plan-reviews/2026-07-06-chat-rendering/architecture-analysis.md",
+				"",
+				"## Approach",
+				"Update the rendering owner only.",
+				"",
+				"## Key decisions & tradeoffs",
+				"- Keep state ownership in the message view.",
+				"",
+				"## Validation plan",
+				"- Verify streaming updates.",
+				"",
+				"## Risks / non-blocking open questions",
+				"- Delegate callbacks may affect scroll timing.",
+				"",
+				"## Out of scope",
+				"- Markdown parser rewrite.",
+			].join("\n"),
+		);
+		const analysis = [
+			"# 架构分析 — 2026-07-06-chat-rendering",
+			"",
+			"## 调用链",
+			"ChatViewController.updateStreamingMessage()",
+			"  → NativeMarkdownView.render()",
+		].join("\n");
+		fs.writeFileSync(
+			path.join(root, ".plan-reviews", planId, "architecture-analysis.md"),
+			analysis,
+		);
+
+		const [artifact] = scanPlansDir(root);
+		expect(artifact.architectureAnalysis).toContain("NativeMarkdownView.render");
+
+		const chunks = planToChunks(artifact);
+		expect(chunks).toContainEqual({
+			section: "architecture_analysis",
+			text: analysis,
+		});
+	});
+
 	it("applies planId filtering to graph results", async () => {
 		const root = makeTempProject();
 		writePlan(
