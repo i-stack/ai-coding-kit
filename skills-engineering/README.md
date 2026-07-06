@@ -16,6 +16,8 @@
 | `epistemic-integrity` | 全局技能 | 真值接地：反幻觉、验证方法论、求真边界 |
 | `logical-reasoning` | 全局技能 | 论证纪律：可追溯逻辑链、层级分明 |
 | `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解 |
+| `plan-grill` | 工作流技能 | 需求对齐/盘问锁定计划，产出 PLAN.md（基于 grill-me） |
+| `cross-model-review` | 工作流技能 | 跨模型对抗审查 PLAN.md，自动发现 CLI（基于 grill-me-codex） |
 
 本仓库同时提供三类能力：
 
