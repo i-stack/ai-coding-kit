@@ -62,7 +62,7 @@ plan-grill 盘问后的 PLAN.md（用户登录速率限制方案）。盘问修�
   "clis": [
     {"name": "codex", "available": false},
     {"name": "gemini", "available": true, "path": "/opt/homebrew/bin/gemini", "version": "0.49.0", "readonly_flag": "--approval-mode plan", "noninteractive_flag": "-p"},
-    {"name": "claude", "available": true, "path": "/Users/song/.local/bin/claude", "version": "2.1.195 (Claude Code)", "readonly_flag": "--permission-mode plan", "noninteractive_flag": "-p"}
+    {"name": "claude", "available": true, "path": "/Users/you/.local/bin/claude", "version": "2.1.195 (Claude Code)", "readonly_flag": "--permission-mode plan", "noninteractive_flag": "-p"}
   ],
   "available_count": 2
 }
