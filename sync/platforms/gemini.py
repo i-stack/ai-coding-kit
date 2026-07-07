@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from .common import gemini_settings_path, read_json_object, write_json, xcode_gemini_dir
+from .common import read_json_object, write_json
+from .paths import gemini_settings_path, xcode_gemini_dir
 
 # Internal/platform keys that should NOT appear in the managed settings.json.
 # These are consumed by the sync engine/orchestrator, not by Gemini CLI itself.

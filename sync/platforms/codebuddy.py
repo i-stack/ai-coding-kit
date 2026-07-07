@@ -1,13 +1,8 @@
 import shutil
-from pathlib import Path
 from typing import Any
 
 from .common import read_json_object, sync_json_mcp, write_json
-
-MCP_TARGET = Path.home() / ".codebuddy" / "mcp.json"
-MODELS_TARGET = Path.home() / ".codebuddy" / "models.json"
-CODEBUDDY_SKILLS_DIR = Path.home() / ".codebuddy" / "skills"
-CLAUDE_SKILLS_DIR = Path.home() / ".claude" / "skills"
+from .paths import codebuddy_mcp_path, codebuddy_models_path, codebuddy_skills_base, claude_skills_base
 
 
 def _validate_model_entries(value: Any) -> list[dict[str, Any]]:
@@ -101,7 +96,8 @@ def _sync_models(cfg: dict[str, Any]) -> None:
         print("[codebuddy] No models config found — skipping model sync.")
         return
 
-    existing = read_json_object(MODELS_TARGET)
+    models_path = codebuddy_models_path()
+    existing = read_json_object(models_path)
 
     if models is not None:
         models = _validate_model_entries(models)
@@ -117,26 +113,28 @@ def _sync_models(cfg: dict[str, Any]) -> None:
             existing_avail = []
         existing["availableModels"] = _merge_available_models(existing_avail, available_models)
 
-    write_json(MODELS_TARGET, existing)
-    print(f"Merged models into {MODELS_TARGET}.")
+    write_json(models_path, existing)
+    print(f"Merged models into {models_path}.")
 
 
 
 def _sync_skills() -> None:
-    if not CLAUDE_SKILLS_DIR.exists():
-        print(f"[codebuddy] Claude skills directory not found: {CLAUDE_SKILLS_DIR} — skipping skill sync.")
+    claude_skills_dir = claude_skills_base()
+    codebuddy_skills_dir = codebuddy_skills_base()
+    if not claude_skills_dir.exists():
+        print(f"[codebuddy] Claude skills directory not found: {claude_skills_dir} — skipping skill sync.")
         return
 
-    CODEBUDDY_SKILLS_DIR.mkdir(parents=True, exist_ok=True)
+    codebuddy_skills_dir.mkdir(parents=True, exist_ok=True)
     synced: list[str] = []
 
-    for skill_dir in sorted(CLAUDE_SKILLS_DIR.iterdir()):
+    for skill_dir in sorted(claude_skills_dir.iterdir()):
         if not skill_dir.is_dir() or not (skill_dir / "SKILL.md").exists():
             continue
 
-        dest = CODEBUDDY_SKILLS_DIR / skill_dir.name
-        tmp = CODEBUDDY_SKILLS_DIR / f".{skill_dir.name}.tmp-sync"
-        backup = CODEBUDDY_SKILLS_DIR / f".{skill_dir.name}.backup-sync"
+        dest = codebuddy_skills_dir / skill_dir.name
+        tmp = codebuddy_skills_dir / f".{skill_dir.name}.tmp-sync"
+        backup = codebuddy_skills_dir / f".{skill_dir.name}.backup-sync"
 
         if tmp.exists():
             shutil.rmtree(tmp)
@@ -160,11 +158,11 @@ def _sync_skills() -> None:
                 shutil.rmtree(backup)
         synced.append(skill_dir.name)
 
-    print(f"Synced {len(synced)} skills to {CODEBUDDY_SKILLS_DIR}: {', '.join(synced) or '(none)'}.")
+    print(f"Synced {len(synced)} skills to {codebuddy_skills_dir}: {', '.join(synced) or '(none)'}.")
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers, models, and skills to CodeBuddy."""
-    sync_json_mcp(MCP_TARGET, mcp_servers)
+    sync_json_mcp(codebuddy_mcp_path(), mcp_servers)
     _sync_models(cfg)
     _sync_skills()

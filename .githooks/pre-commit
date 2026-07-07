@@ -5,9 +5,11 @@
 # skills-engineering/ios-engineer/references/*.md is bound to a staged
 # evolution proposal whose approval record is staged or already committed.
 #
-# Bypass: SKILL_BYPASS=1 in the environment for emergencies. Bypass usage
-# should be documented in the commit message; reflog plus the SKILL_BYPASS
-# string in the parent shell history is the audit trail.
+# Bypass modes (in order of severity):
+#   MINOR_CHANGE=1  — Skip proposal/approval for trivial changes (typos,
+#                     comments, formatting). Logs and stages minor-changes.log.
+#   SKILL_BYPASS=1  — Full bypass for emergencies. Must be documented
+#                     in commit message.
 
 set -uo pipefail
 
@@ -25,6 +27,40 @@ if [ -z "$guarded" ]; then
   exit 0
 fi
 
+# --- Minor change path: log and skip proposal requirement ---------------------
+
+if [ "${MINOR_CHANGE:-0}" = "1" ]; then
+  MINOR_LOG="${PREFIX}/evolution/minor-changes.log"
+  if ! mkdir -p "$(dirname "${MINOR_LOG}")"; then
+    echo "skill-evolution pre-commit: failed to create minor-change log directory." >&2
+    exit 1
+  fi
+  timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  reason="${MINOR_CHANGE_REASON:-pre-commit: commit message unavailable; set MINOR_CHANGE_REASON for audit context}"
+
+  if ! {
+    echo "---"
+    echo "timestamp: ${timestamp}"
+    echo "reason: ${reason}"
+    echo "files:"
+    printf '%s\n' "$guarded" | sed 's/^/  - /'
+  } >> "${MINOR_LOG}"; then
+    echo "skill-evolution pre-commit: failed to write ${MINOR_LOG}." >&2
+    exit 1
+  fi
+
+  if ! git add "${MINOR_LOG}"; then
+    echo "skill-evolution pre-commit: failed to stage ${MINOR_LOG}." >&2
+    exit 1
+  fi
+
+  echo "skill-evolution pre-commit: MINOR_CHANGE=1 — logged ${guarded##*$'\n'} file(s) to ${MINOR_LOG}"
+  echo "  (No proposal/approval required for trivial changes)"
+  exit 0
+fi
+
+# --- Standard path: require proposal + approval -------------------------------
+
 staged_proposals="$(printf '%s\n' "$changed_files" | grep -E "^${PREFIX}/evolution/proposals/[0-9]{8}-[0-9]{6}-[A-Za-z0-9_-]+\.md$" || true)"
 
 if [ -z "$staged_proposals" ]; then
@@ -33,7 +69,10 @@ if [ -z "$staged_proposals" ]; then
     echo "Guarded changes:"
     printf '%s\n' "$guarded" | sed 's/^/  - /'
     echo ""
-    echo "Stage an approved evolution proposal in the same commit, or set SKILL_BYPASS=1 to bypass (emergencies only)."
+    echo "Options:"
+    echo "  1. Stage an approved evolution proposal in the same commit"
+    echo "  2. Set MINOR_CHANGE=1 for trivial changes (typos, comments, formatting)"
+    echo "  3. Set SKILL_BYPASS=1 for emergencies only"
   } >&2
   exit 1
 fi

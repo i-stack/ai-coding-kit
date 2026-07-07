@@ -79,6 +79,28 @@ def resolve_secrets(data: Any, secrets: dict[str, str]) -> Any:
     return data
 
 
+def find_unresolved_placeholders(data: Any) -> list[str]:
+    """Recursively scan data for unresolved ${VAR} placeholders.
+
+    Returns a list of placeholder strings (e.g. ["${github.token}"]) found
+    in the data. Empty list means all placeholders were resolved.
+    """
+    found: list[str] = []
+
+    def _scan(value: Any) -> None:
+        if isinstance(value, str):
+            found.extend(m.group(0) for m in _SECRET_REF_RE.finditer(value))
+        elif isinstance(value, dict):
+            for v in value.values():
+                _scan(v)
+        elif isinstance(value, list):
+            for v in value:
+                _scan(v)
+
+    _scan(data)
+    return found
+
+
 # ── Configuration loading ────────────────────────────────────────────────────
 
 def load_all_mcp() -> dict[str, Any]:
@@ -89,6 +111,7 @@ def load_all_mcp() -> dict[str, Any]:
 
     Secrets (${VAR}) are resolved from env/secrets.json before returning.
     Returns {} if env/mcp/ is missing or empty (graceful degradation).
+    Warns about any unresolved placeholders after resolution.
     """
     if not MCP_DIR.is_dir():
         print(f"[sync] {MCP_DIR} directory not found — no MCP servers loaded.")
@@ -107,6 +130,10 @@ def load_all_mcp() -> dict[str, Any]:
             continue
         # Resolve secrets before stripping metadata
         data = resolve_secrets(data, secrets)
+        # Warn about unresolved placeholders
+        unresolved = find_unresolved_placeholders(data)
+        if unresolved:
+            print(f"[sync] ⚠ {f.name}: unresolved placeholders: {', '.join(unresolved)} — add them to env/secrets.json")
         name = data.get("name", f.stem)
         clean = {k: v for k, v in data.items() if k not in ("name", "_comment")}
         result[name] = clean
@@ -118,6 +145,7 @@ def load_platform_config(platform: str) -> dict[str, Any]:
 
     Secrets (${VAR}) are resolved from env/secrets.json before returning.
     Returns {} if the file doesn't exist.
+    Warns about any unresolved placeholders after resolution.
     """
     path = PLATFORMS_DIR / f"{platform}.json"
     if not path.is_file():
@@ -132,6 +160,10 @@ def load_platform_config(platform: str) -> dict[str, Any]:
         return {}
     secrets = load_secrets()
     data = resolve_secrets(data, secrets)
+    # Warn about unresolved placeholders
+    unresolved = find_unresolved_placeholders(data)
+    if unresolved:
+        print(f"[sync] ⚠ {path.name}: unresolved placeholders: {', '.join(unresolved)} — add them to env/secrets.json")
     return {k: v for k, v in data.items() if k not in ("_comment",)}
 
 
@@ -275,38 +307,33 @@ def merge_object(existing: Any, updates: dict[str, Any]) -> dict[str, Any]:
     return {**base, **updates}
 
 
-# ── Path helpers ─────────────────────────────────────────────────────────────
+# ── Path helpers (imported from centralized paths module) ────────────────────
 
-def codex_config_path() -> Path:
-    if p := os.environ.get("CODEX_CONFIG"):
-        return Path(p).expanduser()
-    if home := os.environ.get("CODEX_HOME"):
-        return Path(home).expanduser() / "config.toml"
-    return Path.home() / ".codex/config.toml"
-
-
-def codex_generated_toml_path() -> Path:
-    if home := os.environ.get("CODEX_HOME"):
-        return Path(home).expanduser() / "mcp.generated.toml"
-    return Path.home() / ".codex/mcp.generated.toml"
-
-
-def xcode_codex_dir() -> Path:
-    return Path.home() / "Library/Developer/Xcode/CodingAssistant/codex"
-
-
-def xcode_gemini_dir() -> Path:
-    return Path.home() / "Library/Developer/Xcode/CodingAssistant/gemini"
-
-
-def gemini_settings_path() -> Path:
-    return Path.home() / ".gemini/settings.json"
+from .paths import (  # noqa: F401
+    codex_config_path,
+    codex_generated_toml_path,
+    xcode_codex_dir,
+    xcode_gemini_dir,
+    gemini_settings_path,
+)
 
 
 # ── TOML generation utilities ────────────────────────────────────────────────
 
 def toml_quote(s: str) -> str:
-    return '"' + s.replace("\\", "\\\\").replace('"', '\\"') + '"'
+    """Escape and quote a string for TOML basic string format.
+
+    Handles: backslash, double-quote, newline, tab, carriage-return,
+    backspace, form-feed.
+    """
+    s = s.replace("\\", "\\\\")
+    s = s.replace('"', '\\"')
+    s = s.replace("\n", "\\n")
+    s = s.replace("\t", "\\t")
+    s = s.replace("\r", "\\r")
+    s = s.replace("\b", "\\b")
+    s = s.replace("\f", "\\f")
+    return '"' + s + '"'
 
 
 def toml_bare_key_segment(s: str) -> bool:
@@ -314,6 +341,19 @@ def toml_bare_key_segment(s: str) -> bool:
 
 
 def toml_header_key_segment(s: str) -> str:
+    """Format a key for use in a TOML header like [a.b.c].
+
+    If the key contains dots, each segment is individually quoted if needed.
+    E.g. 'sandbox_write.nested' -> 'sandbox_write.nested' (both bare)
+         'my.key/with.dots' -> '"my.key/with.dots"' (quoted as one segment)
+    """
+    if "." in s:
+        # Each dot-separated segment must be individually checked
+        parts = s.split(".")
+        return ".".join(
+            p if toml_bare_key_segment(p) else toml_quote(p)
+            for p in parts
+        )
     return s if toml_bare_key_segment(s) else toml_quote(s)
 
 
@@ -340,12 +380,12 @@ def toml_inline_table(values: dict[str, Any]) -> str:
 def toml_section(entries: dict[str, Any], *, ignore: Optional[set[str]] = None) -> str:
     """Convert a dict tree to TOML key-value lines and [table] sections.
 
-    Skips keys in `ignore` (default: {'env', '_comment', 'projects', 'model_providers'}).
+    Skips keys in `ignore` (default: {'env', '_comment', 'projects', 'model_providers', 'export_env_to_zshrc'}).
     Nested dicts with scalar values become [parent] tables with key=value lines.
     Deeper nested dicts become [parent.child] tables.
     Returns a TOML string suitable for insertion into managed blocks.
     """
-    skip = ignore or {"env", "_comment", "projects", "model_providers", "export_env_to_zshrc"}
+    skip = ignore if ignore is not None else {"env", "_comment", "projects", "model_providers", "export_env_to_zshrc"}
     lines: list[str] = []
 
     def _emit_table(parent_key: str, sub: dict[str, Any]) -> None:

@@ -21,32 +21,16 @@ from platforms import common  # noqa: E402
 
 @contextlib.contextmanager
 def patched_sync_environment(root: Path):
-    """Redirect HOME and module-level paths for isolated CodeBuddy sync tests.
-
-    codebuddy.py uses module-level constants (evaluated at import time via
-    Path.home()) whereas other sync modules use runtime functions.  This
-    context manager patches those constants so all writes land in the
-    isolated test directory.
-    """
+    """Redirect HOME and common module paths for isolated CodeBuddy sync tests."""
     home = root / "home"
     old_env = {k: os.environ.get(k) for k in ("HOME",)}
     old_paths = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
-    old_cb_paths = (
-        codebuddy_mod.MCP_TARGET,
-        codebuddy_mod.MODELS_TARGET,
-        codebuddy_mod.CODEBUDDY_SKILLS_DIR,
-        codebuddy_mod.CLAUDE_SKILLS_DIR,
-    )
     old_argv = sys.argv[:]
     try:
         os.environ["HOME"] = str(home)
         common.MCP_DIR = root / "env" / "mcp"
         common.PLATFORMS_DIR = root / "env" / "platforms"
         common.SECRETS_PATH = root / "env" / "secrets.json"
-        codebuddy_mod.MCP_TARGET = home / ".codebuddy" / "mcp.json"
-        codebuddy_mod.MODELS_TARGET = home / ".codebuddy" / "models.json"
-        codebuddy_mod.CODEBUDDY_SKILLS_DIR = home / ".codebuddy" / "skills"
-        codebuddy_mod.CLAUDE_SKILLS_DIR = home / ".claude" / "skills"
         yield
     finally:
         for key, value in old_env.items():
@@ -55,8 +39,6 @@ def patched_sync_environment(root: Path):
             else:
                 os.environ[key] = value
         common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_paths
-        (codebuddy_mod.MCP_TARGET, codebuddy_mod.MODELS_TARGET,
-         codebuddy_mod.CODEBUDDY_SKILLS_DIR, codebuddy_mod.CLAUDE_SKILLS_DIR) = old_cb_paths
         sys.argv = old_argv
 
 
