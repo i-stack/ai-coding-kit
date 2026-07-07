@@ -39,3 +39,4 @@
 | 根因 / 修复 / 安全 / 敏感信息 | engineering-discipline | P1 |
 | 第一性原理 / 深层需求 / 问题偏差 | problem-analysis | P1 |
 | 盲区 / 邻域 / 拓展 / 带走 | cognitive-expansion | P2（回答后追加） |
+| 代码生成后 / 自动触发 | auto-code-review | P2（代码修改后自动） |

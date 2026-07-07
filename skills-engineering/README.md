@@ -18,6 +18,7 @@
 | `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解 |
 | `plan-grill` | 工作流技能 | 需求对齐/盘问锁定计划，产出 PLAN.md（基于 grill-me） |
 | `cross-model-review` | 工作流技能 | 跨模型对抗审查 PLAN.md，自动发现 CLI（基于 grill-me-codex） |
+| `auto-code-review` | 工作流技能 | 代码实施后自动跨模型审查，循环修复直到通过 |
 
 本仓库同时提供三类能力：
 
@@ -59,6 +60,9 @@
 ├── epistemic-integrity/       # 真值接地技能（同构）
 ├── logical-reasoning/         # 逻辑论证技能（同构）
 ├── problem-analysis/          # 问题分析技能（同构）
+├── plan-grill/                # 需求盘问锁定计划（Act 1）
+├── cross-model-review/        # 跨模型对抗审查 PLAN.md（Act 2）
+├── auto-code-review/          # 代码实施后自动审查（Act 3）
 ├── scripts/                   # 仓库级脚本
 │   ├── bootstrap.sh
 │   ├── sync-skills.sh
