@@ -17,8 +17,7 @@ env/
 │   ├── shell.json
 │   ├── xcodebuild.json
 │   ├── lanhu.json
-│   ├── moonvy.json
-│   └── gateway.json
+│   └── moonvy.json
 │
 ├── platforms/                ← 平台专属配置
 │   ├── claude.json
