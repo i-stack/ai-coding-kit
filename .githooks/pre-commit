@@ -54,7 +54,8 @@ if [ "${MINOR_CHANGE:-0}" = "1" ]; then
     exit 1
   fi
 
-  echo "skill-evolution pre-commit: MINOR_CHANGE=1 — logged ${guarded##*$'\n'} file(s) to ${MINOR_LOG}"
+  count=$(printf '%s\n' "$guarded" | grep -c .)
+  echo "skill-evolution pre-commit: MINOR_CHANGE=1 — logged ${count} file(s) to ${MINOR_LOG}"
   echo "  (No proposal/approval required for trivial changes)"
   exit 0
 fi

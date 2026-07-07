@@ -404,9 +404,10 @@ def toml_section(entries: dict[str, Any], *, ignore: Optional[set[str]] = None) 
                     lines.append(f"{k} = {toml_value(v)}")
         # Emit nested sub-tables
         for sub_key, sub_value in sub_tables.items():
-            section_key = toml_header_key_segment(f"{parent_key}.{sub_key}")
+            full_key = f"{parent_key}.{sub_key}"
+            section_key = toml_header_key_segment(full_key)
             lines.append(f"[{section_key}]")
-            _emit_table(sub_key, sub_value)
+            _emit_table(full_key, sub_value)
         if has_scalars or not sub_tables:
             lines.append("")
 

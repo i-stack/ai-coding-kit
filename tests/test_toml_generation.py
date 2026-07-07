@@ -236,6 +236,21 @@ class TomlSectionTests(unittest.TestCase):
         self.assertIn("[sandbox_write.nested]", result)
         self.assertIn('deep_key = "deep_val"', result)
 
+    def test_three_level_nesting(self) -> None:
+        """Three levels of nesting must produce fully-qualified section headers."""
+        result = toml_section({
+            "sandbox_write": {
+                "nested": {
+                    "level3": {"val": "x"}
+                }
+            }
+        })
+        self.assertIn("[sandbox_write]", result)
+        self.assertIn("[sandbox_write.nested]", result)
+        self.assertIn("[sandbox_write.nested.level3]", result)
+        self.assertNotIn("[nested.level3]", result)
+        self.assertIn('val = "x"', result)
+
 
 if __name__ == "__main__":
     unittest.main()
