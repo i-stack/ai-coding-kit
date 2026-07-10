@@ -25,7 +25,7 @@ supported_locales: [zh-CN]
 
 ## 规则索引（owned rule IDs）
 
-本 skill 的契约由下列 `CE-NNN` 规则承载，真值登记在 [references/rule_index.md](references/rule_index.md)。行为门禁 `scripts/validate-skill-behavior.sh` 的 Check 2 会校验二者 ID 集合一致（SKILL.md 声明、rule_index.md 表格定义）。
+本 skill 的契约由下列 `CE-NNN` 规则承载，真值登记在 [references/rule_index.md](references/rule_index.md)。形态校准示例（before/after 与退化标本）见 [references/examples.md](references/examples.md)。行为门禁 `scripts/validate-skill-behavior.sh` 的 Check 2 校验二者 ID 集合双向一致（SKILL.md 声明的 ID 均被定义；rule_index.md 中 active 行均被 SKILL.md 声明）。
 
 - [CE-001] Tier 0 触发门控：双条件（有判断成分 且 能产出≥1 条可证伪盲区）同时成立才追加认知尾注，否则静默不写。
 - [CE-002] 重框：把问题提升为更一般判断/学习问题；纯执行任务写「重框略」。

@@ -74,6 +74,10 @@ RULE_BULLET = re.compile(r'^\s*-\s+\*?\[([A-Z]+-\d+)\]\*?', re.M)
 DEF_HEADING = re.compile(r'^#{1,6}\s+([A-Z]+-\d+)\b', re.M)
 DEF_BRACKET = re.compile(r'\[([A-Z]+-\d+)\]')
 DEF_TABLE   = re.compile(r'^\s*\|[ \t]*([A-Z]+-\d+)[ \t]*\|', re.M)
+# Active table rows only (status cell == 'active'): used for the reverse check.
+# Separate from DEF_TABLE because DEF_TABLE stops at the first `|` after the id,
+# so it cannot see the status cell — we need the full row to read it.
+DEF_ACTIVE  = re.compile(r'^\s*\|[ \t]*([A-Z]+-\d+)[ \t]*\|[ \t]*active\b', re.M)
 CROSS_LINK = re.compile(r'\.{1,2}/ios-engineer/references/')
 LOAD_TOKENS = re.compile(r'触发|加载|调用|门控|enable|Enable')
 SKIP_TOKENS = re.compile(r'不触发|跳过|不调用|SKIP|skip')
@@ -119,7 +123,8 @@ for skill_dir in skills:
     # defines it in references/ now correctly FAILs.
     owned_ids = RULE_BULLET.findall(skill_text)
     if owned_ids:
-        defined = set()
+        defined = set()               # any structured anchor (heading / bracket / active table)
+        defined_active_table = set()  # active table rows only (for the reverse check)
         for rf in ref_md_files:
             with open(rf, encoding="utf-8") as f:
                 txt = f.read()
@@ -129,16 +134,41 @@ for skill_dir in skills:
                 defined.add(m.group(1))
             for m in DEF_TABLE.finditer(txt):
                 defined.add(m.group(1))
+            for m in DEF_ACTIVE.finditer(txt):
+                defined_active_table.add(m.group(1))
         owned_set = set(owned_ids)
+
+        # Forward (declared -> defined): a declared id must have a structured
+        # anchor in THIS skill's references. Retired rows are excluded so a
+        # retired id is never treated as a valid definition.
         undefined = sorted(owned_set - defined)
         if undefined:
             for i in undefined:
                 print(f"  FAIL: owned rule id [{i}] declared in SKILL.md but not defined "
                       f"in {name}/references/ (heading '## {i}', bracket '[{i}]', or "
-                      f"table '| {i} |')")
+                      f"active table row '| {i} |')")
                 fails += 1
-        else:
-            print(f"  [ok] {len(owned_set)} owned rule id(s) defined in references/")
+
+        # Reverse (P2 fix): an ACTIVE table row whose prefix matches a declared
+        # prefix must ALSO be declared in SKILL.md. Without this, a stale
+        # `| CE-014 | active |` row would pass even if SKILL.md never declares it,
+        # making the stated "bidirectional consistency" contract false. Scoped to
+        # the skill's own prefixes so (a) mirrored IDs such as ios-engineer's
+        # GR-* rows — which are owned by other global skills' SKILL.md — and
+        # (b) retired rows are never falsely flagged.
+        owned_prefixes = {i.rsplit("-", 1)[0] for i in owned_set}
+        extra = sorted({d for d in defined_active_table
+                        if d.rsplit("-", 1)[0] in owned_prefixes and d not in owned_set})
+        if extra:
+            for i in extra:
+                print(f"  FAIL: rule id [{i}] defined as active in {name}/references/ "
+                      f"but never declared in SKILL.md (rule_index.md row without a "
+                      f"matching '- [{i}]' bullet)")
+                fails += 1
+
+        if not undefined and not extra:
+            print(f"  [ok] {len(owned_set)} owned rule id(s) consistent with references/ "
+                  f"(declared==defined, bidirectional)")
 
     # --- Check 3: load/skip gating present (WARN) ---
     has_load = bool(LOAD_TOKENS.search(skill_text))
