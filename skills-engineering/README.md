@@ -400,6 +400,7 @@ bash install-hooks.sh
 
 [`.githooks/pre-push`](../.githooks/pre-push) 在推送前顺序执行（默认任一失败即中止 push）：
 
+0. `skills-engineering/scripts/validate-skill-structure.sh` —— 推送前校验全部 `SKILL.md` 的机器可识别结构（frontmatter 必填键、行数上限、本地 `references/` 引用存在性、内部链接可解析、无孤儿 reference）；任一技能结构回归即中止 push。
 1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor`，以及可选的 `~/Library/Developer/Xcode/CodingAssistant/codex` 和 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig` skill 缓存（按 `SYNC_*` 门控与排除规则）。
 2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写各端 preamble 托管块，并按 `sync-manifest` 的 `skill:*` 生成 `.cursor/rules/*.mdc`。
 3. `skills-engineering/scripts/verify-sync.sh` —— 断言各已启用缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
