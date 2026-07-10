@@ -1,6 +1,8 @@
 ---
 name: problem-analysis
 description: 问题前置分析——逻辑检验、第一性原理拆解、充分理解后再回复（PA-001/002/003）。适用所有含判断或方案讨论的任务。
+locale: zh-CN
+supported_locales: [zh-CN]
 ---
 
 # Problem Analysis

@@ -37,6 +37,11 @@ GR-NNN 规则由独立 global skill 承载，跨平台通用（不限 iOS）；i
 | GR-007 | active | 不格式化代码（防 Diff 噪声，限制美化范围，杜绝空行） | 同上 |
 | GR-008 | active | 变更覆盖声明（已覆盖/未覆盖/残留风险三字段，段标题为机械校验 anchor） | 同上 |
 | GR-010 | active | 可追溯逻辑链；高风险场景输出独立「逻辑链」块（事实/证据、推断、结论强度、可证伪/缺口） | [logical-reasoning/references/logical_reasoning.md](../../logical-reasoning/references/logical_reasoning.md) |
+| GR-011 | active | 反幻觉接地（不把未验证当已知；高危带降置信；关键事实给来源/怎么核的把手） | [epistemic-integrity/references/epistemic_integrity.md](../../epistemic-integrity/references/epistemic_integrity.md) |
+| GR-012 | active | 验证方法论（现实当裁判＞有问责一手源＞独立交叉；优先证伪而非穷尽确认） | 同上 |
+| GR-013 | active | 求真方法边界（事实类查证不推导；推理类允许第一性原理；校准把握度非去情绪） | 同上 |
+
+> 注：`GR-009` 当前故意未分配（编号可有空洞，见「使用规则」）；`GR-001~008` 由 engineering-discipline 承载，`GR-010` 由 logical-reasoning 承载，`GR-011~013` 由 epistemic-integrity 承载。新增全局规则须在此表登记并同步各 global skill 的 SKILL.md，避免跨 skill ID 冲突。
 
 ## 症状导航 SYM-NNN
 

@@ -1,6 +1,8 @@
 ---
 name: auto-code-review
 description: 用户显式触发的跨模型代码审查工作流。仅当用户明确说 `/auto-review`、`使用 auto-code-review`、`启动跨模型代码审查`，或明确要求“审查并修复”时使用；普通代码生成、修改完成或含糊的“看看代码”不自动触发。默认只读审查，只有用户明确要求 `--fix` 或“审查并修复”才允许主 agent 修改代码。
+locale: zh-CN
+supported_locales: [zh-CN]
 ---
 
 # Auto Code Review
@@ -11,6 +13,7 @@ description: 用户显式触发的跨模型代码审查工作流。仅当用户�
 
 - 不得以 preamble、Cursor 规则摘要或其它二次摘要代替详规全文。
 - 未获得当前请求中的显式授权时，不得探测 reviewer CLI、调用 reviewer 或创建审查归档。
+- 运行前置依赖（不随 skill 同步包分发，需宿主环境另行提供）：`env/review.json`（模板 `env/review.json.example`）、项目内 `.auto-review-config.json`、以及 `AUTO_REVIEW_*` 环境变量。配置加载优先级与字段含义见 `AGENT-BRIEF.md` 与 `docs/auto-code-review.md`。
 
 ## 八条核心规则
 
