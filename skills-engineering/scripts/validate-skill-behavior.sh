@@ -73,10 +73,11 @@ RULE_BULLET = re.compile(r'^\s*-\s+\*?\[([A-Z]+-\d+)\]\*?', re.M)
 #   - table registry:  `| IR-001 | active | ... |`  (ios-engineer/references/rule_index.md)
 DEF_HEADING = re.compile(r'^#{1,6}\s+([A-Z]+-\d+)\b', re.M)
 DEF_BRACKET = re.compile(r'\[([A-Z]+-\d+)\]')
-DEF_TABLE   = re.compile(r'^\s*\|[ \t]*([A-Z]+-\d+)[ \t]*\|', re.M)
-# Active table rows only (status cell == 'active'): used for the reverse check.
-# Separate from DEF_TABLE because DEF_TABLE stops at the first `|` after the id,
-# so it cannot see the status cell — we need the full row to read it.
+# Active table rows only (status cell == 'active'): used for BOTH the forward
+# definition set and the reverse check. A retired row (`| ID | retired |`) is
+# NOT a valid definition — a retired id must not remain declared in SKILL.md
+# (rule_index lifecycle), so it must keep failing the forward check. We read the
+# full row to reach the status cell rather than stopping at the first `|`.
 DEF_ACTIVE  = re.compile(r'^\s*\|[ \t]*([A-Z]+-\d+)[ \t]*\|[ \t]*active\b', re.M)
 CROSS_LINK = re.compile(r'\.{1,2}/ios-engineer/references/')
 LOAD_TOKENS = re.compile(r'触发|加载|调用|门控|enable|Enable')
@@ -123,8 +124,8 @@ for skill_dir in skills:
     # defines it in references/ now correctly FAILs.
     owned_ids = RULE_BULLET.findall(skill_text)
     if owned_ids:
-        defined = set()               # any structured anchor (heading / bracket / active table)
-        defined_active_table = set()  # active table rows only (for the reverse check)
+        defined = set()               # structured anchors: heading / bracket / ACTIVE table row
+        defined_active_table = set()  # active table rows (redundant with `defined`, kept for clarity)
         for rf in ref_md_files:
             with open(rf, encoding="utf-8") as f:
                 txt = f.read()
@@ -132,9 +133,8 @@ for skill_dir in skills:
                 defined.add(m.group(1))
             for m in DEF_BRACKET.finditer(txt):
                 defined.add(m.group(1))
-            for m in DEF_TABLE.finditer(txt):
-                defined.add(m.group(1))
             for m in DEF_ACTIVE.finditer(txt):
+                defined.add(m.group(1))
                 defined_active_table.add(m.group(1))
         owned_set = set(owned_ids)
 
