@@ -449,6 +449,7 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all
 
 - 新增 `scripts/validate-skill-behavior.sh`：跨技能行为/一致性校验（companion 文件齐备、自有规则 ID 在 `references/` 有定义、`.agents/invocation.md` 触发矩阵覆盖全部技能、i18n 镜像覆盖与跨技能硬链提示）；接入 `pre-push` 作为结构校验后的硬闸门。
   - 加固（后续 review 修复）：discovery 改以"含 SKILL.md 的顶层目录"为准，使缺 companion 的新 skill 也能被捕获；规则 ID 定义校验改为**仅在本 skill 的 `references/*.md` 内**用结构化锚点（标题 `## ID` / 括号 `[ID]` / 表格 `| ID |`）匹配，不再把 SKILL.md 或 ios-engineer 的 references 并入搜索空间（原本会让检查完全失效或误兜底）。
+  - `cognitive-expansion` 补 `CE-001~013` 自有规则 ID（`SKILL.md` 声明 + `references/rule_index.md` 表格定义 + `references/examples.md` before/after 形态样本与退化标本）；使其从"纯散文规范"升为可被 `validate-skill-behavior.sh` Check 2 校验的契约，对齐 ios-engineer 的 `rule_index.md` 模式。
 - 新增 `scripts/verify-review-setup.sh`：审查链前置自检（plan-reviews 构建产物、auto-code-review 配置、reviewer CLI 可用性）。
 - 新增 `.agents/composition.md`：多全局技能同时命中时的块发射顺序与冲突裁决。
 - `.agents/invocation.md`：触发矩阵补齐缺失的 `plan-grill` 与 `cross-model-review`，并指向 `composition.md`。
