@@ -85,10 +85,16 @@ skill = File.read("SKILL.md")
 review = File.read("references/review_checklists.md")
 examples = File.read("references/examples.md")
 
-unless skill.include?("代码审查 / PR Review 例外") &&
-       skill.include?("findings-first") &&
-       skill.include?("[review_checklists.md](references/review_checklists.md)")
-  warn "SKILL.md no longer routes code review to findings-first review_checklists.md"
+required_skill_fragments = {
+  "code review route" => "代码审查 / PR Review",
+  "findings-first contract" => "findings-first",
+  "GR-004 trigger owner" => "触发条件见 GR-004",
+  "review checklist link" => "[review_checklists.md](references/review_checklists.md)"
+}
+
+missing_skill_fragments = required_skill_fragments.select { |_label, text| !skill.include?(text) }
+unless missing_skill_fragments.empty?
+  missing_skill_fragments.each { |label, _text| warn "SKILL.md missing code review contract fragment: #{label}" }
   exit 1
 end
 

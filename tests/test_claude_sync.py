@@ -146,6 +146,26 @@ class ClaudeSyncTests(unittest.TestCase):
         self.assertEqual(data.get("customKey"), "keep-me")
         self.assertIn("sample", data["mcpServers"])
 
+    def test_claude_config_json_created_with_primary_api_key_self(self) -> None:
+        """~/.claude/config.json should be created with primaryApiKey=self."""
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        config = self._read_json(self.home / ".claude" / "config.json")
+        self.assertEqual(config["primaryApiKey"], "self")
+
+    def test_claude_config_json_preserves_existing_keys(self) -> None:
+        """Existing ~/.claude/config.json keys should survive the sync."""
+        self._write_json(
+            self.home / ".claude" / "config.json",
+            {"primaryApiKey": "login", "custom": {"keep": True}},
+        )
+
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        config = self._read_json(self.home / ".claude" / "config.json")
+        self.assertEqual(config["primaryApiKey"], "self")
+        self.assertEqual(config["custom"], {"keep": True})
+
     # ── settings.json team-shared settings ───────────────────────────────────────
 
     def test_settings_json_contains_team_shared_keys(self) -> None:

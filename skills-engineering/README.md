@@ -84,7 +84,7 @@
 - `ios-engineer/evolution/`：技能演进数据，包括 `proposals/`、`validations/`、`approvals/`、`history/`、`scenarios/`、`usage/`。
 - `scripts/`：仓库级脚本，负责同步技能、同步 Agent preamble 与同步结果校验；本地机器专属配置放在 `scripts/config.local.sh`（模板为 `scripts/config.local.sh.example`），路径由仓库根 `.gitignore` 排除，会被 sync 脚本自动 source。
 - `docs/`：各 skill 的独立使用文档，供人类阅读，不参与 Agent 运行时加载。
-- `.agents/`：`invocation.md`（多 skill 并行加载规范）和 `writing-docs.md`（文档写作规范）。
+- `.agents/`：`invocation.md`（多 skill 并行加载规范）、`composition.md`（多技能同时命中时的块发射顺序与冲突裁决）和 `writing-docs.md`（文档写作规范）。
 - `.claude-plugin/plugin.json`：Claude Code 插件清单，支持一键安装为 Claude 插件。
 - `.out-of-scope/repository-scope.md`：仓库级范围外声明（安全合规等跨 skill 通用约束）。
 - 提交/推送守卫：合并入 `ai-coding-kit` 后由仓库根的 [../.githooks/](../.githooks/) 统一管理，详见外层根 README 的「Git 钩子」章节。
@@ -400,6 +400,8 @@ bash install-hooks.sh
 
 [`.githooks/pre-push`](../.githooks/pre-push) 在推送前顺序执行（默认任一失败即中止 push）：
 
+0. `skills-engineering/scripts/validate-skill-structure.sh` —— 推送前校验全部 `SKILL.md` 的机器可识别结构（frontmatter 必填键、行数上限、本地 `references/` 引用存在性、内部链接可解析、无孤儿 reference）；任一技能结构回归即中止 push。
+0b. `skills-engineering/scripts/validate-skill-behavior.sh` —— 推送前跨技能行为/一致性校验（companion 文件齐备、各技能自有规则 ID 在 `references/` 中有定义、`.agents/invocation.md` 触发矩阵覆盖全部技能、i18n 镜像覆盖与跨技能硬链提示）；任一 FAIL 即中止 push。独立运行：`bash skills-engineering/scripts/validate-skill-behavior.sh [<skill>]`。
 1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor`，以及可选的 `~/Library/Developer/Xcode/CodingAssistant/codex` 和 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig` skill 缓存（按 `SYNC_*` 门控与排除规则）。
 2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写各端 preamble 托管块，并按 `sync-manifest` 的 `skill:*` 生成 `.cursor/rules/*.mdc`。
 3. `skills-engineering/scripts/verify-sync.sh` —— 断言各已启用缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
@@ -442,3 +444,17 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all
 - 新增 `scripts/list-skills.sh`：列出所有已注册 skill 及描述
 - 新增 `scripts/templates/epistemic-integrity.mdc.tmpl`：补齐 Cursor `.mdc` 生成链路
 - 修复 `scripts/verify-sync.sh`：补齐 `epistemic-integrity` 和 `problem-analysis` 的 preamble 检查
+
+### 3.0.1 — 2026-07-10
+
+- 新增 `scripts/validate-skill-behavior.sh`：跨技能行为/一致性校验（companion 文件齐备、自有规则 ID 在 `references/` 有定义、`.agents/invocation.md` 触发矩阵覆盖全部技能、i18n 镜像覆盖与跨技能硬链提示）；接入 `pre-push` 作为结构校验后的硬闸门。
+  - 加固（后续 review 修复）：discovery 改以"含 SKILL.md 的顶层目录"为准，使缺 companion 的新 skill 也能被捕获；规则 ID 定义校验改为**仅在本 skill 的 `references/*.md` 内**用结构化锚点（标题 `## ID` / 括号 `[ID]` / 表格 `| ID |`）匹配，不再把 SKILL.md 或 ios-engineer 的 references 并入搜索空间（原本会让检查完全失效或误兜底）。
+  - `cognitive-expansion` 补 `CE-001~013` 自有规则 ID（`SKILL.md` 声明 + `references/rule_index.md` 表格定义 + `references/examples.md` before/after 形态样本与退化标本）；使其从"纯散文规范"升为可被 `validate-skill-behavior.sh` Check 2 校验的契约，对齐 ios-engineer 的 `rule_index.md` 模式。
+  - 复查修复：SKILL.md 入口链接 `examples.md`，消除结构门禁 `validate-skill-structure.sh` 的 orphan reference（原 examples.md 从入口不可达）；`validate-skill-behavior.sh` Check 2 增加反向校验（rule_index.md 中 active 表行须被 SKILL.md 声明），使"双向一致"契约成真，并排除 ios-engineer 的 retired / 镜像 ID 误报。
+  - 复查修复（续）：Check 2 前向定义集合此前经 `DEF_TABLE` 包含所有表行，使 `| ID | retired |` 这类退役行仍可作"有效定义"，与"退役 ID 不应再出现在 SKILL.md"的生命周期约定冲突，且注释自相矛盾。改为仅以 `DEF_ACTIVE`（active 表行）填充 `defined`，删除已无用的 `DEF_TABLE`；负向测试（把某 CE 行改 `retired`）现正确触发前向 FAIL。
+  - `cognitive-expansion` 收口（P1/P2 中的 C+B）：① Tier 3 `跨域类比` 加护栏（CE-008 细化）——须机制对齐、点名被映射机制，禁陈词/换词类比，附 1 good/1 bad 例（`cognitive_expansion.md` §Tier 3 + `examples.md` 示例 2 复用同一 good 例）；② `流程保障`（预测日志/双会话/每周深潜）由契约段移入`附录`并标注"可选习惯、非门控、不计入 `validate-skill-behavior.sh` 任何 Check"，避免稀释强制部分。三处 CE-008 措辞同步，`SKILL.md`/`rule_index.md`/`cognitive_expansion.md` 一致。
+- 新增 `scripts/verify-review-setup.sh`：审查链前置自检（plan-reviews 构建产物、auto-code-review 配置、reviewer CLI 可用性）。
+- 新增 `.agents/composition.md`：多全局技能同时命中时的块发射顺序与冲突裁决。
+- `.agents/invocation.md`：触发矩阵补齐缺失的 `plan-grill` 与 `cross-model-review`，并指向 `composition.md`。
+- `cognitive-expansion` / `logical-reasoning` 及 `cognitive_expansion.md`：对 ios-engineer 的跨技能链接加"条件性"说明，消除非 iOS 环境死链风险。
+- `ios-engineer/SKILL.md`：en-US 镜像声明改为诚实的部分镜像说明（符合 GR-011）。

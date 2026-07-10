@@ -5,6 +5,9 @@
 # about to be published:
 #
 # Skill-sync chain (fail-fast):
+#   0. skills-engineering/scripts/validate-skill-structure.sh — validate every
+#      SKILL.md's machine-recognizable structure (frontmatter, size, reference
+#      links, orphan references) before publishing
 #   1. skills-engineering/scripts/sync-skills.sh         — rsync ios-engineer/
 #      into ~/.claude, ~/.codex, ~/.cursor skill caches (with excludes)
 #   2. skills-engineering/scripts/sync-agent-preamble.sh — rewrite managed
@@ -33,12 +36,14 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SYNC_SCRIPT="${ROOT}/skills-engineering/scripts/sync-skills.sh"
 PREAMBLE_SCRIPT="${ROOT}/skills-engineering/scripts/sync-agent-preamble.sh"
 VERIFY_SCRIPT="${ROOT}/skills-engineering/scripts/verify-sync.sh"
+STRUCT_SCRIPT="${ROOT}/skills-engineering/scripts/validate-skill-structure.sh"
+BEHAVIOR_SCRIPT="${ROOT}/skills-engineering/scripts/validate-skill-behavior.sh"
 MCP_SYNC="${ROOT}/sync/sync_all.sh"
 
 # Collect missing scripts upfront so user sees all issues at once
 missing_scripts=()
 if [ "${SKILL_BYPASS:-0}" != "1" ]; then
-  for s in "${SYNC_SCRIPT}" "${PREAMBLE_SCRIPT}" "${VERIFY_SCRIPT}"; do
+  for s in "${STRUCT_SCRIPT}" "${BEHAVIOR_SCRIPT}" "${SYNC_SCRIPT}" "${PREAMBLE_SCRIPT}" "${VERIFY_SCRIPT}"; do
     if [ ! -x "${s}" ]; then
       missing_scripts+=("${s}")
     fi
@@ -73,23 +78,35 @@ mcp_failures=()
 # --- skill-sync chain (preamble and verify run only if sync-skills succeeds) --
 
 if [ "${SKILL_BYPASS:-0}" != "1" ]; then
-  echo "skill-sync pre-push: syncing skills-engineering/ to local agent caches..."
-  if ! "${SYNC_SCRIPT}"; then
-    skill_sync_failures+=("sync-skills.sh")
-    echo "skill-sync pre-push: ⚠ sync-skills.sh failed." >&2
+  echo "skill-sync pre-push: validating skill structure (frontmatter/size/links/orphans)..."
+  if ! "${STRUCT_SCRIPT}"; then
+    skill_sync_failures+=("validate-skill-structure.sh")
+    echo "skill-sync pre-push: ⚠ validate-skill-structure.sh reported issues." >&2
   else
-    echo "skill-sync pre-push: rendering agent preamble blocks..."
-    if ! "${PREAMBLE_SCRIPT}"; then
-      skill_sync_failures+=("sync-agent-preamble.sh")
-      echo "skill-sync pre-push: ⚠ sync-agent-preamble.sh failed." >&2
-    fi
+    echo "skill-sync pre-push: validating skill behavior/consistency (cross-skill rules, matrix, i18n)..."
+    if ! "${BEHAVIOR_SCRIPT}"; then
+      skill_sync_failures+=("validate-skill-behavior.sh")
+      echo "skill-sync pre-push: ⚠ validate-skill-behavior.sh reported issues." >&2
+    else
+      echo "skill-sync pre-push: syncing skills-engineering/ to local agent caches..."
+    if ! "${SYNC_SCRIPT}"; then
+      skill_sync_failures+=("sync-skills.sh")
+      echo "skill-sync pre-push: ⚠ sync-skills.sh failed." >&2
+    else
+      echo "skill-sync pre-push: rendering agent preamble blocks..."
+      if ! "${PREAMBLE_SCRIPT}"; then
+        skill_sync_failures+=("sync-agent-preamble.sh")
+        echo "skill-sync pre-push: ⚠ sync-agent-preamble.sh failed." >&2
+      fi
 
-    echo "skill-sync pre-push: verifying cache layout..."
-    if ! "${VERIFY_SCRIPT}"; then
-      skill_sync_failures+=("verify-sync.sh")
-      echo "skill-sync pre-push: ⚠ verify-sync.sh reported issues." >&2
+      echo "skill-sync pre-push: verifying cache layout..."
+      if ! "${VERIFY_SCRIPT}"; then
+        skill_sync_failures+=("verify-sync.sh")
+        echo "skill-sync pre-push: ⚠ verify-sync.sh reported issues." >&2
+      fi
     fi
   fi
+fi
 fi
 
 # --- sync (MCP + Codex shared) ------------------------------------------------
@@ -122,11 +139,21 @@ if [ $((${#skill_sync_failures[@]} + ${#mcp_failures[@]})) -gt 0 ]; then
   echo "Push aborted. Your local agent caches may be in an inconsistent state." >&2
   if [ ${#skill_sync_failures[@]} -gt 0 ]; then
     echo "" >&2
-    echo "To fix skill-sync failures:" >&2
-    echo "  1. Resolve the errors above" >&2
-    echo "  2. Re-run: bash skills-engineering/scripts/sync-skills.sh" >&2
-    echo "  3. Then retry: git push" >&2
-    echo "  Or set SKILL_BYPASS=1 to skip skill-sync (emergencies only)." >&2
+    if printf '%s\n' "${skill_sync_failures[@]}" | grep -qxE "validate-skill-structure\.sh|validate-skill-behavior\.sh"; then
+      echo "To fix skill-sync failures:" >&2
+      echo "  1. A SKILL STRUCTURE or BEHAVIOR check failed (pre-sync gate). Run and fix:" >&2
+      echo "       bash skills-engineering/scripts/validate-skill-structure.sh" >&2
+      echo "       bash skills-engineering/scripts/validate-skill-behavior.sh" >&2
+      echo "  2. Once every skill PASSES, retry: git push" >&2
+      echo "  (re-running sync-skills.sh will NOT fix structure issues.)" >&2
+      echo "  Or set SKILL_BYPASS=1 to skip skill-sync (emergencies only)." >&2
+    else
+      echo "To fix skill-sync failures:" >&2
+      echo "  1. Resolve the errors above" >&2
+      echo "  2. Re-run: bash skills-engineering/scripts/sync-skills.sh" >&2
+      echo "  3. Then retry: git push" >&2
+      echo "  Or set SKILL_BYPASS=1 to skip skill-sync (emergencies only)." >&2
+    fi
   fi
   if [ ${#mcp_failures[@]} -gt 0 ]; then
     echo "" >&2

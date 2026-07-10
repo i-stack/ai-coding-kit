@@ -12,7 +12,7 @@ supported_locales: [zh-CN]
 命中本 skill 时，**必须先完整阅读** [references/logical_reasoning.md](references/logical_reasoning.md) 并按其中条款执行。
 
 - 不得以 preamble、Cursor 规则摘要或其它二次摘要代替该文件全文。
-- 同步依赖：本 skill 在「与认知对手模式的分工」中通过相对路径引用 `../ios-engineer/references/cognitive_adversary_mode.md`；同步到各端时，需确保 `ios-engineer` skill 也同步到同层 skills 目录（如 `~/.claude/skills/ios-engineer`），否则该链接失效。
+- 同步依赖：本 skill 在「与认知对手模式的分工」中通过相对路径引用 `../ios-engineer/references/cognitive_adversary_mode.md`；同步到各端时，需确保 `ios-engineer` skill 也同步到同层 skills 目录（如 `~/.claude/skills/ios-engineer`），否则该链接失效。**条件性**：该链接仅在 ios-engineer 已同步到同层 skills 目录时可达；非 iOS 环境（未同步 ios-engineer）下，本 skill 的 GR-010 约束本身完整可用，仅"与认知对手模式分工"的跳转链接失效，不影响核心论证纪律。
 
 ## GR-010 核心规则
 

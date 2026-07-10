@@ -38,7 +38,11 @@
 | 逻辑 / 推断 / 因果 / 论证 | logical-reasoning | P1 |
 | 根因 / 修复 / 安全 / 敏感信息 | engineering-discipline | P1 |
 | 第一性原理 / 深层需求 / 问题偏差 | problem-analysis | P1 |
+| 锁定计划 / 盘问 / grill me / 先别写代码 | plan-grill | P1（条件自动 + 显式；产出 PLAN.md 供 cross-model-review 接力） |
+| 对抗审查 / cross review / stress-test PLAN.md | cross-model-review | P1（接力 plan-grill；需 PLAN.md 存在） |
 | 盲区 / 邻域 / 拓展 / 带走 | cognitive-expansion | P2（回答后追加） |
 | `/auto-review` / `使用 auto-code-review` / `启动跨模型代码审查` | auto-code-review | P1（仅用户显式触发） |
 
 `auto-code-review` 不因代码生成或修改完成自动加载。默认触发只授权只读审查；只有 `/auto-review --fix` 或明确“审查并修复”才授权主 agent 修改代码。
+
+多全局技能同时命中时的块发射顺序与冲突裁决，见 `.agents/composition.md`。

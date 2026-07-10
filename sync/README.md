@@ -110,7 +110,7 @@ The JSON keys map directly to the platform's native format — no field name tra
 | Codex CLI | `~/.codex/mcp.generated.toml` + managed blocks in `config.toml` |
 | Xcode Codex | `~/Library/.../CodingAssistant/codex/` |
 | Claude Code | Replace `mcpServers` in `~/.claude.json` + Xcode Claude |
-| Claude settings | Merge `env` + `hooks` into `~/.claude/settings.json` |
+| Claude settings | Merge `env` + `hooks` into `~/.claude/settings.json`, set `~/.claude/config.json` `primaryApiKey` to `self` |
 | Cline | Replace `mcpServers` in VSCode extension settings + skills sync |
 | Gemini CLI | Replace `mcpServers` in `~/.gemini/settings.json` + `~/.zshrc` env |
 | Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml` |

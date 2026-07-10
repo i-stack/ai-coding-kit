@@ -111,7 +111,7 @@ references/usage_ledger.md 第 4 节）：
 - tool: codex
 - task-type: 上述 12 选 1
 - prompt-summary: 5-200 字符脱敏摘要
-- expected-rules / hit-rules: 用 IR-XXX / SYM-XXX / ROUTE-XXX / OUT-XXX 形式，
+- expected-rules / hit-rules: 用 IR-XXX / SYM-XXX / ROUTE-XXX / OUT-XXX / GR-XXX 形式，
   来源是 ios-engineer/references/rule_index.md 的 active 集合
 - deviations: 偏离了什么；没有就留空
 - outcome: pass / partial / fail
@@ -149,7 +149,7 @@ references/usage_ledger.md 第 4 节）：
 - tool: cursor
 - task-type ∈ {layout, parameter-pass-through, concurrency, review, migration,
   mcp-control, notifications, privacy, persistence, storekit, extensions, other}
-- expected-rules / hit-rules 用 IR-XXX / SYM-XXX / ROUTE-XXX / OUT-XXX
+- expected-rules / hit-rules 用 IR-XXX / SYM-XXX / ROUTE-XXX / OUT-XXX / GR-XXX
 - 不确定就留空，不猜
 - prompt-summary 5-200 字符脱敏
 ```
