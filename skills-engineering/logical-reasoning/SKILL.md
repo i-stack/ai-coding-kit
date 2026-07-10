@@ -1,6 +1,8 @@
 ---
 name: logical-reasoning
 description: 全局论证纪律——可追溯逻辑链、层级分明、因果克制、逻辑链输出块（GR-010）。适用所有工程任务，不限平台。
+locale: zh-CN
+supported_locales: [zh-CN]
 ---
 
 # Logical Reasoning
@@ -10,6 +12,7 @@ description: 全局论证纪律——可追溯逻辑链、层级分明、因果�
 命中本 skill 时，**必须先完整阅读** [references/logical_reasoning.md](references/logical_reasoning.md) 并按其中条款执行。
 
 - 不得以 preamble、Cursor 规则摘要或其它二次摘要代替该文件全文。
+- 同步依赖：本 skill 在「与认知对手模式的分工」中通过相对路径引用 `../ios-engineer/references/cognitive_adversary_mode.md`；同步到各端时，需确保 `ios-engineer` skill 也同步到同层 skills 目录（如 `~/.claude/skills/ios-engineer`），否则该链接失效。
 
 ## GR-010 核心规则
 

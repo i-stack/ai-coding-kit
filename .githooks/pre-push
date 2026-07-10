@@ -28,55 +28,116 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# --- skill-sync chain ---------------------------------------------------------
+# --- Pre-flight validation: check all required scripts exist -----------------
 
+SYNC_SCRIPT="${ROOT}/skills-engineering/scripts/sync-skills.sh"
+PREAMBLE_SCRIPT="${ROOT}/skills-engineering/scripts/sync-agent-preamble.sh"
+VERIFY_SCRIPT="${ROOT}/skills-engineering/scripts/verify-sync.sh"
+MCP_SYNC="${ROOT}/sync/sync_all.sh"
+
+# Collect missing scripts upfront so user sees all issues at once
+missing_scripts=()
 if [ "${SKILL_BYPASS:-0}" != "1" ]; then
-  SYNC_SCRIPT="${ROOT}/skills-engineering/scripts/sync-skills.sh"
-  PREAMBLE_SCRIPT="${ROOT}/skills-engineering/scripts/sync-agent-preamble.sh"
-  VERIFY_SCRIPT="${ROOT}/skills-engineering/scripts/verify-sync.sh"
-
   for s in "${SYNC_SCRIPT}" "${PREAMBLE_SCRIPT}" "${VERIFY_SCRIPT}"; do
     if [ ! -x "${s}" ]; then
-      echo "skill-sync pre-push: ${s} missing or not executable." >&2
-      echo "Set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
-      exit 1
+      missing_scripts+=("${s}")
     fi
   done
+fi
+# MCP sync is optional — it is skipped gracefully below if missing or
+# non-executable, so it is intentionally NOT part of the missing-scripts
+# pre-flight check (unlike the required skill-sync scripts above).
 
+if [ ${#missing_scripts[@]} -gt 0 ]; then
+  echo "skill-sync pre-push: missing or non-executable scripts:" >&2
+  for s in "${missing_scripts[@]}"; do
+    echo "  - ${s}" >&2
+  done
+  echo "Set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
+  exit 1
+fi
+
+# --- Pre-flight validation: check secrets.json exists for MCP sync -----------
+
+SECRETS_FILE="${ROOT}/env/secrets.json"
+if [ -x "${MCP_SYNC}" ] && [ ! -f "${SECRETS_FILE}" ]; then
+  echo "sync pre-push: ⚠ env/secrets.json not found — MCP sync will run but may fail." >&2
+  echo "sync pre-push: Copy env/secrets.json.example and fill in your keys." >&2
+fi
+
+# --- Track sync results (separate arrays for targeted fix advice) -------------
+
+skill_sync_failures=()
+mcp_failures=()
+
+# --- skill-sync chain (preamble and verify run only if sync-skills succeeds) --
+
+if [ "${SKILL_BYPASS:-0}" != "1" ]; then
   echo "skill-sync pre-push: syncing skills-engineering/ to local agent caches..."
   if ! "${SYNC_SCRIPT}"; then
-    echo "skill-sync pre-push: sync-skills.sh failed; push aborted." >&2
-    echo "Fix the sync error, or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
-    exit 1
-  fi
+    skill_sync_failures+=("sync-skills.sh")
+    echo "skill-sync pre-push: ⚠ sync-skills.sh failed." >&2
+  else
+    echo "skill-sync pre-push: rendering agent preamble blocks..."
+    if ! "${PREAMBLE_SCRIPT}"; then
+      skill_sync_failures+=("sync-agent-preamble.sh")
+      echo "skill-sync pre-push: ⚠ sync-agent-preamble.sh failed." >&2
+    fi
 
-  echo "skill-sync pre-push: rendering agent preamble blocks..."
-  if ! "${PREAMBLE_SCRIPT}"; then
-    echo "skill-sync pre-push: sync-agent-preamble.sh failed; push aborted." >&2
-    echo "Fix the preamble error, or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
-    exit 1
-  fi
-
-  echo "skill-sync pre-push: verifying cache layout..."
-  if ! "${VERIFY_SCRIPT}"; then
-    echo "skill-sync pre-push: verify-sync.sh reported issues; push aborted." >&2
-    echo "Fix the sync state, or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
-    exit 1
+    echo "skill-sync pre-push: verifying cache layout..."
+    if ! "${VERIFY_SCRIPT}"; then
+      skill_sync_failures+=("verify-sync.sh")
+      echo "skill-sync pre-push: ⚠ verify-sync.sh reported issues." >&2
+    fi
   fi
 fi
 
 # --- sync (MCP + Codex shared) ------------------------------------------------
 
-MCP_SYNC="${ROOT}/sync/sync_all.sh"
 if [ -x "${MCP_SYNC}" ]; then
   echo "sync pre-push: syncing MCP + Codex shared config to local agent configs..."
   if ! "${MCP_SYNC}"; then
-    echo "sync pre-push: sync_all.sh failed; push aborted." >&2
-    echo "Fix the sync error, or use git push --no-verify to bypass (emergencies only)." >&2
-    exit 1
+    mcp_failures+=("sync_all.sh (MCP)")
+    echo "sync pre-push: ⚠ sync_all.sh failed." >&2
   fi
 else
   echo "sync pre-push: ${MCP_SYNC} missing or not executable; skipping." >&2
+fi
+
+# --- Summary ------------------------------------------------------------------
+
+if [ $((${#skill_sync_failures[@]} + ${#mcp_failures[@]})) -gt 0 ]; then
+  echo "" >&2
+  echo "═══════════════════════════════════════════════════════════" >&2
+  echo "pre-push: SYNC FAILURES DETECTED" >&2
+  echo "═══════════════════════════════════════════════════════════" >&2
+  echo "The following steps failed:" >&2
+  if [ ${#skill_sync_failures[@]} -gt 0 ]; then
+    for f in "${skill_sync_failures[@]}"; do echo "  ✗ ${f}" >&2; done
+  fi
+  if [ ${#mcp_failures[@]} -gt 0 ]; then
+    for f in "${mcp_failures[@]}"; do echo "  ✗ ${f}" >&2; done
+  fi
+  echo "" >&2
+  echo "Push aborted. Your local agent caches may be in an inconsistent state." >&2
+  if [ ${#skill_sync_failures[@]} -gt 0 ]; then
+    echo "" >&2
+    echo "To fix skill-sync failures:" >&2
+    echo "  1. Resolve the errors above" >&2
+    echo "  2. Re-run: bash skills-engineering/scripts/sync-skills.sh" >&2
+    echo "  3. Then retry: git push" >&2
+    echo "  Or set SKILL_BYPASS=1 to skip skill-sync (emergencies only)." >&2
+  fi
+  if [ ${#mcp_failures[@]} -gt 0 ]; then
+    echo "" >&2
+    echo "To fix MCP-sync failures:" >&2
+    echo "  1. Resolve the errors above" >&2
+    echo "  2. Re-run: bash sync.sh" >&2
+    echo "  3. Then retry: git push" >&2
+    echo "  Or use git push --no-verify to skip all hooks (emergencies only)." >&2
+  fi
+  echo "═══════════════════════════════════════════════════════════" >&2
+  exit 1
 fi
 
 exit 0

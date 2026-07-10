@@ -28,7 +28,8 @@ import { EmbeddingService } from "./embed.js";
 import { VectorIndex } from "./vector.js";
 import { SearchEngine } from "./search.js";
 import { SyncEngine } from "./sync.js";
-import type { SearchQuery, SearchResponse, SyncStats, KbStats } from "./types.js";
+import { MergeEngine } from "./merge.js";
+import type { SearchQuery, SearchResponse, SyncStats, KbStats, MergedKnowledgePoint } from "./types.js";
 
 export class PlanReviewsKB {
 	private config: PlanReviewsConfig;
@@ -93,6 +94,24 @@ export class PlanReviewsKB {
 	/** Format search results as human-readable markdown. */
 	formatResults(response: SearchResponse): string {
 		return this.searchEngine.formatResults(response);
+	}
+
+	/**
+	 * Retrieval-for-injection: run semantic + graph search on the user's
+	 * question and return a compact, injection-ready markdown block.
+	 * Returns an empty string when nothing relevant is found.
+	 */
+	async recall(query: string, limit = 5): Promise<string> {
+		await this.sync();
+		const res = await this.search({ query, limit });
+		if (res.semantic.length === 0 && res.graph.length === 0) return "";
+		return this.formatResults(res);
+	}
+
+	/** Run the memory-metabolism merge (de-dup / consolidate cross-plan knowledge). */
+	async merge(options?: { threshold?: number }): Promise<MergedKnowledgePoint[]> {
+		const engine = new MergeEngine(this.config, this.store, this.embed);
+		return engine.merge(options);
 	}
 
 	/** Get knowledge base statistics. */

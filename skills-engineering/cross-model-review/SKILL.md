@@ -1,6 +1,8 @@
 ---
 name: cross-model-review
 description: 跨模型对抗审查已锁定的 PLAN.md——自动发现可用 CLI（codex/gemini/claude），推荐两个不同 provider 的组合并让用户选择，reviewer 只读运行输出 VERDICT:APPROVED|REVISE，主 agent 仲裁并把理由写进 PLAN-REVIEW-LOG.md，MAX_ROUNDS 不收敛输出 deadlock。基于 chaseai-yt/grill-me-codex（MIT）的 Act 2 思路。
+locale: zh-CN
+supported_locales: [zh-CN]
 ---
 
 # Cross Model Review
@@ -20,7 +22,7 @@ description: 跨模型对抗审查已锁定的 PLAN.md——自动发现可用 C
 - [CMR-004] **主 agent 仲裁**：主 agent（Claude/Codex，视宿主而定）是最终仲裁者。每轮必须收集所有已选 reviewer 的 verdict；reviewer 原始输出、中间输出和交付日志必须保存在当前项目根目录下（推荐 `.plan-reviews/<date>-<slug>/raw/`），不得用 `/tmp` 作为 reviewer 输出缓冲。只有全部 `APPROVED` 才能收敛，任一 `REVISE` 都必须仲裁并进入修订/下一轮。采纳有证据的批评，拒绝不成立的批评并写明理由，记录进 `PLAN-REVIEW-LOG.md`。
 - [CMR-005] **MAX_ROUNDS + deadlock**：到 MAX_ROUNDS（默认 5）仍不收敛时，输出 deadlock——列出每个未决点 + 主 agent 的反立场，交给用户裁决。禁止假装 approved。
 
-细则见 [references/cross_model_review.md](references/cross_model_review.md)。
+细则见 [references/cross_model_review.md](references/cross_model_review.md)。登录限流场景的完整运行样例见 `examples/regression-login-rate-limit.md`。
 
 ## 何时加载
 

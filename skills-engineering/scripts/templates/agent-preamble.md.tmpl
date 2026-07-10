@@ -1,5 +1,5 @@
 <!-- sync-manifest:v1
-# 登记需生成 Cursor 项目规则的 skill（一行一个 skill:<name>）；全文由 sync-skills.sh 同步到各端 skills 目录。
+# Cursor 项目规则生成清单（一行一个 skill:<name>）；仅供 sync-agent-preamble.sh 解析，不会写入各端 preamble；skill 全文由 sync-skills.sh 同步到各端 skills 目录。
 # 约定：skill 主 ref 文件须为 references/<name 连字符换下划线>.md（如 cognitive-expansion → cognitive_expansion.md）。
 skill:cognitive-expansion
 skill:logical-reasoning
@@ -8,6 +8,7 @@ skill:problem-analysis
 skill:epistemic-integrity
 skill:plan-grill
 skill:cross-model-review
+skill:auto-code-review
 -->
 
 <!-- managed-block:ios-engineer:begin (auto-generated from scripts/templates/agent-preamble.md.tmpl — do not edit; run scripts/sync-agent-preamble.sh) -->
@@ -22,7 +23,7 @@ skill:cross-model-review
 - `{{COGNITIVE_EXPANSION_SKILLS_DIR}}SKILL.md`
 - `{{COGNITIVE_EXPANSION_SKILLS_DIR}}references/cognitive_expansion.md`
 
-并按其中 Tier 0 / Tier 3、邻域对照池、跳过条件与迎合自检执行。Tier 2 认知对手见 ios-engineer `references/cognitive_adversary_mode.md`。
+并按其中 Tier 0 / Tier 3、邻域对照池、跳过条件与迎合自检执行。Tier 2 认知对手见 `{{SKILLS_DIR}}references/cognitive_adversary_mode.md`。
 
 # global logical reasoning
 
@@ -51,6 +52,15 @@ skill:cross-model-review
 
 并按其中 PA-001/002/003 规则执行：先检验问题的逻辑有效性；从第一性原理拆解真实需求并评估当前路径是否最优；充分理解后再回复。发现实质性问题时输出 `问题分析` 块，问题清晰时静默完成。
 
+# global requirements clarity gate
+
+problem-analysis 完成后，对每个非平凡构建、修改或方案请求执行 `plan-grill` PG-000 门控。若仍存在无法从代码/文档/当前上下文查明，且不同答案会实质改变交付行为、公共契约、数据、安全性或验收结果的阻塞性决策，必须自动加载并遵循：
+
+- `{{PLAN_GRILL_SKILLS_DIR}}SKILL.md`
+- `{{PLAN_GRILL_SKILLS_DIR}}references/plan_grill.md`
+
+进入后一次只问一个问题，确认前不执行。显式 grill/锁定计划触发语始终强制进入。事实查询/解释/翻译、review/只诊断不修复、trivial 改动、验收标准与实施路径已明确的执行任务、以及用户明确「直接做/不要盘问」时跳过（安全或不可逆操作缺少必要信息除外）。
+
 # global epistemic integrity
 
 所有含事实性断言或解惑型回答的任务须遵循 `epistemic-integrity` skill **全文**（不得用本段代替）。执行前必须先读取：
@@ -75,9 +85,9 @@ SKILL 规则位于 `{{SKILLS_DIR}}`，可直接加载。
 ```
 <usage-audit>
 tool: {{TOOL_NAME}}
-task-type: <layout | parameter-pass-through | concurrency | review | migration | mcp-control | other>
+task-type: <layout | parameter-pass-through | concurrency | review | migration | mcp-control | notifications | privacy | persistence | storekit | extensions | other>
 prompt-summary: <5-200 字符脱敏摘要，禁贴原始 prompt / 源码片段 / 可识别项目名>
-expected-rules: <逗号分隔，如 IR-005, ROUTE-007>
+expected-rules: <逗号分隔，如 ROUTE-007, SYM-003>
 hit-rules: <逗号分隔；不确定就留空，绝不凭印象猜>
 deviations: <分号分隔；没有就留空>
 outcome: <pass | partial | fail>
@@ -87,7 +97,7 @@ evolution-signal: <none | 修正表达 | 新增能力 | 合并重复 | 退役规
 
 可选字段：`session-id: <id>`（默认省略 = null）。
 
-Rule ID 词表取自 `{{SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN / GR-NNN）。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
+Rule ID 词表取自 `{{SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN）。GR-NNN 等全局纪律 ID 不在此词表内、校验会拒收，不要写。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
 
-**非 iOS 工程任务不输出这个块**：写文档、答 API 问题、通用重构、元工程 / 自进化讨论 / SkillOps 维护本身都跳过。task-type 落不进 7 选 1 时也跳过。
+**非 iOS 工程任务不输出这个块**：写文档、答 API 问题、通用重构、元工程 / 自进化讨论 / SkillOps 维护本身都跳过。task-type 落不进 12 选 1 时也跳过。
 <!-- managed-block:ios-engineer:end -->

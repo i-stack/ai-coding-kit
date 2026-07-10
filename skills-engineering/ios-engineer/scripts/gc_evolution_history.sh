@@ -10,7 +10,6 @@ PROPOSALS_DIR="evolution/proposals"
 APPROVALS_DIR="evolution/approvals"
 ACTIVE_VERSION_FILE="evolution/active_version.json"
 KEEP_RECENT="${KEEP_RECENT:-10}"
-MILESTONE_INTERVAL="${MILESTONE_INTERVAL:-10}"
 
 DRY_RUN=false
 while [ $# -gt 0 ]; do
@@ -21,10 +20,8 @@ while [ $# -gt 0 ]; do
       echo ""
       echo "Clean up old evolution artifacts, keeping:"
       echo "  - Most recent ${KEEP_RECENT} history versions"
-      echo "  - Every ${MILESTONE_INTERVAL}th version as milestones (v10, v20, ...)"
       echo "  - Current active version (always protected)"
-      echo "  - Proposals/approvals linked to kept history versions"
-      echo "  - Proposals/approvals NOT linked to any history (work-in-progress)"
+      echo "  - Most recent ${KEEP_RECENT} proposals and their validations/approvals"
       echo ""
       echo "Options:"
       echo "  --dry-run  List what would be deleted without actually deleting"
@@ -82,14 +79,6 @@ for v in "${sorted_dirs[@]}"; do
     echo "$v" >> "$protected_file"
   fi
   count=$((count + 1))
-done
-
-for v in "${sorted_dirs[@]}"; do
-  num="$(echo "$v" | sed 's/^v//; s/-.*//' | sed 's/^0*//')"
-  num="${num:-0}"
-  if [ "$num" -ge "$MILESTONE_INTERVAL" ] && [ $((num % MILESTONE_INTERVAL)) -eq 0 ]; then
-    echo "$v" >> "$protected_file"
-  fi
 done
 
 # ── Phase 2: Map proposals → history versions, determine which proposals to clean ──
@@ -270,3 +259,56 @@ if $DRY_RUN; then
 else
   echo "Done: Deleted $deleted history version(s), kept $kept history version(s)"
 fi
+
+# ── Phase 4: Prune proposals / validations / approvals to KEEP_RECENT newest ──
+# Fixes unbounded growth: the bulk of evolution artifacts lives in these three
+# dirs, and they were never pruned before. Keep only the newest KEEP_RECENT
+# proposals; drop older proposals and any validation/approval not matching a
+# kept proposal (orphans included).
+
+echo ""
+echo "=== Proposals / Validations / Approvals GC (keep newest $KEEP_RECENT) ==="
+
+export GC_ROOT_DIR="$ROOT_DIR"
+export GC_KEEP_RECENT="$KEEP_RECENT"
+export GC_DRY_RUN="$DRY_RUN"
+
+ruby <<'RUBY'
+require 'set'
+
+ROOT = ENV['GC_ROOT_DIR']
+KEEP = ENV['GC_KEEP_RECENT'].to_i
+DRY  = ENV['GC_DRY_RUN'] == 'true'
+
+PROPOSALS   = File.join(ROOT, "evolution/proposals")
+VALIDATIONS = File.join(ROOT, "evolution/validations")
+APPROVALS   = File.join(ROOT, "evolution/approvals")
+
+kept = Dir.glob(File.join(PROPOSALS, "*.md"))
+           .map { |f| File.basename(f, ".md") }
+           .sort
+           .last(KEEP)
+           .to_set
+
+puts "Kept proposals (newest #{KEEP}): #{kept.size}"
+
+Dir.glob(File.join(PROPOSALS, "*.md")).each do |f|
+  slug = File.basename(f, ".md")
+  next if kept.include?(slug)
+  puts DRY ? "  [WOULD DELETE PROPOSAL] #{f}" : "  [DELETE PROPOSAL] #{f}"
+  File.unlink(f) unless DRY
+end
+
+[ [VALIDATIONS, "json"], [APPROVALS, "json"] ].each do |dir, ext|
+  Dir.glob(File.join(dir, "*.#{ext}")).each do |f|
+    slug = File.basename(f, ".#{ext}")
+    next if kept.include?(slug)
+    puts DRY ? "  [WOULD DELETE] #{f}" : "  [DELETE] #{f}"
+    File.unlink(f) unless DRY
+  end
+end
+
+puts "Remaining -> proposals: #{Dir.glob(File.join(PROPOSALS,'*.md')).size}, " \
+     "validations: #{Dir.glob(File.join(VALIDATIONS,'*.json')).size}, " \
+     "approvals: #{Dir.glob(File.join(APPROVALS,'*.json')).size}"
+RUBY

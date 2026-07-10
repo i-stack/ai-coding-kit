@@ -1,8 +1,12 @@
 class AiCodingKit < Formula
-  desc "One kit for all AI coding tools — Agent Skills, MCP sync, iOS engineering rules, and RAG gateway"
+  desc "One kit for all AI coding tools — Agent Skills, MCP sync, iOS engineering rules"
   homepage "https://github.com/i-stack/ai-coding-kit"
   url "https://github.com/i-stack/ai-coding-kit/archive/refs/tags/v3.0.0.tar.gz"
-  sha256 "" # ← fill after `brew fetch` or `shasum -a 256 v3.0.0.tar.gz`
+  # RELEASE BLOCKER: fill sha256 before merging — brew install fails with an
+  # empty checksum. Compute it with:
+  #   curl -L https://github.com/i-stack/ai-coding-kit/archive/refs/tags/v3.0.0.tar.gz \
+  #     | shasum -a 256
+  sha256 "" # ← paste result here, then remove these comment lines
   license "MIT"
   version "3.0.0"
 

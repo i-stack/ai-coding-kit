@@ -19,17 +19,20 @@ export interface PlanSections {
 	outOfScope: string;
 }
 
+/** Artifact kind: a plan-grill/cross-model-review plan, or an auto-code-review code review. */
+export type PlanKind = "plan" | "code-review";
+
 /** Metadata about a single plan-review directory. */
 export interface PlanArtifact {
 	/** Directory name, e.g. "2026-07-06-login-rate-limit" */
 	id: string;
 	/** Absolute path to the plan directory */
 	path: string;
-	/** Parsed PLAN.md sections */
+	/** Parsed PLAN.md sections (or synthesized sections for code-review) */
 	sections: PlanSections;
 	/** Optional PG-005 architecture analysis artifact */
 	architectureAnalysis?: string;
-	/** Whether a PLAN-REVIEW-LOG.md exists */
+	/** Whether a PLAN-REVIEW-LOG.md / REVIEW-LOG.md exists */
 	hasReview: boolean;
 	/** Review resolution: approved | failed | pending | deadlock */
 	resolution: PlanResolution;
@@ -37,6 +40,16 @@ export interface PlanArtifact {
 	reviewers: string[];
 	/** Created date (parsed from directory name prefix) */
 	createdAt: string;
+	/** Artifact kind — distinguishes plan vs code-review */
+	kind: PlanKind;
+	/** Raw diff text (code-review only) — indexed as a searchable chunk */
+	diffText?: string;
+	/** Raw review log text (code-review only) — indexed as a searchable chunk */
+	reviewLogText?: string;
+	/** Full response text (code-review only) — indexed without discarding non-summary sections */
+	responseText?: string;
+	/** Optional human-curated SUMMARY.md text */
+	summaryText?: string;
 }
 
 export type PlanResolution = "approved" | "failed" | "pending" | "deadlock";
@@ -134,6 +147,10 @@ export interface SemanticHit {
 	section: string;
 	text: string;
 	score: number;
+	/** Score semantics; cosine similarity is not a calibrated hit probability. */
+	matchType?: "semantic" | "keyword" | "merged";
+	matchedTerms?: string[];
+	sourcePlanIds?: string[];
 }
 
 /** Unified search response. */
@@ -167,6 +184,7 @@ export interface KbIndexData {
 	relations: PlanRelation[];
 	chunks: EmbeddedChunk[];
 	syncState: Record<string, KbSyncState>;
+	mergedKnowledge: MergedKnowledgePoint[];
 }
 
 export interface KbPlan {
@@ -179,6 +197,8 @@ export interface KbPlan {
 	reviewers: string[];
 	createdAt: string;
 	syncedAt: string;
+	/** Artifact kind — distinguishes plan vs code-review */
+	kind: PlanKind;
 }
 
 export interface KbSyncState {
@@ -192,4 +212,26 @@ export interface KbStats {
 	entities: number;
 	relations: number;
 	chunks: number;
+}
+
+/** A consolidated "project knowledge point" produced by the merge/metabolism layer. */
+export interface MergedKnowledgePoint {
+	/** Merge output id, regenerated on each merge run */
+	id: string;
+	/** Human-readable synthesized title */
+	title: string;
+	/** Number of source chunks merged */
+	memberCount: number;
+	/** Source plan directory ids */
+	planIds: string[];
+	/** Source sections (e.g. diff / review_log / approach) */
+	sourceSections: string[];
+	/** Exact source chunks used to build this canonical view. */
+	memberChunkIds: string[];
+	/** De-duplicated, joined source text */
+	consolidatedText: string;
+	/** Lowest pairwise cosine similarity within the merged group */
+	minSimilarity: number;
+	/** ISO timestamp of the merge run */
+	createdAt: string;
 }

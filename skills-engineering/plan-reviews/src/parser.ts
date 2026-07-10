@@ -133,15 +133,28 @@ export function parseReviewLog(content: string): ReviewMetadata {
 function extractResolution(content: string): PlanResolution {
 	// Find the LAST ## Resolution section (after retries)
 	const resolutionMatches = [...content.matchAll(/^##\s+(?:Retry\s+\d+\s+)?Resolution\s*$/gim)];
-	if (resolutionMatches.length === 0) return "pending";
+	if (resolutionMatches.length > 0) {
+		// Look at content after the last resolution header
+		const lastMatch = resolutionMatches[resolutionMatches.length - 1];
+		const afterResolution = content.slice((lastMatch.index ?? 0) + lastMatch[0].length);
 
-	// Look at content after the last resolution header
-	const lastMatch = resolutionMatches[resolutionMatches.length - 1];
-	const afterResolution = content.slice((lastMatch.index ?? 0) + lastMatch[0].length);
+		if (/approved/i.test(afterResolution.slice(0, 500))) return "approved";
+		if (/deadlock/i.test(afterResolution.slice(0, 500))) return "deadlock";
+		if (/failed/i.test(afterResolution.slice(0, 500))) return "failed";
 
-	if (/approved/i.test(afterResolution.slice(0, 500))) return "approved";
-	if (/deadlock/i.test(afterResolution.slice(0, 500))) return "deadlock";
-	if (/failed/i.test(afterResolution.slice(0, 500))) return "failed";
+		return "pending";
+	}
+
+	// Fallback for auto-code-review logs that use `VERDICT: APPROVED|REVISE`
+	// instead of a `## Resolution` section.
+	if (/deadlock/i.test(content)) return "deadlock";
+	const verdicts = [...content.matchAll(/^\s*VERDICT:\s*(APPROVED|REVISE)\s*$/gim)]
+		.map((m) => m[1].toUpperCase());
+	if (verdicts.length > 0) {
+		const last = verdicts[verdicts.length - 1];
+		if (last === "APPROVED") return "approved";
+		return "failed";
+	}
 
 	return "pending";
 }
@@ -182,38 +195,52 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 		const planFile = path.join(planPath, "PLAN.md");
 		const reviewFile = path.join(planPath, "PLAN-REVIEW-LOG.md");
 		const architectureFile = path.join(planPath, "architecture-analysis.md");
+		const summaryFile = path.join(planPath, "SUMMARY.md");
 
-		if (!fs.existsSync(planFile)) continue;
+		// ── Plan artifact (plan-grill / cross-model-review) ──
+		if (fs.existsSync(planFile)) {
+			try {
+				const planContent = fs.readFileSync(planFile, "utf-8");
+				const sections = parsePlan(planContent);
 
-		try {
-			const planContent = fs.readFileSync(planFile, "utf-8");
-			const sections = parsePlan(planContent);
+				let reviewers: string[] = [];
+				let resolution: PlanResolution = "pending";
+				let reviewLogText: string | undefined;
 
-			let reviewers: string[] = [];
-			let resolution: PlanResolution = "pending";
+				if (fs.existsSync(reviewFile)) {
+					const reviewContent = fs.readFileSync(reviewFile, "utf-8");
+					reviewLogText = reviewContent;
+					const meta = parseReviewLog(reviewContent);
+					reviewers = meta.reviewers;
+					resolution = meta.resolution;
+				}
+				const architectureAnalysis = fs.existsSync(architectureFile)
+					? fs.readFileSync(architectureFile, "utf-8")
+					: undefined;
+				const summaryText = fs.existsSync(summaryFile)
+					? fs.readFileSync(summaryFile, "utf-8")
+					: undefined;
 
-			if (fs.existsSync(reviewFile)) {
-				const reviewContent = fs.readFileSync(reviewFile, "utf-8");
-				const meta = parseReviewLog(reviewContent);
-				reviewers = meta.reviewers;
-				resolution = meta.resolution;
+				artifacts.push({
+					id: entry.name,
+					path: planPath,
+					sections,
+					architectureAnalysis,
+					reviewLogText,
+					summaryText,
+					hasReview: fs.existsSync(reviewFile),
+					resolution,
+					reviewers,
+					createdAt: extractDateFromId(entry.name),
+					kind: "plan",
+				});
+			} catch (err) {
+				console.warn(`[plan-reviews] Failed to parse ${entry.name}: ${(err as Error).message}`);
 			}
-			const architectureAnalysis = fs.existsSync(architectureFile)
-				? fs.readFileSync(architectureFile, "utf-8")
-				: undefined;
-
-			artifacts.push({
-				id: entry.name,
-				path: planPath,
-				sections,
-				architectureAnalysis,
-				hasReview: fs.existsSync(reviewFile),
-				resolution,
-				reviewers,
-				createdAt: extractDateFromId(entry.name),
-			});
-		} catch (err) {
-			console.warn(`[plan-reviews] Failed to parse ${entry.name}: ${(err as Error).message}`);
+		} else {
+			// ── Code-review artifact (auto-code-review) ──
+			const codeReviewArtifact = parseCodeReview(entry.name, planPath);
+			if (codeReviewArtifact) artifacts.push(codeReviewArtifact);
 		}
 	}
 
@@ -232,12 +259,100 @@ function extractDateFromId(id: string): string {
 }
 
 /**
+ * Parse an auto-code-review directory into a PlanArtifact.
+ *
+ * A code-review directory contains REVIEW-LOG.md + diff.patch (and optionally
+ * QUESTION.md / RESPONSE.md) but no PLAN.md. We synthesize a `sections` object
+ * so the existing entity/chunk extractors can index it without special-casing:
+ *   - title  ← first heading line of QUESTION.md, else the directory name
+ *   - goal   ← user question text (QUESTION.md)
+ *   - approach ← change summary (RESPONSE.md "变更目的" section)
+ * The raw diff and review log are carried as `diffText` / `reviewLogText` and
+ * turned into searchable chunks by the extractor.
+ *
+ * Returns null if the directory is not a recognizable code-review artifact.
+ */
+function parseCodeReview(
+	id: string,
+	planPath: string,
+): PlanArtifact | null {
+	const reviewLogFile = path.join(planPath, "REVIEW-LOG.md");
+	const diffFile = path.join(planPath, "diff.patch");
+	const questionFile = path.join(planPath, "QUESTION.md");
+	const responseFile = path.join(planPath, "RESPONSE.md");
+
+	// Must look like an auto-code-review artifact.
+	if (!fs.existsSync(reviewLogFile) || !fs.existsSync(diffFile)) return null;
+
+	let title = id;
+	let goal = "";
+	let approach = "";
+	let diffText = "";
+	let reviewLogText = "";
+	let responseText = "";
+
+	try {
+		if (fs.existsSync(questionFile)) {
+			const q = fs.readFileSync(questionFile, "utf-8");
+			const h1 = q.match(/^#\s+(.+?)\s*$/m);
+			if (h1) title = h1[1].trim();
+			// Drop the first heading line; keep the rest as the goal.
+			goal = q.replace(/^#\s+.+$/m, "").trim();
+		}
+		if (fs.existsSync(responseFile)) {
+			const r = fs.readFileSync(responseFile, "utf-8");
+			responseText = r;
+			const m = r.match(/##\s*变更目的\s*\n([\s\S]*?)(?=\n##\s|$)/);
+			approach = m ? m[1].trim() : "";
+		}
+		diffText = fs.readFileSync(diffFile, "utf-8");
+		reviewLogText = fs.readFileSync(reviewLogFile, "utf-8");
+
+		const meta = parseReviewLog(reviewLogText);
+
+		const sections: PlanSections = {
+			title,
+			goal,
+			constraints: "",
+			approach,
+			decisions: "",
+			validation: "",
+			risks: "",
+			outOfScope: "",
+		};
+
+		return {
+			id,
+			path: planPath,
+			sections,
+			hasReview: true,
+			resolution: meta.resolution,
+			reviewers: meta.reviewers,
+			createdAt: extractDateFromId(id),
+			kind: "code-review",
+			diffText,
+			reviewLogText,
+			responseText,
+		};
+	} catch (err) {
+		console.warn(`[plan-reviews] Failed to parse code-review ${id}: ${(err as Error).message}`);
+		return null;
+	}
+}
+
+/**
  * Check if a plan file has been modified since the given timestamp.
  */
 export function getPlanMtime(planPath: string): number {
 	const planFile = path.join(planPath, "PLAN.md");
 	const reviewFile = path.join(planPath, "PLAN-REVIEW-LOG.md");
 	const architectureFile = path.join(planPath, "architecture-analysis.md");
+	// auto-code-review artifacts
+	const codeReviewLog = path.join(planPath, "REVIEW-LOG.md");
+	const diffFile = path.join(planPath, "diff.patch");
+	const questionFile = path.join(planPath, "QUESTION.md");
+	const responseFile = path.join(planPath, "RESPONSE.md");
+	const summaryFile = path.join(planPath, "SUMMARY.md");
 
 	let mtime = 0;
 	if (fs.existsSync(planFile)) {
@@ -248,6 +363,21 @@ export function getPlanMtime(planPath: string): number {
 	}
 	if (fs.existsSync(architectureFile)) {
 		mtime = Math.max(mtime, fs.statSync(architectureFile).mtimeMs);
+	}
+	if (fs.existsSync(codeReviewLog)) {
+		mtime = Math.max(mtime, fs.statSync(codeReviewLog).mtimeMs);
+	}
+	if (fs.existsSync(diffFile)) {
+		mtime = Math.max(mtime, fs.statSync(diffFile).mtimeMs);
+	}
+	if (fs.existsSync(questionFile)) {
+		mtime = Math.max(mtime, fs.statSync(questionFile).mtimeMs);
+	}
+	if (fs.existsSync(responseFile)) {
+		mtime = Math.max(mtime, fs.statSync(responseFile).mtimeMs);
+	}
+	if (fs.existsSync(summaryFile)) {
+		mtime = Math.max(mtime, fs.statSync(summaryFile).mtimeMs);
 	}
 	return mtime;
 }

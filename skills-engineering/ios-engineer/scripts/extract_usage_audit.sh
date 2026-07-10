@@ -8,7 +8,7 @@ cd "$ROOT_DIR"
 if [ $# -lt 1 ]; then
   echo "Usage: bash scripts/extract_usage_audit.sh <transcript-file>"
   echo "Parses all <usage-audit>...</usage-audit> blocks and appends them to evolution/usage/usage.jsonl."
-  echo "Atomic: any block invalid -> entire batch rejected, ledger untouched."
+  echo "Resilient: valid blocks are written; any invalid block is skipped with a warning (ledger never poisoned)."
   exit 1
 fi
 
@@ -67,11 +67,12 @@ end
 
 REQUIRED_KEYS = %w[tool task-type prompt-summary expected-rules hit-rules outcome evolution-signal].freeze
 
-errors = []
-parsed = []
+valid = []
+skipped = []  # [block_no, reason]
 
 blocks.each_with_index do |body, idx|
   block_no = idx + 1
+  errs = []
   data = {}
   body.each_line do |raw_line|
     line = raw_line.strip
@@ -79,68 +80,86 @@ blocks.each_with_index do |body, idx|
     if (m = line.match(/\A([a-z][a-z-]*):\s*(.*)\z/))
       data[m[1]] = m[2]
     else
-      errors << "block #{block_no}: line '#{line}' does not match 'key: value'"
+      errs << "line '#{line}' does not match 'key: value'"
     end
   end
 
   REQUIRED_KEYS.each do |k|
-    errors << "block #{block_no}: missing key '#{k}'" unless data.key?(k)
+    errs << "missing key '#{k}'" unless data.key?(k)
   end
-  next if REQUIRED_KEYS.any? { |k| !data.key?(k) }
+  if REQUIRED_KEYS.any? { |k| !data.key?(k) }
+    skipped << [block_no, errs.join("; ")]
+    next
+  end
 
-  errors << "block #{block_no}: tool '#{data['tool']}' not in #{ALLOWED_TOOLS.inspect}" unless ALLOWED_TOOLS.include?(data["tool"])
-  errors << "block #{block_no}: task-type '#{data['task-type']}' not in #{ALLOWED_TASK_TYPES.inspect}" unless ALLOWED_TASK_TYPES.include?(data["task-type"])
-  errors << "block #{block_no}: outcome '#{data['outcome']}' not in #{ALLOWED_OUTCOMES.inspect}" unless ALLOWED_OUTCOMES.include?(data["outcome"])
-  errors << "block #{block_no}: evolution-signal '#{data['evolution-signal']}' not in #{ALLOWED_SIGNALS.inspect}" unless ALLOWED_SIGNALS.include?(data["evolution-signal"])
+  errs << "tool '#{data['tool']}' not in #{ALLOWED_TOOLS.inspect}" unless ALLOWED_TOOLS.include?(data["tool"])
+  errs << "task-type '#{data['task-type']}' not in #{ALLOWED_TASK_TYPES.inspect}" unless ALLOWED_TASK_TYPES.include?(data["task-type"])
+  errs << "outcome '#{data['outcome']}' not in #{ALLOWED_OUTCOMES.inspect}" unless ALLOWED_OUTCOMES.include?(data["outcome"])
+  errs << "evolution-signal '#{data['evolution-signal']}' not in #{ALLOWED_SIGNALS.inspect}" unless ALLOWED_SIGNALS.include?(data["evolution-signal"])
 
   ps = data["prompt-summary"]
   unless ps.length.between?(5, 200)
-    errors << "block #{block_no}: prompt-summary length must be 5-200 chars (got #{ps.length})"
+    errs << "prompt-summary length must be 5-200 chars (got #{ps.length})"
   end
 
   expected = data["expected-rules"].split(",").map(&:strip).reject(&:empty?)
   hit = data["hit-rules"].split(",").map(&:strip).reject(&:empty?)
   (expected + hit).each do |rid|
     unless rid =~ ID_FORMAT
-      errors << "block #{block_no}: rule_id '#{rid}' violates format"
+      errs << "rule_id '#{rid}' violates format"
       next
     end
     unless active_ids.include?(rid)
-      errors << "block #{block_no}: rule_id '#{rid}' not in rule_index.md active set"
+      errs << "rule_id '#{rid}' not in rule_index.md active set"
     end
   end
 
-  deviations = (data["deviations"] || "").split(";").map(&:strip).reject(&:empty?)
-  session_id_raw = data["session-id"]
-  session_id = (session_id_raw.nil? || session_id_raw.strip.empty?) ? nil : session_id_raw.strip
+  if errs.empty?
+    deviations = (data["deviations"] || "").split(";").map(&:strip).reject(&:empty?)
+    session_id_raw = data["session-id"]
+    session_id = (session_id_raw.nil? || session_id_raw.strip.empty?) ? nil : session_id_raw.strip
 
-  parsed << {
-    "tool" => data["tool"],
-    "session_id" => session_id,
-    "prompt_summary" => ps,
-    "task_type" => data["task-type"],
-    "expected_rules" => expected,
-    "hit_rules" => hit,
-    "missed_rules" => expected.reject { |r| hit.include?(r) },
-    "deviations" => deviations,
-    "outcome" => data["outcome"],
-    "evolution_signal" => data["evolution-signal"]
-  }
-end
-
-unless errors.empty?
-  warn "Extract failed; ledger NOT modified:"
-  errors.each { |e| warn "  - #{e}" }
-  exit 1
+    valid << {
+      "tool" => data["tool"],
+      "session_id" => session_id,
+      "prompt_summary" => ps,
+      "task_type" => data["task-type"],
+      "expected_rules" => expected,
+      "hit_rules" => hit,
+      "missed_rules" => expected.reject { |r| hit.include?(r) },
+      "deviations" => deviations,
+      "outcome" => data["outcome"],
+      "evolution_signal" => data["evolution-signal"]
+    }
+  else
+    skipped << [block_no, errs.join("; ")]
+  end
 end
 
 now = Time.now.strftime("%Y-%m-%dT%H:%M:%S%z")
 
+if valid.empty?
+  if skipped.empty?
+    puts "No <usage-audit> blocks found in #{input_path}"
+  else
+    warn "Skipped #{skipped.length} invalid block(s); ledger NOT modified:"
+    skipped.each { |bno, reason| warn "  - block #{bno}: #{reason}" }
+  end
+  # Exit 0 even with only-skipped blocks so the caller (ledger-sync) can
+  # advance its transcript offset instead of retrying the same bad block forever.
+  exit 0
+end
+
 File.open(ledger_path, "a") do |f|
-  parsed.each do |entry|
+  valid.each do |entry|
     f.puts(JSON.generate({ "time" => now }.merge(entry)))
   end
 end
 
-puts "Appended #{parsed.length} entries to #{ledger_path}"
+if skipped.empty?
+  puts "Appended #{valid.length} entries to #{ledger_path}"
+else
+  warn "Appended #{valid.length} valid entr(y/ies); skipped #{skipped.length} invalid block(s):"
+  skipped.each { |bno, reason| warn "  - block #{bno}: #{reason}" }
+end
 RUBY

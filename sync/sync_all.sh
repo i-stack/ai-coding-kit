@@ -20,11 +20,19 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 MCP_DIR="$REPO_ROOT/env/mcp"
+SECRETS_FILE="$REPO_ROOT/env/secrets.json"
 
 if [ ! -d "$MCP_DIR" ] || [ -z "$(ls -A "$MCP_DIR"/*.json 2>/dev/null || true)" ]; then
   echo "[sync] No MCP config files found in $MCP_DIR." >&2
   echo "[sync] Copy env/templates/mcp.template.json -> env/mcp/<name>.json, edit, then run again." >&2
   echo "[sync] Skipping sync; pre-push will not block on this." >&2
+  exit 0
+fi
+
+if [ ! -f "$SECRETS_FILE" ]; then
+  echo "[sync] env/secrets.json not found." >&2
+  echo "[sync] Copy env/secrets.json.example -> env/secrets.json, fill in your keys, then run again." >&2
+  echo "[sync] Skipping sync to avoid writing unresolved \${...} placeholders into local agent configs." >&2
   exit 0
 fi
 

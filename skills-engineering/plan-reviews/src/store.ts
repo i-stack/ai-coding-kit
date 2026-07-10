@@ -36,6 +36,7 @@ function emptyIndex(): KbIndexData {
 		relations: [],
 		chunks: [],
 		syncState: {},
+		mergedKnowledge: [],
 	};
 }
 
@@ -59,11 +60,12 @@ export class PlanStore {
 				const parsed = JSON.parse(raw);
 				// Cautious hydration: ensure all keys exist
 				return {
-					plans: Array.isArray(parsed.plans) ? parsed.plans : [],
+					plans: Array.isArray(parsed.plans) ? parsed.plans.map(normalizePlan) : [],
 					entities: Array.isArray(parsed.entities) ? parsed.entities : [],
 					relations: Array.isArray(parsed.relations) ? parsed.relations : [],
 					chunks: Array.isArray(parsed.chunks) ? parsed.chunks : [],
 					syncState: parsed.syncState && typeof parsed.syncState === "object" ? parsed.syncState : {},
+					mergedKnowledge: Array.isArray(parsed.mergedKnowledge) ? parsed.mergedKnowledge : [],
 				};
 			}
 		} catch (err) {
@@ -224,6 +226,45 @@ export class PlanStore {
 		return this.data.chunks.filter((c) => c.embedding.length > 0);
 	}
 
+	getStoredChunks(): EmbeddedChunk[] {
+		return [...this.data.chunks];
+	}
+
+	setMergedKnowledge(points: KbIndexData["mergedKnowledge"]): void {
+		this.data.mergedKnowledge = points;
+	}
+
+	getMergedKnowledge(): KbIndexData["mergedKnowledge"] {
+		return [...this.data.mergedKnowledge];
+	}
+
+	searchChunksText(query: string, options?: { limit?: number; planId?: string }): EmbeddedChunk[] {
+		return this.searchChunksTextScored(query, options).map((item) => item.chunk);
+	}
+
+	searchChunksTextScored(
+		query: string,
+		options?: { limit?: number; planId?: string },
+	): Array<{ chunk: EmbeddedChunk; score: number; matchedTerms: string[] }> {
+		const terms = tokenizeSearchText(query);
+		if (terms.length === 0) return [];
+
+		const limit = options?.limit ?? 5;
+		const scored = this.data.chunks
+			.filter((chunk) => !options?.planId || chunk.planId === options.planId)
+			.map((chunk) => {
+				const text = chunk.text.toLowerCase();
+				const matchedTerms = terms.filter((term) => text.includes(term));
+				const occurrences = matchedTerms.reduce((sum, term) => sum + countOccurrences(text, term), 0);
+				const score = matchedTerms.length / terms.length + Math.min(occurrences, 10) / 100;
+				return { chunk, score, matchedTerms };
+			})
+			.filter((item) => item.score > 0)
+			.sort((a, b) => b.score - a.score || a.chunk.planId.localeCompare(b.chunk.planId));
+
+		return scored.slice(0, limit);
+	}
+
 	// ── Sync state ──────────────────────────────────────────────────
 
 	upsertSyncState(planId: string, planMtime: number, reviewMtime: number): void {
@@ -256,4 +297,37 @@ export class PlanStore {
 			chunks: this.data.chunks.length,
 		};
 	}
+}
+
+function normalizePlan(plan: KbPlan & { kind?: KbPlan["kind"] }): KbPlan {
+	return {
+		...plan,
+		kind: plan.kind ?? "plan",
+	};
+}
+
+function countOccurrences(text: string, term: string): number {
+	let count = 0;
+	let index = text.indexOf(term);
+	while (index !== -1) {
+		count++;
+		index = text.indexOf(term, index + term.length);
+	}
+	return count;
+}
+
+function tokenizeSearchText(text: string): string[] {
+	const lower = text.toLowerCase();
+	const terms = new Set<string>();
+	for (const token of lower.replace(/[\p{Script=Han}]/gu, " ").match(/[a-z0-9_][a-z0-9_.-]*/g) ?? []) {
+		terms.add(token);
+	}
+	for (const run of lower.match(/[\p{Script=Han}]+/gu) ?? []) {
+		if (run.length <= 2) {
+			terms.add(run);
+			continue;
+		}
+		for (let i = 0; i < run.length - 1; i++) terms.add(run.slice(i, i + 2));
+	}
+	return [...terms];
 }

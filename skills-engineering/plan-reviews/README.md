@@ -1,8 +1,28 @@
 # plan-reviews knowledge base
 
-> 本地嵌入式知识库 —— 将 `.plan-reviews/` 目录下的 plan-grill 和 cross-model-review 产物自动索引，提供语义搜索和实体图谱，**零外部服务依赖、无需数据库**。
+> 本地嵌入式知识库 —— 将 `.plan-reviews/` 目录下的 plan-grill、cross-model-review 与 auto-code-review 产物自动索引，提供语义搜索和实体图谱。Embedding API 为可选依赖；未配置时退化为本地关键词 / 实体检索，无需数据库。
 
-核心思路：`.plan-reviews` 存储的是高度结构化的 PLAN.md 文件，数据量小（几十到几百个 plan），通过内存余弦相似度 + 单 JSON 缓存文件即可实现全文搜索和知识图谱，完全不需要重型基础设施。
+> **auto-code-review 产物（code-review 类）现已纳入索引**：含 `REVIEW-LOG.md` + `diff.patch` 的目录会被识别为代码审查产物，其 diff 文本与审查结论作为可检索 chunk 进入 `.kb-index.json`，实现 PRD FR-8「审查结果回灌知识库，下次提问优先检索」。
+
+### 召回与新陈代谢（闭环命令）
+
+```bash
+# 检索注入：先增量同步，再根据用户问题返回最相关历史摘要
+node dist/cli.js recall "给登录接口加速率限制"
+
+# 同步：把 .plan-reviews/ 的新归档产物增量索引进 .kb-index.json
+node dist/cli.js sync
+
+# 新陈代谢：有 embedding 时按相似度合并；无 embedding 时合并跨 plan 完全相同的知识点
+#   → 生成 .plan-reviews/.kb-merged.json + .plan-reviews/MERGED-KNOWLEDGE.md
+node dist/cli.js merge
+```
+
+用户显式启动 `auto-code-review` 后，ACR-006 会在审查前执行 `recall`、归档后执行 `sync`+`merge`。`plan-grill` 条件自动或显式进入盘问时也会在第一问前执行 `recall`。普通明确执行任务不会因此进入盘问。
+
+`cosine` 仅表示向量余弦相似度，`lexical` 表示本地词法覆盖分，两者都不是经校准的「命中率」或正确概率。
+
+核心思路：`.plan-reviews` 存储的是高度结构化的 PLAN.md / code-review 归档文件，数据量小（几十到几百个 plan），通过内存余弦相似度（有 Embedding 时）或本地关键词检索（无 Embedding 时）+ 单 JSON 缓存文件即可实现召回和知识图谱，完全不需要重型基础设施。
 
 ## 快速开始
 

@@ -18,7 +18,8 @@ env/
 │   ├── xcodebuild.json
 │   ├── lanhu.json
 │   ├── moonvy.json
-│   └── gateway.json
+│   ├── postgres.json
+│   └── sqlite.json
 │
 ├── platforms/                ← 平台专属配置
 │   ├── claude.json

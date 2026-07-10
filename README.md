@@ -65,7 +65,7 @@ bash sync.sh
 bash install-hooks.sh
 ```
 
-启用 pre-commit（规则变更治理）和 pre-push（推送前强制同步校验）。详见 [.githooks/README.md](.githooks/README.md)。
+启用 pre-commit（规则变更治理）、post-commit（evolution 历史自动 GC）和 pre-push（推送前强制同步校验）。详见 [.githooks/README.md](.githooks/README.md)。
 
 ## What is MCP?
 

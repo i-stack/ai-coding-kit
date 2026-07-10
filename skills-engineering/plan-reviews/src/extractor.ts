@@ -222,7 +222,7 @@ export function extractFromArtifact(artifact: PlanArtifact): ExtractionOutput {
 	}
 
 	// ── 6. Technology/Service entities ──────────────────────────────
-	const techTexts = [artifact.sections.approach, artifact.sections.decisions].join("\n");
+	const techTexts = [artifact.sections.approach, artifact.sections.decisions, artifact.diffText ?? ""].join("\n");
 	const seenTech = new Set<string>();
 	for (const pattern of TECH_PATTERNS) {
 		if (pattern.regex.test(techTexts) && !seenTech.has(pattern.name)) {
@@ -372,6 +372,19 @@ export function planToChunks(artifact: PlanArtifact): Array<{
 	if (artifact.architectureAnalysis) {
 		chunks.push({ section: "architecture_analysis", text: artifact.architectureAnalysis });
 	}
+	// Code-review artifacts: index the raw diff + review log as searchable chunks.
+	if (artifact.diffText) {
+		chunks.push({ section: "diff", text: artifact.diffText });
+	}
+	if (artifact.reviewLogText) {
+		chunks.push({ section: "review_log", text: artifact.reviewLogText });
+	}
+	if (artifact.responseText) {
+		chunks.push({ section: "response", text: artifact.responseText });
+	}
+	if (artifact.summaryText) {
+		chunks.push({ section: "summary", text: artifact.summaryText });
+	}
 	// Full plan text as one combined chunk for holistic search
 	const fullText = [
 		`Title: ${artifact.sections.title}`,
@@ -379,6 +392,10 @@ export function planToChunks(artifact: PlanArtifact): Array<{
 		`Approach: ${artifact.sections.approach}`,
 		`Decisions: ${artifact.sections.decisions}`,
 		artifact.architectureAnalysis ? `Architecture analysis: ${artifact.architectureAnalysis}` : "",
+		artifact.diffText ? `Diff:\n${artifact.diffText}` : "",
+		artifact.reviewLogText ? `Review log:\n${artifact.reviewLogText}` : "",
+		artifact.responseText ? `Response:\n${artifact.responseText}` : "",
+		artifact.summaryText ? `Summary:\n${artifact.summaryText}` : "",
 	].join("\n");
 	chunks.push({ section: "full", text: fullText });
 

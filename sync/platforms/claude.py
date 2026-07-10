@@ -3,33 +3,19 @@ from pathlib import Path
 from typing import Any
 
 from .common import merge_object, read_json_object, write_json
+from .paths import (
+    claude_hooks_dir_path,
+    claude_json_path,
+    claude_settings_json_path,
+    xcode_claude_dir,
+    xcode_claude_json_path,
+)
 
-# ── Path helpers (functions so they respect HOME env var at runtime) ──
-
-
-def claude_json_path() -> Path:
-    return Path.home() / ".claude.json"
-
-
-def claude_settings_json_path() -> Path:
-    return Path.home() / ".claude" / "settings.json"
+# ── Path helpers (re-exported for backward compatibility) ──
 
 
 def claude_settings_generated_json_path() -> Path:
     return Path.home() / ".claude" / "settings.generated.json"
-
-
-def claude_hooks_dir_path() -> Path:
-    return Path.home() / ".claude" / "hooks"
-
-
-def xcode_claude_json_path() -> Path:
-    return Path.home() / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json"
-
-
-def xcode_claude_dir() -> Path:
-    """Xcode Claude Agent .claude config directory (settings + hooks)."""
-    return Path.home() / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
 
 
 def _repo_hooks_dir() -> Path:
