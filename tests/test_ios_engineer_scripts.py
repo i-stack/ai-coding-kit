@@ -763,6 +763,17 @@ class FileContentIntegrityTests(unittest.TestCase):
         steps = re.findall(r'\[behavior (\d+)/5\]', content)
         self.assertEqual(len(steps), 5)
 
+    def test_code_review_behavior_guard_requires_gr004_owner(self):
+        """Code review behavior guard must catch OUT-002 owner drift."""
+        content = _read_script("run_behavior_validation.sh")
+        behavior_4 = content.split("[behavior 4/5] Code review output contract", 1)[1].split(
+            "[behavior 5/5] Network cache and error-modeling contract", 1
+        )[0]
+
+        self.assertIn("触发条件见 GR-004", behavior_4)
+        self.assertIn("findings-first", behavior_4)
+        self.assertIn("[review_checklists.md](references/review_checklists.md)", behavior_4)
+
     def test_check_snapshot_consistency_checks_4_paths(self):
         """check_snapshot_consistency.sh verifies 4 key paths."""
         content = _read_script("check_snapshot_consistency.sh")
