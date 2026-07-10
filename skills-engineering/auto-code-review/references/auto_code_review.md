@@ -47,9 +47,13 @@
 进入流程后加载配置：
 
 ```bash
-AUTO_REVIEW_EXPORTS="$(python3 skills-engineering/scripts/load-auto-review-config.py --shell)" || exit 1
-eval "${AUTO_REVIEW_EXPORTS}"
-[ "${AUTO_REVIEW_ENABLED:-true}" = "false" ] && {
+# Use JSON output (default) and parse individual fields — no eval, no injection risk
+AUTO_REVIEW_JSON="$(python3 skills-engineering/scripts/load-auto-review-config.py)" || exit 1
+AUTO_REVIEW_ENABLED="$(printf '%s' "${AUTO_REVIEW_JSON}" | python3 -c "import sys,json; d=json.load(sys.stdin); print('false' if not d['enabled'] else 'true')")"
+AUTO_REVIEW_MAX_ROUNDS="$(printf '%s' "${AUTO_REVIEW_JSON}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['maxRounds'])")"
+AUTO_REVIEW_REVIEWERS="$(printf '%s' "${AUTO_REVIEW_JSON}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(','.join(d['reviewers']))")"
+AUTO_REVIEW_ALLOW_SELF_REVIEW="$(printf '%s' "${AUTO_REVIEW_JSON}" | python3 -c "import sys,json; d=json.load(sys.stdin); print('true' if d['allowSelfReview'] else 'false')")"
+[ "${AUTO_REVIEW_ENABLED}" = "false" ] && {
   echo "auto-code-review is disabled by project configuration" >&2
   exit 1
 }
