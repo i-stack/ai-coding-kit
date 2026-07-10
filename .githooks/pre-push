@@ -60,34 +60,35 @@ fi
 # --- Pre-flight validation: check secrets.json exists for MCP sync -----------
 
 SECRETS_FILE="${ROOT}/env/secrets.json"
-if [ -f "${MCP_SYNC}" ] && [ ! -f "${SECRETS_FILE}" ]; then
-  echo "sync pre-push: ⚠ env/secrets.json not found — MCP sync will be skipped." >&2
+if [ -x "${MCP_SYNC}" ] && [ ! -f "${SECRETS_FILE}" ]; then
+  echo "sync pre-push: ⚠ env/secrets.json not found — MCP sync will run but may fail." >&2
   echo "sync pre-push: Copy env/secrets.json.example and fill in your keys." >&2
 fi
 
-# --- Track sync results for summary ------------------------------------------
+# --- Track sync results (separate arrays for targeted fix advice) -------------
 
-sync_failures=()
+skill_sync_failures=()
+mcp_failures=()
 
-# --- skill-sync chain ---------------------------------------------------------
+# --- skill-sync chain (preamble and verify run only if sync-skills succeeds) --
 
 if [ "${SKILL_BYPASS:-0}" != "1" ]; then
   echo "skill-sync pre-push: syncing skills-engineering/ to local agent caches..."
   if ! "${SYNC_SCRIPT}"; then
-    sync_failures+=("sync-skills.sh")
+    skill_sync_failures+=("sync-skills.sh")
     echo "skill-sync pre-push: ⚠ sync-skills.sh failed." >&2
-  fi
+  else
+    echo "skill-sync pre-push: rendering agent preamble blocks..."
+    if ! "${PREAMBLE_SCRIPT}"; then
+      skill_sync_failures+=("sync-agent-preamble.sh")
+      echo "skill-sync pre-push: ⚠ sync-agent-preamble.sh failed." >&2
+    fi
 
-  echo "skill-sync pre-push: rendering agent preamble blocks..."
-  if ! "${PREAMBLE_SCRIPT}"; then
-    sync_failures+=("sync-agent-preamble.sh")
-    echo "skill-sync pre-push: ⚠ sync-agent-preamble.sh failed." >&2
-  fi
-
-  echo "skill-sync pre-push: verifying cache layout..."
-  if ! "${VERIFY_SCRIPT}"; then
-    sync_failures+=("verify-sync.sh")
-    echo "skill-sync pre-push: ⚠ verify-sync.sh reported issues." >&2
+    echo "skill-sync pre-push: verifying cache layout..."
+    if ! "${VERIFY_SCRIPT}"; then
+      skill_sync_failures+=("verify-sync.sh")
+      echo "skill-sync pre-push: ⚠ verify-sync.sh reported issues." >&2
+    fi
   fi
 fi
 
@@ -96,7 +97,7 @@ fi
 if [ -x "${MCP_SYNC}" ]; then
   echo "sync pre-push: syncing MCP + Codex shared config to local agent configs..."
   if ! "${MCP_SYNC}"; then
-    sync_failures+=("sync_all.sh (MCP)")
+    mcp_failures+=("sync_all.sh (MCP)")
     echo "sync pre-push: ⚠ sync_all.sh failed." >&2
   fi
 else
@@ -105,22 +106,36 @@ fi
 
 # --- Summary ------------------------------------------------------------------
 
-if [ ${#sync_failures[@]} -gt 0 ]; then
+if [ $((${#skill_sync_failures[@]} + ${#mcp_failures[@]})) -gt 0 ]; then
   echo "" >&2
   echo "═══════════════════════════════════════════════════════════" >&2
   echo "pre-push: SYNC FAILURES DETECTED" >&2
   echo "═══════════════════════════════════════════════════════════" >&2
   echo "The following steps failed:" >&2
-  for f in "${sync_failures[@]}"; do
-    echo "  ✗ ${f}" >&2
-  done
+  if [ ${#skill_sync_failures[@]} -gt 0 ]; then
+    for f in "${skill_sync_failures[@]}"; do echo "  ✗ ${f}" >&2; done
+  fi
+  if [ ${#mcp_failures[@]} -gt 0 ]; then
+    for f in "${mcp_failures[@]}"; do echo "  ✗ ${f}" >&2; done
+  fi
   echo "" >&2
   echo "Push aborted. Your local agent caches may be in an inconsistent state." >&2
-  echo "To fix:" >&2
-  echo "  1. Resolve the errors above" >&2
-  echo "  2. Re-run: bash sync.sh" >&2
-  echo "  3. Then retry: git push" >&2
-  echo "Or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
+  if [ ${#skill_sync_failures[@]} -gt 0 ]; then
+    echo "" >&2
+    echo "To fix skill-sync failures:" >&2
+    echo "  1. Resolve the errors above" >&2
+    echo "  2. Re-run: bash skills-engineering/scripts/sync-skills.sh" >&2
+    echo "  3. Then retry: git push" >&2
+    echo "  Or set SKILL_BYPASS=1 to skip skill-sync (emergencies only)." >&2
+  fi
+  if [ ${#mcp_failures[@]} -gt 0 ]; then
+    echo "" >&2
+    echo "To fix MCP-sync failures:" >&2
+    echo "  1. Resolve the errors above" >&2
+    echo "  2. Re-run: bash sync.sh" >&2
+    echo "  3. Then retry: git push" >&2
+    echo "  Or use git push --no-verify to skip all hooks (emergencies only)." >&2
+  fi
   echo "═══════════════════════════════════════════════════════════" >&2
   exit 1
 fi

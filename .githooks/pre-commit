@@ -41,7 +41,7 @@ if [ "${MINOR_CHANGE:-0}" = "1" ]; then
   if ! {
     echo "---"
     echo "timestamp: ${timestamp}"
-    echo "reason: ${reason}"
+    printf 'reason: "%s"\n' "${reason//\"/\\\"}"
     echo "files:"
     printf '%s\n' "$guarded" | sed 's/^/  - /'
   } >> "${MINOR_LOG}"; then
