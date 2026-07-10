@@ -41,7 +41,7 @@ skill:auto-code-review
 - `{{ENGINEERING_DISCIPLINE_SKILLS_DIR}}SKILL.md`
 - `{{ENGINEERING_DISCIPLINE_SKILLS_DIR}}references/engineering_discipline.md`
 
-并按其中 GR-002/003/004/005/007/008 规则执行：描述不清时先输出前置确认块；锁定单一根因；按四段式输出；给最小修复；不格式化代码；声明已覆盖/未覆盖/残留风险。
+并按其中 GR-001/002/003/004/005/006/007/008 规则执行：保护敏感信息；描述不清时先输出前置确认块；锁定单一根因；按四段式输出；给最小修复；触发预算阈值时主动中断；不格式化代码；声明已覆盖/未覆盖/残留风险。
 
 # global problem analysis
 
@@ -97,7 +97,7 @@ evolution-signal: <none | 修正表达 | 新增能力 | 合并重复 | 退役规
 
 可选字段：`session-id: <id>`（默认省略 = null）。
 
-Rule ID 词表取自 `{{SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN）。GR-NNN 等全局纪律 ID 不在此词表内、校验会拒收，不要写。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
+Rule ID 词表取自 `{{SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN / GR-NNN）。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
 
 **非 iOS 工程任务不输出这个块**：写文档、答 API 问题、通用重构、元工程 / 自进化讨论 / SkillOps 维护本身都跳过。task-type 落不进 12 选 1 时也跳过。
 <!-- managed-block:ios-engineer:end -->

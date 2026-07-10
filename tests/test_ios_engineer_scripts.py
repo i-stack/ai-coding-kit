@@ -688,6 +688,67 @@ class ProposalStatusStateMachineTests(unittest.TestCase):
 class FileContentIntegrityTests(unittest.TestCase):
     """Verify scripts reference correct files and paths."""
 
+    def test_agent_preamble_rule_id_families_match_active_index(self):
+        """The generated audit contract must allow every active rule ID family."""
+        preamble = (
+            REPO_ROOT / "skills-engineering" / "scripts" / "templates"
+            / "agent-preamble.md.tmpl"
+        ).read_text(encoding="utf-8")
+        rule_index = (SKILL_DIR / "references" / "rule_index.md").read_text(
+            encoding="utf-8"
+        )
+        active_families = {
+            match.group(1)
+            for match in re.finditer(
+                r"^\|\s*([A-Z]+)-\d{3}\s*\|\s*active\s*\|",
+                rule_index,
+                re.MULTILINE,
+            )
+        }
+        audit_contract = preamble.split("# ios-engineer skill audit", 1)[1]
+
+        for family in active_families:
+            self.assertIn(
+                f"{family}-NNN",
+                audit_contract,
+                f"agent preamble audit contract should allow active {family} IDs",
+            )
+        self.assertNotIn("GR-NNN 等全局纪律 ID 不在此词表内", audit_contract)
+
+    def test_agent_preamble_summarizes_all_engineering_discipline_rules(self):
+        """The preamble summary must not omit GR-001 or GR-006."""
+        preamble = (
+            REPO_ROOT / "skills-engineering" / "scripts" / "templates"
+            / "agent-preamble.md.tmpl"
+        ).read_text(encoding="utf-8")
+        section = preamble.split("# global engineering discipline", 1)[1].split(
+            "# global problem analysis", 1
+        )[0]
+
+        for rule_number in range(1, 9):
+            self.assertIn(f"{rule_number:03d}", section)
+
+    def test_usage_ledger_prompts_allow_global_rule_ids(self):
+        """All copyable prompts must match the ledger's active-ID schema."""
+        usage_ledger = (SKILL_DIR / "references" / "usage_ledger.md").read_text(
+            encoding="utf-8"
+        )
+        prompt_sections = {
+            "codex": usage_ledger.split("### 5.1 Codex CLI", 1)[1].split(
+                "### 5.2 Claude Code", 1
+            )[0],
+            "claude": usage_ledger.split("### 5.2 Claude Code", 1)[1].split(
+                "### 5.3 Cursor", 1
+            )[0],
+            "cursor": usage_ledger.split("### 5.3 Cursor", 1)[1].split(
+                "## 6. 批量灌入", 1
+            )[0],
+        }
+
+        self.assertIn("GR-XXX", prompt_sections["codex"])
+        self.assertIn("status=active 的 ID", prompt_sections["claude"])
+        self.assertIn("GR-XXX", prompt_sections["cursor"])
+
     def test_validate_skill_evolution_has_14_steps(self):
         """validate_skill_evolution.sh should have exactly 14 steps."""
         content = _read_script("validate_skill_evolution.sh")
