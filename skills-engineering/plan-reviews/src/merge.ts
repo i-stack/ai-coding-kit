@@ -80,22 +80,32 @@ export class MergeEngine {
 	 * or fewer than 2 chunks).
 	 */
 	async merge(options?: { threshold?: number }): Promise<MergedKnowledgePoint[]> {
-		if (!this.embed.isAvailable) return [];
-
-		const chunks = this.store.getAllChunks();
+		const chunks = this.store.getStoredChunks();
 		if (chunks.length < 2) return [];
 
 		const threshold = options?.threshold ?? DEFAULT_MERGE_THRESHOLD;
 
-		const groups = clusterSimilarChunks(chunks, threshold);
+		const embeddedChunks = chunks.filter((chunk) => chunk.embedding.length > 0);
+		const memberGroups: EmbeddedChunk[][] = [];
+		if (this.embed.isAvailable && embeddedChunks.length >= 2) {
+			for (const group of clusterSimilarChunks(embeddedChunks, threshold)) {
+				memberGroups.push(group.map((index) => embeddedChunks[index]));
+			}
+		}
+		for (const group of clusterExactChunks(chunks)) {
+			const members = group.map((index) => chunks[index]);
+			const signature = members.map((member) => member.id).sort().join(":");
+			const duplicate = memberGroups.some((existing) =>
+				existing.map((member) => member.id).sort().join(":") === signature,
+			);
+			if (!duplicate) memberGroups.push(members);
+		}
 
 		const points: MergedKnowledgePoint[] = [];
 		const now = new Date().toISOString();
 
-		for (const idxs of groups) {
-			if (idxs.length < 2) continue; // skip singletons
-
-			const members = idxs.map((i) => chunks[i]);
+		for (const members of memberGroups) {
+			if (members.length < 2) continue; // skip singletons
 
 			// De-duplicate identical source texts.
 			const seen = new Set<string>();
@@ -114,10 +124,12 @@ export class MergeEngine {
 
 			// Lowest pairwise similarity inside the group.
 			let minSim = 1;
-			for (let a = 0; a < members.length; a++) {
-				for (let b = a + 1; b < members.length; b++) {
-					const s = cosineSimilarity(members[a].embedding, members[b].embedding);
-					if (s < minSim) minSim = s;
+			if (members.every((member) => member.embedding.length > 0)) {
+				for (let a = 0; a < members.length; a++) {
+					for (let b = a + 1; b < members.length; b++) {
+						const s = cosineSimilarity(members[a].embedding, members[b].embedding);
+						if (s < minSim) minSim = s;
+					}
 				}
 			}
 
@@ -127,12 +139,15 @@ export class MergeEngine {
 				memberCount: members.length,
 				planIds,
 				sourceSections,
+				memberChunkIds: members.map((member) => member.id),
 				consolidatedText: texts.join("\n\n---\n\n"),
 				minSimilarity: minSim,
 				createdAt: now,
 			});
 		}
 
+		this.store.setMergedKnowledge(points);
+		this.store.save();
 		this._persist(points, threshold);
 		return points;
 	}
@@ -169,4 +184,16 @@ export class MergeEngine {
 		}
 		safeWrite("MERGED-KNOWLEDGE.md", md.join("\n"));
 	}
+}
+
+function clusterExactChunks(chunks: EmbeddedChunk[]): number[][] {
+	const byText = new Map<string, number[]>();
+	for (let i = 0; i < chunks.length; i++) {
+		const normalized = chunks[i].text.toLowerCase().replace(/\s+/g, " ").trim();
+		if (!normalized) continue;
+		const group = byText.get(normalized) ?? [];
+		if (!group.some((index) => chunks[index].planId === chunks[i].planId)) group.push(i);
+		byText.set(normalized, group);
+	}
+	return [...byText.values()];
 }

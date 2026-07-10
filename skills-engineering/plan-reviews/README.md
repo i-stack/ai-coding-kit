@@ -7,18 +7,20 @@
 ### 召回与新陈代谢（闭环命令）
 
 ```bash
-# 检索注入：根据用户问题返回最相关历史摘要（注入 AI 上下文）
+# 检索注入：先增量同步，再根据用户问题返回最相关历史摘要
 node dist/cli.js recall "给登录接口加速率限制"
 
 # 同步：把 .plan-reviews/ 的新归档产物增量索引进 .kb-index.json
 node dist/cli.js sync
 
-# 新陈代谢：按 embedding 相似度合并跨 plan 的重复知识点
+# 新陈代谢：有 embedding 时按相似度合并；无 embedding 时合并跨 plan 完全相同的知识点
 #   → 生成 .plan-reviews/.kb-merged.json + .plan-reviews/MERGED-KNOWLEDGE.md
 node dist/cli.js merge
 ```
 
-用户显式启动 `auto-code-review` 后，ACR-006 会在审查前执行 `recall`、归档后执行 `sync`+`merge`，闭合「检索→审查→归档→回灌→去重」链路。普通代码修改不会进入该流程。
+用户显式启动 `auto-code-review` 后，ACR-006 会在审查前执行 `recall`、归档后执行 `sync`+`merge`。`plan-grill` 条件自动或显式进入盘问时也会在第一问前执行 `recall`。普通明确执行任务不会因此进入盘问。
+
+`cosine` 仅表示向量余弦相似度，`lexical` 表示本地词法覆盖分，两者都不是经校准的「命中率」或正确概率。
 
 核心思路：`.plan-reviews` 存储的是高度结构化的 PLAN.md / code-review 归档文件，数据量小（几十到几百个 plan），通过内存余弦相似度（有 Embedding 时）或本地关键词检索（无 Embedding 时）+ 单 JSON 缓存文件即可实现召回和知识图谱，完全不需要重型基础设施。
 

@@ -36,6 +36,7 @@ function emptyIndex(): KbIndexData {
 		relations: [],
 		chunks: [],
 		syncState: {},
+		mergedKnowledge: [],
 	};
 }
 
@@ -64,6 +65,7 @@ export class PlanStore {
 					relations: Array.isArray(parsed.relations) ? parsed.relations : [],
 					chunks: Array.isArray(parsed.chunks) ? parsed.chunks : [],
 					syncState: parsed.syncState && typeof parsed.syncState === "object" ? parsed.syncState : {},
+					mergedKnowledge: Array.isArray(parsed.mergedKnowledge) ? parsed.mergedKnowledge : [],
 				};
 			}
 		} catch (err) {
@@ -224,12 +226,27 @@ export class PlanStore {
 		return this.data.chunks.filter((c) => c.embedding.length > 0);
 	}
 
+	getStoredChunks(): EmbeddedChunk[] {
+		return [...this.data.chunks];
+	}
+
+	setMergedKnowledge(points: KbIndexData["mergedKnowledge"]): void {
+		this.data.mergedKnowledge = points;
+	}
+
+	getMergedKnowledge(): KbIndexData["mergedKnowledge"] {
+		return [...this.data.mergedKnowledge];
+	}
+
 	searchChunksText(query: string, options?: { limit?: number; planId?: string }): EmbeddedChunk[] {
-		const terms = query
-			.toLowerCase()
-			.split(/\s+/)
-			.map((term) => term.trim())
-			.filter(Boolean);
+		return this.searchChunksTextScored(query, options).map((item) => item.chunk);
+	}
+
+	searchChunksTextScored(
+		query: string,
+		options?: { limit?: number; planId?: string },
+	): Array<{ chunk: EmbeddedChunk; score: number; matchedTerms: string[] }> {
+		const terms = tokenizeSearchText(query);
 		if (terms.length === 0) return [];
 
 		const limit = options?.limit ?? 5;
@@ -237,13 +254,15 @@ export class PlanStore {
 			.filter((chunk) => !options?.planId || chunk.planId === options.planId)
 			.map((chunk) => {
 				const text = chunk.text.toLowerCase();
-				const score = terms.reduce((sum, term) => sum + countOccurrences(text, term), 0);
-				return { chunk, score };
+				const matchedTerms = terms.filter((term) => text.includes(term));
+				const occurrences = matchedTerms.reduce((sum, term) => sum + countOccurrences(text, term), 0);
+				const score = matchedTerms.length / terms.length + Math.min(occurrences, 10) / 100;
+				return { chunk, score, matchedTerms };
 			})
 			.filter((item) => item.score > 0)
 			.sort((a, b) => b.score - a.score || a.chunk.planId.localeCompare(b.chunk.planId));
 
-		return scored.slice(0, limit).map((item) => item.chunk);
+		return scored.slice(0, limit);
 	}
 
 	// ── Sync state ──────────────────────────────────────────────────
@@ -295,4 +314,20 @@ function countOccurrences(text: string, term: string): number {
 		index = text.indexOf(term, index + term.length);
 	}
 	return count;
+}
+
+function tokenizeSearchText(text: string): string[] {
+	const lower = text.toLowerCase();
+	const terms = new Set<string>();
+	for (const token of lower.replace(/[\p{Script=Han}]/gu, " ").match(/[a-z0-9_][a-z0-9_.-]*/g) ?? []) {
+		terms.add(token);
+	}
+	for (const run of lower.match(/[\p{Script=Han}]+/gu) ?? []) {
+		if (run.length <= 2) {
+			terms.add(run);
+			continue;
+		}
+		for (let i = 0; i < run.length - 1; i++) terms.add(run.slice(i, i + 2));
+	}
+	return [...terms];
 }

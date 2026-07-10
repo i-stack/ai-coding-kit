@@ -102,6 +102,7 @@ export class PlanReviewsKB {
 	 * Returns an empty string when nothing relevant is found.
 	 */
 	async recall(query: string, limit = 5): Promise<string> {
+		await this.sync();
 		const res = await this.search({ query, limit });
 		if (res.semantic.length === 0 && res.graph.length === 0) return "";
 		return this.formatResults(res);

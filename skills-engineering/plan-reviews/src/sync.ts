@@ -77,6 +77,10 @@ export class SyncEngine {
 			}
 		}
 
+		if (stats.added > 0 || stats.modified > 0 || stats.removed > 0) {
+			this.store.setMergedKnowledge([]);
+		}
+
 		// Persist to JSON file
 		this.store.save();
 

@@ -91,6 +91,9 @@ check_preamble_tilde() {
   if ! grep -q 'problem-analysis/references/problem_analysis.md' "$file"; then
     note_fail "$file missing problem-analysis full-text load instruction"
   fi
+  if ! grep -q 'plan-grill/references/plan_grill.md' "$file"; then
+    note_fail "$file missing plan-grill conditional gate instruction"
+  fi
   if ! grep -q 'epistemic-integrity/references/epistemic_integrity.md' "$file"; then
     note_fail "$file missing epistemic-integrity full-text load instruction"
   fi

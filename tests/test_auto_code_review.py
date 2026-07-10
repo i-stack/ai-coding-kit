@@ -835,6 +835,14 @@ class WorkflowConsistencyTests(unittest.TestCase):
         pg_skill = (SE_DIR / "plan-grill" / "SKILL.md").read_text(encoding="utf-8")
         self.assertIn("Act 1", pg_skill)
 
+    def test_plan_grill_has_conditional_automatic_gate(self):
+        pg_skill = (SE_DIR / "plan-grill" / "SKILL.md").read_text(encoding="utf-8")
+        preamble = (SE_DIR / "scripts" / "templates" / "agent-preamble.md.tmpl").read_text(encoding="utf-8")
+        self.assertIn("PG-000", pg_skill)
+        self.assertIn("条件自动进入", pg_skill)
+        self.assertIn("global requirements clarity gate", preamble)
+        self.assertIn("{{PLAN_GRILL_SKILLS_DIR}}references/plan_grill.md", preamble)
+
     def test_workflow_chain_in_skill_md(self):
         """SKILL.md should show explicit Act 3 activation after implementation."""
         skill = (ACR_DIR / "SKILL.md").read_text(encoding="utf-8")

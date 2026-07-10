@@ -37,7 +37,7 @@ export class SearchEngine {
 			this.semanticSearch(query),
 			this.graphSearch(query),
 		]);
-		return { query: query.query, semantic, graph };
+		return { query: query.query, semantic: this.collapseMergedHits(semantic), graph };
 	}
 
 	async semanticSearch(query: SearchQuery): Promise<SemanticHit[]> {
@@ -51,7 +51,7 @@ export class SearchEngine {
 				limit: query.limit ?? 5,
 				planId: query.planId,
 				scoreThreshold: 0.35,
-			});
+			}).map((hit) => ({ ...hit, matchType: "semantic" as const }));
 		} catch (err) {
 			console.warn(`[plan-reviews] Semantic search failed: ${(err as Error).message}`);
 			return this.keywordSearch(query);
@@ -59,16 +59,41 @@ export class SearchEngine {
 	}
 
 	keywordSearch(query: SearchQuery): SemanticHit[] {
-		return this.store.searchChunksText(query.query, {
+		return this.store.searchChunksTextScored(query.query, {
 			limit: query.limit ?? 5,
 			planId: query.planId,
-		}).map((chunk) => ({
+		}).map(({ chunk, score, matchedTerms }) => ({
 			chunkId: chunk.id,
 			planId: chunk.planId,
 			section: chunk.section,
 			text: chunk.text,
-			score: 0,
+			score,
+			matchType: "keyword" as const,
+			matchedTerms,
 		}));
+	}
+
+	private collapseMergedHits(hits: SemanticHit[]): SemanticHit[] {
+		const points = this.store.getMergedKnowledge();
+		const matchedPoints = points.filter((point) =>
+			point.memberChunkIds.some((id) => hits.some((hit) => hit.chunkId === id)),
+		);
+		if (matchedPoints.length === 0) return hits;
+
+		const consumedPlans = new Set(matchedPoints.flatMap((point) => point.planIds));
+		const mergedHits = matchedPoints.map((point) => {
+			const memberHits = hits.filter((hit) => point.memberChunkIds.includes(hit.chunkId));
+			return {
+				chunkId: point.id,
+				planId: point.planIds[0] ?? "",
+				section: "merged",
+				text: point.consolidatedText,
+				score: Math.max(...memberHits.map((hit) => hit.score)),
+				matchType: "merged" as const,
+				sourcePlanIds: point.planIds,
+			};
+		});
+		return [...mergedHits, ...hits.filter((hit) => !consumedPlans.has(hit.planId))];
 	}
 
 	async graphSearch(query: SearchQuery): Promise<GraphSearchResult[]> {
@@ -119,7 +144,11 @@ export class SearchEngine {
 			for (const hit of response.semantic) {
 				const planLabel =
 					hit.planId !== "" ? ` [${hit.planId}:${hit.section}]` : "";
-				const scoreLabel = hit.score > 0 ? `(score=${hit.score.toFixed(2)})` : "(keyword)";
+				const scoreLabel = hit.matchType === "semantic"
+					? `(cosine=${hit.score.toFixed(2)})`
+					: hit.matchType === "merged"
+						? `(merged-score=${hit.score.toFixed(2)}, sources=${hit.sourcePlanIds?.join(",") ?? ""})`
+						: `(lexical=${hit.score.toFixed(2)})`;
 				lines.push(`- ${scoreLabel}${planLabel}: ${truncate(hit.text, 200)}`);
 			}
 			lines.push("");

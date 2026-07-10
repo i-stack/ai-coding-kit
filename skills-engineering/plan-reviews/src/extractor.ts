@@ -379,6 +379,12 @@ export function planToChunks(artifact: PlanArtifact): Array<{
 	if (artifact.reviewLogText) {
 		chunks.push({ section: "review_log", text: artifact.reviewLogText });
 	}
+	if (artifact.responseText) {
+		chunks.push({ section: "response", text: artifact.responseText });
+	}
+	if (artifact.summaryText) {
+		chunks.push({ section: "summary", text: artifact.summaryText });
+	}
 	// Full plan text as one combined chunk for holistic search
 	const fullText = [
 		`Title: ${artifact.sections.title}`,
@@ -388,6 +394,8 @@ export function planToChunks(artifact: PlanArtifact): Array<{
 		artifact.architectureAnalysis ? `Architecture analysis: ${artifact.architectureAnalysis}` : "",
 		artifact.diffText ? `Diff:\n${artifact.diffText}` : "",
 		artifact.reviewLogText ? `Review log:\n${artifact.reviewLogText}` : "",
+		artifact.responseText ? `Response:\n${artifact.responseText}` : "",
+		artifact.summaryText ? `Summary:\n${artifact.summaryText}` : "",
 	].join("\n");
 	chunks.push({ section: "full", text: fullText });
 

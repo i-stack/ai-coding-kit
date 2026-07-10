@@ -195,6 +195,7 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 		const planFile = path.join(planPath, "PLAN.md");
 		const reviewFile = path.join(planPath, "PLAN-REVIEW-LOG.md");
 		const architectureFile = path.join(planPath, "architecture-analysis.md");
+		const summaryFile = path.join(planPath, "SUMMARY.md");
 
 		// ── Plan artifact (plan-grill / cross-model-review) ──
 		if (fs.existsSync(planFile)) {
@@ -204,9 +205,11 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 
 				let reviewers: string[] = [];
 				let resolution: PlanResolution = "pending";
+				let reviewLogText: string | undefined;
 
 				if (fs.existsSync(reviewFile)) {
 					const reviewContent = fs.readFileSync(reviewFile, "utf-8");
+					reviewLogText = reviewContent;
 					const meta = parseReviewLog(reviewContent);
 					reviewers = meta.reviewers;
 					resolution = meta.resolution;
@@ -214,12 +217,17 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 				const architectureAnalysis = fs.existsSync(architectureFile)
 					? fs.readFileSync(architectureFile, "utf-8")
 					: undefined;
+				const summaryText = fs.existsSync(summaryFile)
+					? fs.readFileSync(summaryFile, "utf-8")
+					: undefined;
 
 				artifacts.push({
 					id: entry.name,
 					path: planPath,
 					sections,
 					architectureAnalysis,
+					reviewLogText,
+					summaryText,
 					hasReview: fs.existsSync(reviewFile),
 					resolution,
 					reviewers,
@@ -281,6 +289,7 @@ function parseCodeReview(
 	let approach = "";
 	let diffText = "";
 	let reviewLogText = "";
+	let responseText = "";
 
 	try {
 		if (fs.existsSync(questionFile)) {
@@ -292,6 +301,7 @@ function parseCodeReview(
 		}
 		if (fs.existsSync(responseFile)) {
 			const r = fs.readFileSync(responseFile, "utf-8");
+			responseText = r;
 			const m = r.match(/##\s*变更目的\s*\n([\s\S]*?)(?=\n##\s|$)/);
 			approach = m ? m[1].trim() : "";
 		}
@@ -322,6 +332,7 @@ function parseCodeReview(
 			kind: "code-review",
 			diffText,
 			reviewLogText,
+			responseText,
 		};
 	} catch (err) {
 		console.warn(`[plan-reviews] Failed to parse code-review ${id}: ${(err as Error).message}`);
@@ -341,6 +352,7 @@ export function getPlanMtime(planPath: string): number {
 	const diffFile = path.join(planPath, "diff.patch");
 	const questionFile = path.join(planPath, "QUESTION.md");
 	const responseFile = path.join(planPath, "RESPONSE.md");
+	const summaryFile = path.join(planPath, "SUMMARY.md");
 
 	let mtime = 0;
 	if (fs.existsSync(planFile)) {
@@ -363,6 +375,9 @@ export function getPlanMtime(planPath: string): number {
 	}
 	if (fs.existsSync(responseFile)) {
 		mtime = Math.max(mtime, fs.statSync(responseFile).mtimeMs);
+	}
+	if (fs.existsSync(summaryFile)) {
+		mtime = Math.max(mtime, fs.statSync(summaryFile).mtimeMs);
 	}
 	return mtime;
 }
