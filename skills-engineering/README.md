@@ -452,6 +452,7 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all
   - `cognitive-expansion` 补 `CE-001~013` 自有规则 ID（`SKILL.md` 声明 + `references/rule_index.md` 表格定义 + `references/examples.md` before/after 形态样本与退化标本）；使其从"纯散文规范"升为可被 `validate-skill-behavior.sh` Check 2 校验的契约，对齐 ios-engineer 的 `rule_index.md` 模式。
   - 复查修复：SKILL.md 入口链接 `examples.md`，消除结构门禁 `validate-skill-structure.sh` 的 orphan reference（原 examples.md 从入口不可达）；`validate-skill-behavior.sh` Check 2 增加反向校验（rule_index.md 中 active 表行须被 SKILL.md 声明），使"双向一致"契约成真，并排除 ios-engineer 的 retired / 镜像 ID 误报。
   - 复查修复（续）：Check 2 前向定义集合此前经 `DEF_TABLE` 包含所有表行，使 `| ID | retired |` 这类退役行仍可作"有效定义"，与"退役 ID 不应再出现在 SKILL.md"的生命周期约定冲突，且注释自相矛盾。改为仅以 `DEF_ACTIVE`（active 表行）填充 `defined`，删除已无用的 `DEF_TABLE`；负向测试（把某 CE 行改 `retired`）现正确触发前向 FAIL。
+  - `cognitive-expansion` 收口（P1/P2 中的 C+B）：① Tier 3 `跨域类比` 加护栏（CE-008 细化）——须机制对齐、点名被映射机制，禁陈词/换词类比，附 1 good/1 bad 例（`cognitive_expansion.md` §Tier 3 + `examples.md` 示例 2 复用同一 good 例）；② `流程保障`（预测日志/双会话/每周深潜）由契约段移入`附录`并标注"可选习惯、非门控、不计入 `validate-skill-behavior.sh` 任何 Check"，避免稀释强制部分。三处 CE-008 措辞同步，`SKILL.md`/`rule_index.md`/`cognitive_expansion.md` 一致。
 - 新增 `scripts/verify-review-setup.sh`：审查链前置自检（plan-reviews 构建产物、auto-code-review 配置、reviewer CLI 可用性）。
 - 新增 `.agents/composition.md`：多全局技能同时命中时的块发射顺序与冲突裁决。
 - `.agents/invocation.md`：触发矩阵补齐缺失的 `plan-grill` 与 `cross-model-review`，并指向 `composition.md`。
