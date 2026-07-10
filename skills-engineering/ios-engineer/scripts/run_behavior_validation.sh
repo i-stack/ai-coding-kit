@@ -85,7 +85,7 @@ skill = File.read("SKILL.md")
 review = File.read("references/review_checklists.md")
 examples = File.read("references/examples.md")
 
-unless skill.include?("代码审查 / PR Review 例外") &&
+unless skill.include?("代码审查 / PR Review") &&
        skill.include?("findings-first") &&
        skill.include?("[review_checklists.md](references/review_checklists.md)")
   warn "SKILL.md no longer routes code review to findings-first review_checklists.md"

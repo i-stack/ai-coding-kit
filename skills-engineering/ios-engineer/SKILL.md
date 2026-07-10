@@ -53,7 +53,7 @@ Start from the symptom described by the user; once matched, return to the task r
 | [SYM-001] Crash / 崩溃 / 断言 / 强解 / 野指针 / EXC_BAD_ACCESS | [root_cause_enforcement.md](references/root_cause_enforcement.md) | For concurrency: [swift_concurrency.md](references/swift_concurrency.md); for log forensics: [observability_logging.md](references/observability_logging.md) |
 | [SYM-002] UI misalignment / constraint conflicts / list jitter / reuse bugs / accessibility / UI 错位 / 约束冲突 / 列表跳动 / 复用错乱 / 无障碍 | [layout_and_ui.md](references/layout_and_ui.md) | For state-driven rendering: [ui_state_patterns.md](references/ui_state_patterns.md) |
 | [SYM-003] State corruption / async write-back / stale request overwrites new UI / multi-Bool mutual exclusion / 状态错乱 / 异步回写 / 旧请求覆盖新 UI / 多 Bool 互斥 | [ui_state_patterns.md](references/ui_state_patterns.md) | For cancellation chains: [swift_concurrency.md](references/swift_concurrency.md) |
-| [SYM-004] Request failure / retry anomalies / auth refresh / pagination dupes or gaps / cache pollution / 请求失败 / 重试异常 / 鉴权刷新 / 分页重复或漏数据 / 缓存污染 | [networking_patterns.md](references/networking_patterns.md) | For error modeling: [domain_modeling.md](references/domain_modeling.md) |
+| [SYM-004] 请求失败 / 重试异常 / 鉴权刷新 / 分页重复或漏数据 / 缓存污染 | [networking_patterns.md](references/networking_patterns.md) | 错误建模追加 [domain_modeling.md](references/domain_modeling.md) |
 | [SYM-005] Lag / slow launch / memory growth / excessive refresh / energy anomalies / 卡顿 / 启动慢 / 内存上涨 / 过度刷新 / 能耗异常 | [performance_optimization.md](references/performance_optimization.md) | For metrics & instrumentation: [observability_logging.md](references/observability_logging.md) |
 | [SYM-006] Naming chaos / term mixing / force-unwrap / access control / code structure / 命名混乱 / 术语混用 / 强制解包 / 访问控制 / 代码结构 | [ios_conventions.md](references/ios_conventions.md) | For code review: [review_checklists.md](references/review_checklists.md) |
 | [SYM-007] Legacy project degrading / afraid to touch certain code / can't find entry point in unfamiliar project / cascading changes / team friction / 老项目越改越乱 / 不敢动某块代码 / 接手陌生项目找不到入口 / 牵一发动全身 / 团队抱怨开发卡手 | [architecture_analysis.md](references/architecture_analysis.md) | For concrete fixes: [architecture_and_network.md](references/architecture_and_network.md); for roadmap & migration risk: [migration_strategy.md](references/migration_strategy.md) |
@@ -138,7 +138,7 @@ Start from the symptom described by the user; once matched, return to the task r
 Trigger the corresponding template by output type; orthogonal to task routing:
 
 - [OUT-001] Formal proposals / Debugging conclusions / Migration roadmaps / Performance analysis: four-section field template → [examples.md](references/examples.md).
-- [OUT-002] Code review / PR Review: findings-first standard skeleton (code review / PR Review is exempt from GR-004 four-section format; see [review_checklists.md](references/review_checklists.md) §8 for skeleton sections).
+- [OUT-002] 代码审查 / PR Review：findings-first 标准骨架（触发条件见 GR-004；骨架段落详见 [review_checklists.md](references/review_checklists.md) 第 8 节）。
 - [OUT-003] Production code skeleton → [code_templates.md](references/code_templates.md).
 - [OUT-004] Testing strategy / Verification scope → [testing_strategy.md](references/testing_strategy.md).
 - [OUT-005] Architecture decision records → [decision_records.md](references/decision_records.md).
