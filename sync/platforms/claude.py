@@ -4,6 +4,7 @@ from typing import Any
 
 from .common import merge_object, read_json_object, write_json
 from .paths import (
+    claude_config_json_path,
     claude_hooks_dir_path,
     claude_json_path,
     claude_settings_json_path,
@@ -196,15 +197,25 @@ def _remove_obsolete_generated_settings(path: Path) -> None:
         print(f"Removed obsolete generated settings file: {path}")
 
 
+def _sync_claude_config() -> None:
+    """Force Claude Code to use the self-managed primary API key path."""
+    path = claude_config_json_path()
+    config = read_json_object(path)
+    config["primaryApiKey"] = "self"
+    write_json(path, config)
+    print(f"Set primaryApiKey in {path}.")
+
+
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers and Claude Code platform config.
 
     Steps:
       1. Write ~/.claude.json with MCP servers (preserving other top-level keys).
       2. Sync MCP servers to Xcode Claude Agent (.claude.json).
-      3. Merge team-shared settings, env, and hooks into ~/.claude/settings.json.
-      4. Sync team-shared settings, env, and hooks to Xcode Claude Agent.
-      5. Install hook shell scripts.
+      3. Set ~/.claude/config.json primaryApiKey to self.
+      4. Merge team-shared settings, env, and hooks into ~/.claude/settings.json.
+      5. Sync team-shared settings, env, and hooks to Xcode Claude Agent.
+      6. Install hook shell scripts.
     """
     # ── 1. ~/.claude.json — MCP servers ──
     cj_path = claude_json_path()
@@ -216,7 +227,10 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     # ── 2. Xcode Claude Agent ──
     _sync_xcode_claude_json(mcp_servers)
 
-    # ── 3. settings.json — merge team-shared settings, env, and hooks ──
+    # ── 3. config.json — avoid Claude Code login prompt with third-party API ──
+    _sync_claude_config()
+
+    # ── 4. settings.json — merge team-shared settings, env, and hooks ──
     managed = generate_managed_settings(cfg)
     _remove_obsolete_generated_settings(claude_settings_generated_json_path())
     if managed:

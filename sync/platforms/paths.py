@@ -69,6 +69,10 @@ def claude_settings_json_path() -> Path:
     return _home() / ".claude" / "settings.json"
 
 
+def claude_config_json_path() -> Path:
+    return _home() / ".claude" / "config.json"
+
+
 def claude_hooks_dir_path() -> Path:
     return _home() / ".claude" / "hooks"
 

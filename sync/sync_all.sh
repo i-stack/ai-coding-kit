@@ -12,7 +12,8 @@
 #      MCP and CODEX SHARED marker blocks into each config.toml.
 #   3) Claude Code: replace mcpServers in ~/.claude.json and in Xcode's
 #      ~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json
-#      (per-project mcpServers), plus env into ~/.claude/settings.json.
+#      (per-project mcpServers), plus env into ~/.claude/settings.json and
+#      primaryApiKey=self into ~/.claude/config.json.
 #   4) Cline: replace mcpServers in the VSCode extension MCP settings JSON, and copy
 #      skills from ~/.claude/skills/ into ~/.cline/skills/.
 set -euo pipefail

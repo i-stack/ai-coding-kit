@@ -12,6 +12,8 @@
 
 二者可同时存在：决策类先走认知对手（Tier 2）；其余回答仅在门控命中时追加 Tier 0 尾注，未命中则静默。
 
+> **链接条件性**：上表对认知对手模式的链接 `../../ios-engineer/references/cognitive_adversary_mode.md` 仅在 ios-engineer skill 已同步到同层 skills 目录时可达。非 iOS 环境（未同步 ios-engineer）下，本 skill 仅提供 Tier 0 / Tier 3，Tier 2 需用户显式加载 ios-engineer，链接失效不阻断 Tier 0/3。
+
 ## 三层分工
 
 | 层级 | 何时 | 做什么 |

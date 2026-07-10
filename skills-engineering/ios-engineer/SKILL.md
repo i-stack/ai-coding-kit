@@ -11,7 +11,8 @@ supported_locales: [zh-CN, en-US]
 <!--
   Response language: match the user's input language.
   Reference content is maintained in zh-CN (references/) with English
-  mirrors in i18n/en-US/references/. When a user communicates in English,
+  mirrors in i18n/en-US/references/ (PARTIAL: only a subset is mirrored today;
+  see i18n/en-US/references/ for what currently exists). When a user communicates in English,
   prefer reading the en-US mirror if available; fall back to zh-CN otherwise.
   Rule IDs (IR-/SYM-/ROUTE-/OUT-/GR-NNN) are locale-independent and
   must never be translated.

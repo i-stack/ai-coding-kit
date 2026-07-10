@@ -15,7 +15,7 @@ supported_locales: [zh-CN]
 
 - 不得以 preamble、Cursor 规则摘要或其它二次摘要代替该文件全文。
 - Tier 2（认知对手）由 [ios-engineer references/cognitive_adversary_mode.md](../ios-engineer/references/cognitive_adversary_mode.md) 承载；本 skill 管 Tier 0 / Tier 3 拓展。
-- 同步依赖：本 skill 通过相对路径引用 `../ios-engineer/references/cognitive_adversary_mode.md`；同步到各端时，需确保 `ios-engineer` skill 也同步到同层 skills 目录（如 `~/.claude/skills/ios-engineer`），否则该链接失效。
+- 同步依赖：本 skill 通过相对路径引用 `../ios-engineer/references/cognitive_adversary_mode.md`；同步到各端时，需确保 `ios-engineer` skill 也同步到同层 skills 目录（如 `~/.claude/skills/ios-engineer`），否则该链接失效。**条件性**：仅当 ios-engineer 已同步到同层 skills 目录时，Tier 2 链接可用；非 iOS 环境（未同步 ios-engineer）下，本 skill 仅提供 Tier 0 / Tier 3，Tier 2 需用户显式加载 ios-engineer，不得因链接不可达而中断 Tier 0/3。
 
 ## 何时加载
 
