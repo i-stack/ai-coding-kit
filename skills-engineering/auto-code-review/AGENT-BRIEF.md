@@ -2,46 +2,52 @@
 
 ## 一句话描述
 
-AI 生成代码后自动调用跨模型审查，循环修复直到通过，归档到 .plan-reviews。支持可配置 reviewer 模型，单模型时降级为自审模式。
+用户显式启动的跨模型代码审查；默认只读，只有明确 `--fix` 才允许主 agent 修复。
 
 ## 何时调用
 
-- **自动触发**：主 agent 生成代码修改后自动执行（无需用户关键词）。
-- **用户触发**：用户说 `auto-review` / `审查代码` / `review 一下` / `检查一下代码`。
-- **前置**：代码修改已完成（git diff 可获取变更）。
+- 调用：`/auto-review`、`使用 auto-code-review`、`启动跨模型代码审查`。
+- 调用并授权修复：`/auto-review --fix`、`审查并修复`。
+- 不调用：普通代码生成/修改完成、纯问答、含糊的“看看代码”。
 
 ## 关键行为
 
-1. 阅读 `SKILL.md` + `references/auto_code_review.md` 全文。
-2. 检测代码变更（排除 .md 文件和 trivial 改动）。
-3. 探测可用 reviewer CLI（`detect-review-clis.sh` 或直接 `command -v`）。
-4. 构造审查输入：diff + 变更文件列表 + 变更摘要。
-5. 调用 reviewer（只读模式）：codex `-s read-only`、gemini `--approval-mode plan`、claude `--permission-mode plan`。
-6. 解析 verdict：APPROVED → 归档；REVISE → 仲裁并修复 → 下一轮。
-7. MAX_ROUNDS=3 不收敛 → deadlock，交用户裁决。
-8. 自动归档到 `.plan-reviews/<date>-<slug>/`：QUESTION.md + RESPONSE.md + REVIEW-LOG.md + diff.patch + raw/。
+1. 完整阅读 `SKILL.md` 与 `references/auto_code_review.md`。
+2. 确认本轮存在显式触发，并区分 `review-only` / `review-and-fix`。
+3. 加载 `env/review.json`、`.auto-review-config.json`、`AUTO_REVIEW_*`；配置不替代用户授权。
+4. 确认审查范围：精确的当前请求变更；否则让用户选择 staged 或 worktree。
+5. 先 recall 历史审查，再以只读模式调用 reviewer。
+6. `review-only` 只仲裁、报告和归档，不修改代码。
+7. `review-and-fix` 才允许主 agent 修复并重审，最多 3 轮。
+8. 归档后 best-effort 执行 sync + merge。
 
 ## 不调用的情况
 
-- 纯文档更新（只有 .md 文件变更）
-- trivial 改动（< 5 行非空白变更）
-- 用户明确"不用审查" / "直接实施"
-- 无可用 reviewer CLI 且 `AUTO_REVIEW_ALLOW_SELF_REVIEW=false`
+- 普通代码生成或修改完成。
+- 用户没有明确指定 auto-code-review 工作流。
+- `AUTO_REVIEW_ENABLED=false`。
 
 ## 配置选项
 
+优先级：`env/review.json` → `.auto-review-config.json` → `AUTO_REVIEW_*`。
+
 | 环境变量 | 默认值 | 含义 |
 |---|---|---|
-| `AUTO_REVIEW_REVIEWER` | 自动选择 | 指定单个 reviewer（codex/gemini/claude） |
-| `AUTO_REVIEW_REVIEWERS` | 自动选择 | 指定多个 reviewer（逗号分隔） |
-| `AUTO_REVIEW_MAX_ROUNDS` | `3` | 审查轮次上限 |
-| `AUTO_REVIEW_ALLOW_SELF_REVIEW` | `true` | 是否允许单模型自审降级 |
+| `AUTO_REVIEW_ENABLED` | `true` | 能力开关；不代表当前请求已授权 |
+| `AUTO_REVIEW_REVIEWER` | 自动选择 | 单个 reviewer |
+| `AUTO_REVIEW_REVIEWERS` | 自动选择 | reviewer 列表 |
+| `AUTO_REVIEW_MAX_ROUNDS` | `3` | `review-and-fix` 最大轮次 |
+| `AUTO_REVIEW_ALLOW_SELF_REVIEW` | `false` | 是否允许单模型降级 |
 
-## 与 cross-model-review 的区别
+参考模板：`env/review.json.example`。
 
-| 维度 | cross-model-review | auto-code-review |
-|---|---|---|
-| 审查对象 | PLAN.md（实现计划） | 代码实现 |
-| 触发方式 | 用户手动 | 自动 |
-| MAX_ROUNDS | 5 | 3 |
-| 前置条件 | 需要 PLAN.md | 无前置 |
+归档包含 `QUESTION.md`、`RESPONSE.md`、`REVIEW-LOG.md`、`diff.patch` 与 `raw/`。
+
+## 权限边界
+
+- reviewer 永远只读。
+- `/auto-review` 不授权主 agent 写文件。
+- `/auto-review --fix` 才授权主 agent 修复当前审查范围内的问题。
+- `AUTO_REVIEW_ENABLED=true` 只是功能可用，不是持久授权。
+
+计划审查仍使用 `cross-model-review`。

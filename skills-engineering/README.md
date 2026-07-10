@@ -18,7 +18,7 @@
 | `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解 |
 | `plan-grill` | 工作流技能 | 需求对齐/盘问锁定计划，产出 PLAN.md（基于 grill-me） |
 | `cross-model-review` | 工作流技能 | 跨模型对抗审查 PLAN.md，自动发现 CLI（基于 grill-me-codex） |
-| `auto-code-review` | 工作流技能 | 代码实施后自动跨模型审查，循环修复直到通过 |
+| `auto-code-review` | 工作流技能 | 用户显式启动的跨模型代码审查；默认只读，可显式授权修复 |
 
 本仓库同时提供三类能力：
 
@@ -62,7 +62,7 @@
 ├── problem-analysis/          # 问题分析技能（同构）
 ├── plan-grill/                # 需求盘问锁定计划（Act 1）
 ├── cross-model-review/        # 跨模型对抗审查 PLAN.md（Act 2）
-├── auto-code-review/          # 代码实施后自动审查（Act 3）
+├── auto-code-review/          # 用户显式启动的代码审查（Act 3）
 ├── scripts/                   # 仓库级脚本
 │   ├── bootstrap.sh
 │   ├── sync-skills.sh
@@ -97,7 +97,7 @@
 
 - `Codex`：需要 `~/.codex/skills/ios-engineer` + `~/.codex/AGENTS.md`。前者提供 `SKILL.md + references/`，后者负责把技能路径接入 system prompt。
 - `Claude`：需要 `~/.claude/skills/ios-engineer` + `~/.claude/CLAUDE.md`。只同步 skill 目录不足以保证自动加载。
-- `Cursor`：每个 skill 需要 `~/.cursor/skills/<skill>` + 项目内 `.cursor/rules/<skill>.mdc`（`cognitive-expansion.mdc` 由 `sync-agent-preamble.sh` 从 skill 详规生成）。`alwaysApply: true` 的 `.mdc` 负责项目内自动加载。
+- `Cursor`：每个 skill 需要 `~/.cursor/skills/<skill>` + 项目内 `.cursor/rules/<skill>.mdc`。全局纪律使用 `alwaysApply: true`；需要用户授权的工作流可提供专用模板并设为 `alwaysApply: false`（如 `auto-code-review`）。
 - `Gemini`：需要 `~/.gemini/skills/ios-engineer` + `~/.gemini/GEMINI.md`。前者提供 `SKILL.md + references/`，后者负责作为全局上下文在对话中每次自动加载。
 - `Xcode Codex`：需要 `~/Library/Developer/Xcode/CodingAssistant/codex/skills/ios-engineer` + `~/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md`。
 - `Xcode Claude`：需要 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/skills/ios-engineer` + `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md`。

@@ -53,6 +53,40 @@ async function main() {
 			break;
 		}
 
+		case "recall": {
+			if (!query || query === "recall") {
+				console.log("Usage: cli.ts recall <query>");
+				break;
+			}
+			console.log(`Recalling context for: "${query}"\n`);
+			const block = await kb.recall(query);
+			if (!block) {
+				console.log("(no relevant prior knowledge found)");
+			} else {
+				console.log(block);
+			}
+			break;
+		}
+
+		case "merge": {
+			console.log("Running memory-metabolism merge (de-dup cross-plan knowledge)...");
+			if (!kb.stats.chunks) {
+				console.log("No chunks indexed yet. Run `sync` first.");
+				break;
+			}
+			const points = await kb.merge();
+			if (points.length === 0) {
+				console.log("No duplicate knowledge points found (or embedding API not configured).");
+			} else {
+				console.log(`Merged ${points.length} knowledge point(s):`);
+				for (const p of points) {
+					console.log(`  - ${p.title} [minSim=${p.minSimilarity.toFixed(2)}]`);
+				}
+				console.log("Written to .plan-reviews/.kb-merged.json and .plan-reviews/MERGED-KNOWLEDGE.md");
+			}
+			break;
+		}
+
 		case "stats": {
 			const s = kb.stats;
 			console.log("Knowledge Base Statistics:");
@@ -87,6 +121,8 @@ async function main() {
 			console.log("Commands:");
 			console.log("  sync             Sync .plan-reviews/ to knowledge base");
 			console.log("  search <query>   Search the knowledge base");
+			console.log("  recall <query>   Search and print injection-ready context block");
+			console.log("  merge            De-dup / consolidate cross-plan knowledge (metabolism)");
 			console.log("  stats            Show KB statistics");
 			console.log("  reset            Full reset and re-sync");
 			console.log("  visualize        Generate interactive knowledge graph HTML");

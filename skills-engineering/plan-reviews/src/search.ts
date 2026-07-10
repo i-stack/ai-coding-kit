@@ -41,8 +41,9 @@ export class SearchEngine {
 	}
 
 	async semanticSearch(query: SearchQuery): Promise<SemanticHit[]> {
-		if (!this.embed.isAvailable) return [];
-		if (this.vector.size === 0) return [];
+		if (!this.embed.isAvailable || this.vector.size === 0) {
+			return this.keywordSearch(query);
+		}
 
 		try {
 			const queryVector = await this.embed.embed(query.query);
@@ -53,8 +54,21 @@ export class SearchEngine {
 			});
 		} catch (err) {
 			console.warn(`[plan-reviews] Semantic search failed: ${(err as Error).message}`);
-			return [];
+			return this.keywordSearch(query);
 		}
+	}
+
+	keywordSearch(query: SearchQuery): SemanticHit[] {
+		return this.store.searchChunksText(query.query, {
+			limit: query.limit ?? 5,
+			planId: query.planId,
+		}).map((chunk) => ({
+			chunkId: chunk.id,
+			planId: chunk.planId,
+			section: chunk.section,
+			text: chunk.text,
+			score: 0,
+		}));
 	}
 
 	async graphSearch(query: SearchQuery): Promise<GraphSearchResult[]> {
@@ -105,9 +119,8 @@ export class SearchEngine {
 			for (const hit of response.semantic) {
 				const planLabel =
 					hit.planId !== "" ? ` [${hit.planId}:${hit.section}]` : "";
-				lines.push(
-					`- (score=${hit.score.toFixed(2)})${planLabel}: ${truncate(hit.text, 200)}`,
-				);
+				const scoreLabel = hit.score > 0 ? `(score=${hit.score.toFixed(2)})` : "(keyword)";
+				lines.push(`- ${scoreLabel}${planLabel}: ${truncate(hit.text, 200)}`);
 			}
 			lines.push("");
 		}

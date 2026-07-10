@@ -18,6 +18,8 @@
 		"cli": "tsx src/cli.ts",
 		"sync": "tsx src/cli.ts sync",
 		"search": "tsx src/cli.ts search",
+		"recall": "tsx src/cli.ts recall",
+		"merge": "tsx src/cli.ts merge",
 		"reset": "tsx src/cli.ts reset",
 		"stats": "tsx src/cli.ts stats",
 		"visualize": "tsx src/cli.ts visualize",

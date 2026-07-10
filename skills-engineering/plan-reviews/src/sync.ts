@@ -106,6 +106,7 @@ export class SyncEngine {
 			reviewers: artifact.reviewers,
 			createdAt: artifact.createdAt,
 			syncedAt: now,
+			kind: artifact.kind,
 		};
 		this.store.upsertPlan(kbPlan);
 

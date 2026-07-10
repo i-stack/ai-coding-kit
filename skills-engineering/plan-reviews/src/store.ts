@@ -59,7 +59,7 @@ export class PlanStore {
 				const parsed = JSON.parse(raw);
 				// Cautious hydration: ensure all keys exist
 				return {
-					plans: Array.isArray(parsed.plans) ? parsed.plans : [],
+					plans: Array.isArray(parsed.plans) ? parsed.plans.map(normalizePlan) : [],
 					entities: Array.isArray(parsed.entities) ? parsed.entities : [],
 					relations: Array.isArray(parsed.relations) ? parsed.relations : [],
 					chunks: Array.isArray(parsed.chunks) ? parsed.chunks : [],
@@ -224,6 +224,28 @@ export class PlanStore {
 		return this.data.chunks.filter((c) => c.embedding.length > 0);
 	}
 
+	searchChunksText(query: string, options?: { limit?: number; planId?: string }): EmbeddedChunk[] {
+		const terms = query
+			.toLowerCase()
+			.split(/\s+/)
+			.map((term) => term.trim())
+			.filter(Boolean);
+		if (terms.length === 0) return [];
+
+		const limit = options?.limit ?? 5;
+		const scored = this.data.chunks
+			.filter((chunk) => !options?.planId || chunk.planId === options.planId)
+			.map((chunk) => {
+				const text = chunk.text.toLowerCase();
+				const score = terms.reduce((sum, term) => sum + countOccurrences(text, term), 0);
+				return { chunk, score };
+			})
+			.filter((item) => item.score > 0)
+			.sort((a, b) => b.score - a.score || a.chunk.planId.localeCompare(b.chunk.planId));
+
+		return scored.slice(0, limit).map((item) => item.chunk);
+	}
+
 	// ── Sync state ──────────────────────────────────────────────────
 
 	upsertSyncState(planId: string, planMtime: number, reviewMtime: number): void {
@@ -256,4 +278,21 @@ export class PlanStore {
 			chunks: this.data.chunks.length,
 		};
 	}
+}
+
+function normalizePlan(plan: KbPlan & { kind?: KbPlan["kind"] }): KbPlan {
+	return {
+		...plan,
+		kind: plan.kind ?? "plan",
+	};
+}
+
+function countOccurrences(text: string, term: string): number {
+	let count = 0;
+	let index = text.indexOf(term);
+	while (index !== -1) {
+		count++;
+		index = text.indexOf(term, index + term.length);
+	}
+	return count;
 }

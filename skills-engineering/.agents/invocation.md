@@ -39,4 +39,6 @@
 | 根因 / 修复 / 安全 / 敏感信息 | engineering-discipline | P1 |
 | 第一性原理 / 深层需求 / 问题偏差 | problem-analysis | P1 |
 | 盲区 / 邻域 / 拓展 / 带走 | cognitive-expansion | P2（回答后追加） |
-| 代码生成后 / 自动触发 | auto-code-review | P2（代码修改后自动） |
+| `/auto-review` / `使用 auto-code-review` / `启动跨模型代码审查` | auto-code-review | P1（仅用户显式触发） |
+
+`auto-code-review` 不因代码生成或修改完成自动加载。默认触发只授权只读审查；只有 `/auto-review --fix` 或明确“审查并修复”才授权主 agent 修改代码。

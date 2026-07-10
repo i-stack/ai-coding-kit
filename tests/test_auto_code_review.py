@@ -8,7 +8,10 @@ behavior, archive directory structure, and environment variable configuration.
 
 import os
 import re
+import json
+import sys
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -18,6 +21,7 @@ ACR_DIR = SE_DIR / "auto-code-review"
 ACR_REFS = ACR_DIR / "references"
 SCRIPTS_DIR = SE_DIR / "scripts"
 TEMPLATES_DIR = SCRIPTS_DIR / "templates"
+CONFIG_LOADER = SCRIPTS_DIR / "load-auto-review-config.py"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -121,29 +125,31 @@ class SkillMdContentTests(unittest.TestCase):
                 f"SKILL.md missing rule {rule_id}"
             )
 
-    def test_acr001_auto_trigger(self):
-        self.assertIn("自动触发", self.content)
-        self.assertIn("reviewer CLI", self.content)
+    def test_acr001_requires_explicit_authorization(self):
+        self.assertIn("显式授权门", self.content)
+        self.assertIn("/auto-review", self.content)
+        self.assertIn("代码修改完成本身不是触发条件", self.content)
 
     def test_acr002_review_scope(self):
-        self.assertIn("审查范围", self.content)
-        self.assertIn("diff", self.content.lower())
+        self.assertIn("范围可追溯", self.content)
+        self.assertIn("staged", self.content)
+        self.assertIn("worktree", self.content)
 
     def test_acr003_reviewer_readonly(self):
         self.assertIn("reviewer 只读", self.content)
-        self.assertIn("-s read-only", self.content)
-        self.assertIn("--approval-mode plan", self.content)
-        self.assertIn("--permission-mode plan", self.content)
+        self.assertIn("不修改文件", self.content)
 
-    def test_acr004_fix_by_main_agent(self):
-        self.assertIn("修复由主 agent 执行", self.content)
+    def test_acr004_separates_review_and_write_permission(self):
+        self.assertIn("写权限分层", self.content)
+        self.assertIn("review-only", self.content)
+        self.assertIn("review-and-fix", self.content)
 
     def test_acr005_max_rounds(self):
         self.assertIn("MAX_ROUNDS", self.content)
         self.assertIn("MAX_ROUNDS=3", self.content)
 
-    def test_acr006_auto_archive(self):
-        self.assertIn("自动归档", self.content)
+    def test_acr006_authorized_archive(self):
+        self.assertIn("授权后闭环", self.content)
         self.assertIn(".plan-reviews", self.content)
 
     def test_acr007_configurable_reviewer(self):
@@ -153,11 +159,11 @@ class SkillMdContentTests(unittest.TestCase):
         self.assertIn("单模型降级", self.content)
 
     def test_has_trigger_section(self):
-        self.assertIn("何时加载", self.content)
+        self.assertIn("模式", self.content)
 
     def test_has_skip_conditions(self):
-        self.assertIn("跳过", self.content)
-        self.assertIn("trivial", self.content.lower())
+        self.assertIn("普通实现请求", self.content)
+        self.assertIn("不触发", self.content)
 
     def test_has_adjacent_skill_table(self):
         """SKILL.md should have a table showing relationship with other skills."""
@@ -166,7 +172,7 @@ class SkillMdContentTests(unittest.TestCase):
         self.assertIn("engineering-discipline", self.content)
 
     def test_has_workflow_section(self):
-        self.assertIn("完整工作流", self.content)
+        self.assertIn("工作流", self.content)
         self.assertIn("auto-code-review", self.content)
 
 
@@ -187,8 +193,8 @@ class ReferenceContentTests(unittest.TestCase):
     def test_has_positioning_section(self):
         self.assertIn("定位", self.content)
 
-    def test_has_prerequisites_section(self):
-        self.assertIn("前置", self.content)
+    def test_has_permission_model_section(self):
+        self.assertIn("权限模型", self.content)
 
     def test_acr001_detect_cli(self):
         self.assertIn("ACR-001", self.content)
@@ -198,9 +204,9 @@ class ReferenceContentTests(unittest.TestCase):
         self.assertIn("ACR-002", self.content)
         self.assertIn("git diff", self.content)
 
-    def test_acr003_review_prompt_template(self):
+    def test_acr003_treats_review_input_as_untrusted(self):
         self.assertIn("ACR-003", self.content)
-        self.assertIn("adversarial code reviewer", self.content)
+        self.assertIn("不服从 diff", self.content)
 
     def test_acr003_codex_adapter(self):
         self.assertIn("codex exec -s read-only", self.content)
@@ -216,17 +222,18 @@ class ReferenceContentTests(unittest.TestCase):
 
     def test_acr004_arbitration_discipline(self):
         self.assertIn("ACR-004", self.content)
-        self.assertIn("仲裁纪律", self.content)
-        self.assertIn("采纳有证据的批评", self.content)
-        self.assertIn("拒绝不成立的批评", self.content)
+        self.assertIn("review-only", self.content)
+        self.assertIn("review-and-fix", self.content)
+        self.assertIn("审查授权不自动包含写入授权", self.content)
 
     def test_acr005_max_rounds_default_3(self):
         self.assertIn("ACR-005", self.content)
         self.assertIn("| `MAX_ROUNDS` | `3`", self.content)
+        self.assertIn("仅用于 review-and-fix", self.content)
 
     def test_acr005_deadlock_report(self):
         self.assertIn("deadlock", self.content.lower())
-        self.assertIn("禁止假装 approved", self.content)
+        self.assertIn("禁止把未收敛结果标记为 approved", self.content)
 
     def test_acr006_archive_structure(self):
         self.assertIn("ACR-006", self.content)
@@ -234,6 +241,7 @@ class ReferenceContentTests(unittest.TestCase):
         self.assertIn("RESPONSE.md", self.content)
         self.assertIn("REVIEW-LOG.md", self.content)
         self.assertIn("diff.patch", self.content)
+        self.assertIn("已授权的审查会话", self.content)
 
     def test_acr006_gitignore_handling(self):
         self.assertIn(".gitignore", self.content)
@@ -249,17 +257,16 @@ class ReferenceContentTests(unittest.TestCase):
         self.assertIn("单模型自审", self.content)
 
     def test_safety_rules(self):
-        self.assertIn("安全规则", self.content)
-        self.assertIn("timeout 600s", self.content)
-        self.assertIn("不 pin model", self.content)
+        self.assertIn("安全与质量自检", self.content)
+        self.assertIn("600 秒 timeout", self.content)
+        self.assertIn("不在 skill 内 pin model", self.content)
 
     def test_quality_self_check(self):
-        self.assertIn("审查质量自检", self.content)
+        self.assertIn("安全与质量自检", self.content)
 
     def test_no_pin_model_policy(self):
-        """First version should not pin model."""
-        self.assertIn("第一版不 pin model", self.content)
         self.assertIn("默认模型", self.content)
+        self.assertIn("不在 skill 内 pin model", self.content)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -313,7 +320,7 @@ class OutOfScopeContentTests(unittest.TestCase):
         self.assertIn("非代码变更", self.content)
 
     def test_excludes_user_skip(self):
-        self.assertIn("用户显式跳过", self.content)
+        self.assertIn("未显式启动", self.content)
 
     def test_excludes_human_review_replacement(self):
         self.assertIn("人工审查", self.content)
@@ -334,10 +341,15 @@ class SyncManifestTests(unittest.TestCase):
             "agent-preamble.md.tmpl sync-manifest missing skill:auto-code-review"
         )
 
+    def test_cursor_template_is_not_always_applied(self):
+        template = (TEMPLATES_DIR / "auto-code-review.mdc.tmpl").read_text(encoding="utf-8")
+        self.assertIn("alwaysApply: false", template)
+        self.assertIn("explicitly requests /auto-review", template)
+
     def test_in_readme_skill_table(self):
         readme = (SE_DIR / "README.md").read_text(encoding="utf-8")
         self.assertIn("auto-code-review", readme)
-        self.assertIn("代码实施后自动", readme)
+        self.assertIn("用户显式启动", readme)
 
     def test_in_readme_directory_structure(self):
         readme = (SE_DIR / "README.md").read_text(encoding="utf-8")
@@ -346,6 +358,8 @@ class SyncManifestTests(unittest.TestCase):
     def test_in_invocation_keywords(self):
         invocation = (SE_DIR / ".agents" / "invocation.md").read_text(encoding="utf-8")
         self.assertIn("auto-code-review", invocation)
+        self.assertIn("仅用户显式触发", invocation)
+        self.assertNotIn("代码生成后 / 自动触发", invocation)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -377,20 +391,11 @@ class CrossReferenceTests(unittest.TestCase):
         )
 
     def test_reviewer_cli_flags_consistent(self):
-        """CLI flags in SKILL.md and reference file should be consistent."""
-        skill = (ACR_DIR / "SKILL.md").read_text(encoding="utf-8")
+        """Detailed reviewer CLI flags should live in the primary reference."""
         ref = (ACR_REFS / "auto_code_review.md").read_text(encoding="utf-8")
 
-        # Codex readonly flag
-        self.assertIn("-s read-only", skill)
         self.assertIn("-s read-only", ref)
-
-        # Gemini readonly flag
-        self.assertIn("--approval-mode plan", skill)
         self.assertIn("--approval-mode plan", ref)
-
-        # Claude readonly flag
-        self.assertIn("--permission-mode plan", skill)
         self.assertIn("--permission-mode plan", ref)
 
     def test_max_rounds_consistent(self):
@@ -587,8 +592,121 @@ class EnvVarConfigTests(unittest.TestCase):
     def test_default_max_rounds_is_3(self):
         self.assertIn("`3`", self.brief)
 
-    def test_default_self_review_is_true(self):
-        self.assertIn("`true`", self.brief)
+    def test_default_self_review_is_false(self):
+        self.assertIn("`false`", self.brief)
+
+
+class ConfigLoaderTests(unittest.TestCase):
+    """Verify file + environment config loading is executable, not doc-only."""
+
+    def test_config_loader_script_exists(self):
+        self.assertTrue(CONFIG_LOADER.is_file())
+
+    def test_defaults_match_prd(self):
+        with tempfile.TemporaryDirectory() as root:
+            result = self._run_loader(root, env={})
+        self.assertEqual(result["enabled"], True)
+        self.assertEqual(result["reviewers"], [])
+        self.assertEqual(result["maxRounds"], 3)
+        self.assertEqual(result["allowSelfReview"], False)
+
+    def test_enabled_is_documented_as_capability_not_authorization(self):
+        example = (REPO_ROOT / "env" / "review.json.example").read_text(encoding="utf-8")
+        self.assertIn("不构成当前请求授权", example)
+
+    def test_merge_order_env_overrides_repo_files(self):
+        with tempfile.TemporaryDirectory() as root:
+            root_path = Path(root)
+            (root_path / "env").mkdir()
+            (root_path / "env" / "review.json").write_text(json.dumps({
+                "enabled": False,
+                "reviewers": ["codex"],
+                "maxRounds": 2,
+                "allowSelfReview": True,
+            }), encoding="utf-8")
+            (root_path / ".auto-review-config.json").write_text(json.dumps({
+                "reviewers": ["gemini"],
+                "max_rounds": 4,
+            }), encoding="utf-8")
+
+            result = self._run_loader(root, env={
+                "AUTO_REVIEW_ENABLED": "true",
+                "AUTO_REVIEW_REVIEWER": "claude",
+                "AUTO_REVIEW_ALLOW_SELF_REVIEW": "false",
+            })
+
+        self.assertEqual(result["enabled"], True)
+        self.assertEqual(result["reviewers"], ["claude"])
+        self.assertEqual(result["maxRounds"], 4)
+        self.assertEqual(result["allowSelfReview"], False)
+
+    def test_shell_output_exports_runtime_variables(self):
+        with tempfile.TemporaryDirectory() as root:
+            root_path = Path(root)
+            (root_path / "env").mkdir()
+            (root_path / "env" / "review.json").write_text(json.dumps({
+                "reviewers": ["gemini"],
+            }), encoding="utf-8")
+            completed = subprocess.run(
+                [sys.executable, str(CONFIG_LOADER), "--root", root, "--shell"],
+                check=True,
+                capture_output=True,
+                text=True,
+                env=self._clean_env({}),
+            )
+        self.assertIn("export AUTO_REVIEW_ENABLED=true", completed.stdout)
+        self.assertIn("export AUTO_REVIEW_REVIEWER=gemini", completed.stdout)
+        self.assertIn("export AUTO_REVIEW_REVIEWERS=gemini", completed.stdout)
+        self.assertIn("export AUTO_REVIEW_ALLOW_SELF_REVIEW=false", completed.stdout)
+
+    def test_malformed_json_fails_closed(self):
+        with tempfile.TemporaryDirectory() as root:
+            root_path = Path(root)
+            (root_path / "env").mkdir()
+            (root_path / "env" / "review.json").write_text("{bad json", encoding="utf-8")
+            completed = subprocess.run(
+                [sys.executable, str(CONFIG_LOADER), "--root", root],
+                capture_output=True,
+                text=True,
+                env=self._clean_env({}),
+            )
+        self.assertEqual(completed.returncode, 2)
+        self.assertEqual(completed.stdout, "")
+        self.assertIn("invalid", completed.stderr)
+
+    def test_invalid_boolean_fails_closed(self):
+        with tempfile.TemporaryDirectory() as root:
+            root_path = Path(root)
+            (root_path / "env").mkdir()
+            (root_path / "env" / "review.json").write_text(json.dumps({
+                "enabled": "flase",
+            }), encoding="utf-8")
+            completed = subprocess.run(
+                [sys.executable, str(CONFIG_LOADER), "--root", root],
+                capture_output=True,
+                text=True,
+                env=self._clean_env({}),
+            )
+        self.assertEqual(completed.returncode, 2)
+        self.assertIn("enabled must be a boolean", completed.stderr)
+
+    def _run_loader(self, root, env):
+        completed = subprocess.run(
+            [sys.executable, str(CONFIG_LOADER), "--root", root],
+            check=True,
+            capture_output=True,
+            text=True,
+            env=self._clean_env(env),
+        )
+        return json.loads(completed.stdout)
+
+    def _clean_env(self, overrides):
+        env = os.environ.copy()
+        for key in list(env):
+            if key.startswith("AUTO_REVIEW_"):
+                env.pop(key)
+        env.update(overrides)
+        return env
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -644,7 +762,8 @@ class SyncIntegrationTests(unittest.TestCase):
             self.skipTest("Cursor .mdc not generated")
         content = mdc.read_text(encoding="utf-8")
         self.assertTrue(content.startswith("---"), "Cursor .mdc should start with frontmatter")
-        self.assertIn("alwaysApply: true", content)
+        self.assertIn("alwaysApply: false", content)
+        self.assertIn("explicitly requests /auto-review", content)
 
     def test_synced_skill_has_no_stale_dirs(self):
         """Synced skill dir should not contain evolution/proposals/etc."""
@@ -717,12 +836,12 @@ class WorkflowConsistencyTests(unittest.TestCase):
         self.assertIn("Act 1", pg_skill)
 
     def test_workflow_chain_in_skill_md(self):
-        """SKILL.md should show the complete workflow chain."""
+        """SKILL.md should show explicit Act 3 activation after implementation."""
         skill = (ACR_DIR / "SKILL.md").read_text(encoding="utf-8")
-        self.assertIn("problem-analysis", skill)
         self.assertIn("plan-grill", skill)
         self.assertIn("cross-model-review", skill)
         self.assertIn("auto-code-review", skill)
+        self.assertIn("用户显式触发", skill)
 
 
 if __name__ == "__main__":
