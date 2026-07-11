@@ -87,6 +87,20 @@ def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> No
     sync_env_to_zshrc(platform, env)
 
 
+def _effective_platform_config(platform: str) -> dict[str, Any]:
+    """Load platform config and apply orchestration-only keys.
+
+    ``enabled`` is owned by the sync orchestrator.  Disabled platforms still run
+    their renderer with empty platform config so renderer-owned cleanup paths can
+    remove stale managed target state instead of leaving it behind.
+    """
+    cfg = load_platform_config(platform)
+    if cfg.get("enabled") is False:
+        print(f"[sync] Platform '{platform}' disabled via enabled=false — using empty platform config.")
+        return {}
+    return {k: v for k, v in cfg.items() if k != "enabled"}
+
+
 def main() -> None:
     mcp_all = load_all_mcp()
     if not mcp_all:
@@ -111,13 +125,13 @@ def main() -> None:
         for name in valid:
             fn = all_targets[name]
             mcp_servers = filter_mcp_for_platform(mcp_all, name)
-            platform_cfg = load_platform_config(name)
+            platform_cfg = _effective_platform_config(name)
             fn(mcp_servers, platform_cfg)
             _auto_export_env_to_zshrc(name, platform_cfg)
     elif args.target in all_targets:
         fn = all_targets[args.target]
         mcp_servers = filter_mcp_for_platform(mcp_all, args.target)
-        platform_cfg = load_platform_config(args.target)
+        platform_cfg = _effective_platform_config(args.target)
         fn(mcp_servers, platform_cfg)
         _auto_export_env_to_zshrc(args.target, platform_cfg)
     else:

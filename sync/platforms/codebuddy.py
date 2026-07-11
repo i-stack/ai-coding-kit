@@ -91,12 +91,22 @@ def _merge_available_models(
 def _sync_models(cfg: dict[str, Any]) -> None:
     models = cfg.get("models")
     available_models = cfg.get("availableModels")
+    models_path = codebuddy_models_path()
 
     if models is None and available_models is None:
-        print("[codebuddy] No models config found — skipping model sync.")
+        existing = read_json_object(models_path)
+        removed = False
+        for key in ("models", "availableModels"):
+            if key in existing:
+                existing.pop(key, None)
+                removed = True
+        if removed:
+            write_json(models_path, existing)
+            print(f"[codebuddy] Removed managed models config from {models_path}.")
+        else:
+            print("[codebuddy] No models config found — skipping model sync.")
         return
 
-    models_path = codebuddy_models_path()
     existing = read_json_object(models_path)
 
     if models is not None:

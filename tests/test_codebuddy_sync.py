@@ -19,6 +19,42 @@ from platforms import codebuddy as codebuddy_mod  # noqa: E402
 from platforms import common  # noqa: E402
 
 
+DEFAULT_CODEBUDDY_CFG = {
+    "models": [
+        {
+            "id": "deepseek-v4-pro",
+            "name": "DeepSeek V4 Pro",
+            "vendor": "dataeyes",
+            "url": "${codebuddy.url}",
+            "apiKey": "${codebuddy.key}",
+            "maxInputTokens": 128000,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": True,
+            "supportsImages": False,
+            "relatedModels": {
+                "lite": "deepseek-v4-flash",
+                "reasoning": "deepseek-v4-pro",
+            },
+        },
+        {
+            "id": "deepseek-v4-flash",
+            "name": "DeepSeek V4 Flash",
+            "vendor": "dataeyes",
+            "url": "${codebuddy.url}",
+            "apiKey": "${codebuddy.key}",
+            "maxInputTokens": 128000,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": True,
+            "supportsImages": False,
+        },
+    ],
+    "availableModels": [
+        "deepseek-v4-pro",
+        "deepseek-v4-flash",
+    ],
+}
+
+
 @contextlib.contextmanager
 def patched_sync_environment(root: Path):
     """Redirect HOME and common module paths for isolated CodeBuddy sync tests."""
@@ -46,9 +82,7 @@ class CodeBuddySyncTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
-        self.platform_cfg = json.loads(
-            (REPO_ROOT / "env" / "platforms" / "codebuddy.json").read_text()
-        )
+        self.platform_cfg = DEFAULT_CODEBUDDY_CFG
         self._write_json(
             self.root / "env" / "mcp" / "sample.json",
             {
@@ -359,6 +393,86 @@ class CodeBuddySyncTests(unittest.TestCase):
         # Models target should be empty (not created with stale data)
         models_path = self.root / "home" / ".codebuddy" / "models.json"
         self.assertFalse(models_path.exists(), "models.json should not be created without model config")
+
+    def test_no_models_config_removes_existing_managed_model_keys(self) -> None:
+        """When model config is absent, previously synced model keys are removed."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "meta": {"version": 2},
+                "models": [
+                    {
+                        "id": "deepseek-v4-pro",
+                        "name": "Stale DeepSeek V4 Pro",
+                        "vendor": "old",
+                    }
+                ],
+                "availableModels": ["deepseek-v4-pro"],
+            },
+        )
+
+        result = self._run_codebuddy_sync({})
+
+        self.assertEqual(result["models"], {"meta": {"version": 2}})
+
+    def test_disabled_platform_config_removes_existing_managed_model_keys(self) -> None:
+        """enabled=false keeps config JSON valid while disabling managed model sync."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "meta": {"version": 2},
+                "models": [
+                    {
+                        "id": "deepseek-v4-pro",
+                        "name": "Stale DeepSeek V4 Pro",
+                        "vendor": "old",
+                    }
+                ],
+                "availableModels": ["deepseek-v4-pro"],
+            },
+        )
+        cfg = {"enabled": False, **self.platform_cfg}
+
+        result = self._run_codebuddy_sync(cfg)
+
+        self.assertEqual(result["models"], {"meta": {"version": 2}})
+
+    def test_commented_platform_config_removes_existing_managed_model_keys(self) -> None:
+        """A fully commented codebuddy.json parses as absent config and clears managed model keys."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    {
+                        "id": "deepseek-v4-flash",
+                        "name": "Stale DeepSeek V4 Flash",
+                        "vendor": "old",
+                    }
+                ],
+                "availableModels": ["deepseek-v4-flash"],
+            },
+        )
+        config_path = self.root / "env" / "platforms" / "codebuddy.json"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(
+            "// {\n"
+            "//     \"models\": [\n"
+            "//         {\"id\": \"deepseek-v4-flash\"}\n"
+            "//     ],\n"
+            "//     \"availableModels\": [\"deepseek-v4-flash\"]\n"
+            "// }\n",
+            encoding="utf-8",
+        )
+
+        with patched_sync_environment(self.root):
+            sys.argv = ["sync_config.py", "--target", "codebuddy"]
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                sync_config.main()
+
+        self.assertEqual(self._read_json(models_path), {})
 
     def test_models_only_sync(self) -> None:
         """When config has only 'models' but no 'availableModels', only models are synced."""

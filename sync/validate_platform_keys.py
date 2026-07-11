@@ -24,7 +24,9 @@ from platforms.codex import _HOST_SKIP as CODEX_HOST_SKIP
 from validate_env_schema import known_fields_for_platform
 
 # Keys that are handled by the sync engine itself (not synced to settings)
-ENGINE_HANDLED_KEYS = {"env", "hooks", "export_env_to_zshrc", "_comment", "_hostSettings", "mcp_target"}
+ENGINE_HANDLED_KEYS = {
+    "enabled", "env", "hooks", "export_env_to_zshrc", "_comment", "_hostSettings", "mcp_target"
+}
 ENGINE_HANDLED_BY_PLATFORM = {
     "continue": {"path"},
 }

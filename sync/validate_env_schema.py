@@ -70,7 +70,7 @@ def validate_mcp_file(path: Path) -> list[str]:
 
 # ── Platform config schema ────────────────────────────────────────────────────
 
-COMMON_PLATFORM_FIELDS = {"_comment", "env", "export_env_to_zshrc", "mcp_target"}
+COMMON_PLATFORM_FIELDS = {"_comment", "enabled", "env", "export_env_to_zshrc", "mcp_target"}
 
 PLATFORM_FIELDS = {
     # Claude-specific
@@ -133,6 +133,11 @@ def validate_platform_file(path: Path) -> list[str]:
 
     if not isinstance(data, dict):
         return [f"{path.name}: root must be a JSON object"]
+
+    # Check enabled is a boolean if present
+    enabled = data.get("enabled")
+    if enabled is not None and not isinstance(enabled, bool):
+        errors.append(f"{path.name}: 'enabled' must be a boolean")
 
     # Check env is an object if present
     env = data.get("env")

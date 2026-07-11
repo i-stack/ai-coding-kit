@@ -1,4 +1,6 @@
 {
+    "enabled": false,
+    "_comment": "Set enabled=true to sync CodeBuddy models again.",
     "models": [
         {
             "id": "deepseek-v4-pro",
