@@ -4,7 +4,7 @@ from typing import Any
 
 from .common import (
     codex_config_path,
-    codex_generated_toml_path,
+    codex_root_dir,
     load_platform_config,
     toml_array,
     toml_header_key_segment,
@@ -13,6 +13,7 @@ from .common import (
     toml_section,
     toml_value,
     xcode_codex_dir,
+    xcode_coding_assistant_exists,
 )
 
 MCP_BEGIN = "# BEGIN MCP SYNC (from env/mcp/)"
@@ -165,22 +166,22 @@ def merge_managed_blocks(cfg_path: Path, shared_body: str, mcp_body: str) -> Non
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers and Codex platform config to native TOML format."""
+    root = codex_root_dir()
+    if not root.exists():
+        print(f"[codex] Codex root not found: {root} — skipping (tool not installed).")
+        return
+
     generated = generate_mcp_toml(mcp_servers)
     shared = generate_shared_toml(cfg)
-
-    # Write standalone mcp.generated.toml
-    out = codex_generated_toml_path()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(generated, encoding="utf-8")
-    print(f"Wrote: {out}")
 
     # Merge into config.toml
     merge_managed_blocks(codex_config_path(), shared, generated)
 
     # Xcode Codex target
+    if not xcode_coding_assistant_exists():
+        print("[codex] Xcode CodingAssistant path not found — skipping Xcode Codex sync.")
+        return
+
     xc = xcode_codex_dir()
     xc.mkdir(parents=True, exist_ok=True)
-    xc_gen = xc / "mcp.generated.toml"
-    xc_gen.write_text(generated, encoding="utf-8")
-    print(f"Wrote: {xc_gen}")
     merge_managed_blocks(xc / "config.toml", shared, generated)

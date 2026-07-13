@@ -7,7 +7,9 @@ from .paths import (
     claude_config_json_path,
     claude_hooks_dir_path,
     claude_json_path,
+    claude_root_dir,
     claude_settings_json_path,
+    xcode_coding_assistant_exists,
     xcode_claude_dir,
     xcode_claude_json_path,
 )
@@ -217,6 +219,11 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
       5. Sync team-shared settings, env, and hooks to Xcode Claude Agent.
       6. Install hook shell scripts.
     """
+    root = claude_root_dir()
+    if not root.exists():
+        print(f"[claude] Claude root not found: {root} — skipping (tool not installed).")
+        return
+
     # ── 1. ~/.claude.json — MCP servers ──
     cj_path = claude_json_path()
     claude = read_json_object(cj_path)
@@ -224,8 +231,12 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     write_json(cj_path, claude)
     print(f"Replaced MCP servers in {cj_path} (other top-level config preserved).")
 
-    # ── 2. Xcode Claude Agent ──
-    _sync_xcode_claude_json(mcp_servers)
+    xcode_available = xcode_coding_assistant_exists()
+    if xcode_available:
+        # ── 2. Xcode Claude Agent ──
+        _sync_xcode_claude_json(mcp_servers)
+    else:
+        print("[claude] Xcode CodingAssistant path not found — skipping Xcode Claude sync.")
 
     # ── 3. config.json — avoid Claude Code login prompt with third-party API ──
     _sync_claude_config()
@@ -265,5 +276,6 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
 
     write_json(settings_path, settings)
 
-    # ── 5. Xcode Claude Agent — settings ──
-    _sync_xcode_claude_settings(managed, env, config_hooks)
+    if xcode_available:
+        # ── 5. Xcode Claude Agent — settings ──
+        _sync_xcode_claude_settings(managed, env, config_hooks)

@@ -82,6 +82,7 @@ class CodeBuddySyncTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
+        (self.root / "home" / ".codebuddy").mkdir(parents=True, exist_ok=True)
         self.platform_cfg = DEFAULT_CODEBUDDY_CFG
         self._write_json(
             self.root / "env" / "mcp" / "sample.json",
@@ -522,6 +523,16 @@ class CodeBuddySyncTests(unittest.TestCase):
 
         self.assertIn("mcpServers", result["mcp"])
         self.assertIn("sample", result["mcp"]["mcpServers"])
+
+    def test_missing_codebuddy_root_skips_sync(self) -> None:
+        """When ~/.codebuddy does not exist, sync should not create CodeBuddy files."""
+        (self.root / "home" / ".codebuddy").rmdir()
+
+        result = self._run_codebuddy_sync()
+
+        self.assertFalse((self.root / "home" / ".codebuddy").exists())
+        self.assertEqual(result["mcp"], {})
+        self.assertEqual(result["models"], {})
 
     def test_models_json_not_found_creates_new_file(self) -> None:
         """When ~/.codebuddy/models.json doesn't exist, sync creates it."""

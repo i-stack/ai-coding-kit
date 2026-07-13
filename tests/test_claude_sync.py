@@ -61,6 +61,7 @@ class ClaudeSyncTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.home = self.root / "home"
+        (self.home / ".claude").mkdir(parents=True, exist_ok=True)
         self.platform_cfg = json.loads(
             (REPO_ROOT / "env" / "platforms" / "claude.json").read_text()
         )
@@ -440,9 +441,12 @@ class ClaudeSyncTests(unittest.TestCase):
 
     def test_xcode_claude_settings_hooks_merged(self) -> None:
         """hooks must be merged into the Xcode Claude Agent settings.json."""
+        xc_settings_dir = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
+        xc_settings_dir.mkdir(parents=True, exist_ok=True)
+
         _run_claude_sync(self.root, self.platform_cfg)
 
-        xc_settings = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude/settings.json"
+        xc_settings = xc_settings_dir / "settings.json"
         self.assertTrue(xc_settings.exists(), f"Missing {xc_settings}")
         settings = self._read_json(xc_settings)
 
@@ -502,6 +506,24 @@ class ClaudeSyncTests(unittest.TestCase):
         # ── Verify settings.json has env and hooks ──
         self.assertIn("env", settings)
         self.assertIn("hooks", settings)
+
+    def test_missing_xcode_path_skips_xcode_claude_target_only(self) -> None:
+        """When Xcode CodingAssistant is absent, native Claude sync still runs."""
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        data = self._read_json(self.home / ".claude.json")
+        settings = self._read_json(self.home / ".claude" / "settings.json")
+        self.assertIn("sample", data["mcpServers"])
+        self.assertEqual(settings["model"], "claude-sonnet-4-6")
+        self.assertFalse(
+            (
+                self.home
+                / "Library"
+                / "Developer"
+                / "Xcode"
+                / "CodingAssistant"
+            ).exists()
+        )
 
     # ── generate_managed_settings unit test ─────────────────────────────────────
 
@@ -566,6 +588,28 @@ class ClaudeSyncTests(unittest.TestCase):
         # No crash; claude.json should still be created with MCP servers
         data = self._read_json(self.home / ".claude.json")
         self.assertIn("mcpServers", data)
+
+    def test_missing_claude_root_skips_sync(self) -> None:
+        """When ~/.claude does not exist, sync should treat Claude as not installed."""
+        self._write_json(
+            self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json",
+            {"existing": True},
+        )
+        for path in sorted((self.home / ".claude").glob("**/*"), reverse=True):
+            if path.is_file():
+                path.unlink()
+            elif path.is_dir():
+                path.rmdir()
+        (self.home / ".claude").rmdir()
+
+        _run_claude_sync(self.root, self.platform_cfg)
+
+        self.assertFalse((self.home / ".claude").exists())
+        self.assertFalse((self.home / ".claude.json").exists())
+        xcode_data = self._read_json(
+            self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude.json"
+        )
+        self.assertEqual(xcode_data, {"existing": True})
 
 
 if __name__ == "__main__":

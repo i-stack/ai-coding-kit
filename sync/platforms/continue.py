@@ -1,8 +1,7 @@
-import os
 from pathlib import Path
 from typing import Any
 
-from .common import load_platform_config
+from .paths import continue_root_dir
 
 
 def dump_yaml_scalar(v: Any) -> str:
@@ -113,14 +112,20 @@ def update_yaml_root_key(yaml_text: str, key_name: str, new_key_yaml: str) -> st
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers and models to Continue (YAML format)."""
+    root = continue_root_dir()
+    if not root.exists():
+        print(f"[continue] Continue root not found: {root} — skipping (tool not installed).")
+        return
+
     path_str = cfg.get("path", "~/.continue/config.yaml")
     target_path = Path(path_str).expanduser()
 
-    if not target_path.exists():
-        print(f"[warn] Continue configuration file does not exist at {target_path}. Skipping.")
-        return
-
-    yaml_text = target_path.read_text(encoding="utf-8")
+    if target_path.exists():
+        yaml_text = target_path.read_text(encoding="utf-8")
+    else:
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        yaml_text = ""
+        print(f"[continue] Continue configuration file not found at {target_path} — creating it.")
 
     # 1. Sync mcpServers
     continue_servers = []

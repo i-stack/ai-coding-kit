@@ -16,6 +16,7 @@ from typing import Any
 
 from platforms import claude, cline, codebuddy, codex, cursor, gemini
 from platforms.common import discover_platforms, filter_mcp_for_platform, load_all_mcp, load_platform_config, sync_env_to_zshrc
+from platforms.paths import platform_install_root, platform_is_installed
 
 # continue.py contains 'continue' keyword which can't be a Python import name.
 import importlib as _importlib
@@ -101,6 +102,20 @@ def _effective_platform_config(platform: str) -> dict[str, Any]:
     return {k: v for k, v in cfg.items() if k != "enabled"}
 
 
+def _sync_one_platform(
+    name: str, fn: SyncFn, mcp_all: dict[str, Any]
+) -> None:
+    root = platform_install_root(name)
+    if root is not None and not platform_is_installed(name):
+        print(f"[sync] Platform '{name}' root not found: {root} — skipping (tool not installed).")
+        return
+
+    mcp_servers = filter_mcp_for_platform(mcp_all, name)
+    platform_cfg = _effective_platform_config(name)
+    fn(mcp_servers, platform_cfg)
+    _auto_export_env_to_zshrc(name, platform_cfg)
+
+
 def main() -> None:
     mcp_all = load_all_mcp()
     if not mcp_all:
@@ -123,17 +138,9 @@ def main() -> None:
 
     if args.target == "all":
         for name in valid:
-            fn = all_targets[name]
-            mcp_servers = filter_mcp_for_platform(mcp_all, name)
-            platform_cfg = _effective_platform_config(name)
-            fn(mcp_servers, platform_cfg)
-            _auto_export_env_to_zshrc(name, platform_cfg)
+            _sync_one_platform(name, all_targets[name], mcp_all)
     elif args.target in all_targets:
-        fn = all_targets[args.target]
-        mcp_servers = filter_mcp_for_platform(mcp_all, args.target)
-        platform_cfg = _effective_platform_config(args.target)
-        fn(mcp_servers, platform_cfg)
-        _auto_export_env_to_zshrc(args.target, platform_cfg)
+        _sync_one_platform(args.target, all_targets[args.target], mcp_all)
     else:
         print(f"[error] Unknown target '{args.target}'. Valid: all, {', '.join(valid)}", file=sys.stderr)
         raise SystemExit(1)

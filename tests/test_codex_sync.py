@@ -71,6 +71,7 @@ class CodexSyncTests(unittest.TestCase):
 
     def _run_codex_sync(self, cfg: dict) -> tuple[str, dict]:
         self._write_json(self.root / "env" / "platforms" / "codex.json", cfg)
+        (self.root / "home" / ".codex").mkdir(parents=True, exist_ok=True)
         with patched_sync_environment(self.root):
             sys.argv = ["sync_config.py", "--target", "codex"]
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -158,6 +159,53 @@ class CodexSyncTests(unittest.TestCase):
         self.assertIn("export DATAEYES_API_KEY=sk-test-value\n", zshrc_text)
         self.assertTrue(zshrc_text.startswith("before\n"))
         self.assertTrue(zshrc_text.endswith("after\n"))
+
+    def test_missing_codex_root_skips_sync_and_env_export(self) -> None:
+        cfg = dict(self.platform_cfg)
+        zshrc = self.root / "home" / ".zshrc"
+        zshrc.parent.mkdir(parents=True, exist_ok=True)
+        zshrc.write_text("export OTHER=value\n", encoding="utf-8")
+        self._write_json(self.root / "env" / "platforms" / "codex.json", cfg)
+
+        with patched_sync_environment(self.root):
+            sys.argv = ["sync_config.py", "--target", "codex"]
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                sync_config.main()
+
+        self.assertFalse((self.root / "home" / ".codex").exists())
+        self.assertEqual(zshrc.read_text(encoding="utf-8"), "export OTHER=value\n")
+
+    def test_missing_xcode_path_skips_xcode_codex_target_only(self) -> None:
+        config_text, parsed = self._run_codex_sync(self.platform_cfg)
+
+        self.assertIn("mcp_servers", parsed)
+        self.assertIn("sample", parsed["mcp_servers"])
+        self.assertIn("# BEGIN MCP SYNC", config_text)
+        self.assertFalse((self.root / "home" / ".codex" / "mcp.generated.toml").exists())
+        self.assertFalse(
+            (
+                self.root
+                / "home"
+                / "Library"
+                / "Developer"
+                / "Xcode"
+                / "CodingAssistant"
+                / "codex"
+            ).exists()
+        )
+
+    def test_xcode_codex_sync_uses_config_toml_without_generated_toml(self) -> None:
+        xcode_root = self.root / "home" / "Library" / "Developer" / "Xcode" / "CodingAssistant"
+        xcode_root.mkdir(parents=True, exist_ok=True)
+
+        self._run_codex_sync(self.platform_cfg)
+
+        xcode_codex = xcode_root / "codex"
+        config_path = xcode_codex / "config.toml"
+        self.assertTrue(config_path.exists())
+        self.assertFalse((xcode_codex / "mcp.generated.toml").exists())
+        parsed = tomllib.loads(config_path.read_text(encoding="utf-8"))
+        self.assertIn("sample", parsed["mcp_servers"])
 
     def test_codex_json_properties_are_mapped_or_excluded_as_expected(self) -> None:
         config_text, parsed = self._run_codex_sync(self.platform_cfg)

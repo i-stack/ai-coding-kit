@@ -2,7 +2,13 @@ import shutil
 from typing import Any
 
 from .common import read_json_object, sync_json_mcp, write_json
-from .paths import codebuddy_mcp_path, codebuddy_models_path, codebuddy_skills_base, claude_skills_base
+from .paths import (
+    claude_skills_base,
+    codebuddy_mcp_path,
+    codebuddy_models_path,
+    codebuddy_root_dir,
+    codebuddy_skills_base,
+)
 
 
 def _validate_model_entries(value: Any) -> list[dict[str, Any]]:
@@ -173,6 +179,11 @@ def _sync_skills() -> None:
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers, models, and skills to CodeBuddy."""
+    root = codebuddy_root_dir()
+    if not root.exists():
+        print(f"[codebuddy] CodeBuddy root not found: {root} — skipping (tool not installed).")
+        return
+
     sync_json_mcp(codebuddy_mcp_path(), mcp_servers)
     _sync_models(cfg)
     _sync_skills()

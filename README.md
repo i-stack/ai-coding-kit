@@ -53,7 +53,7 @@ bash sync.sh
 | **Cursor** | `.cursor/mcp.json` |
 | **CodeBuddy** | `.codebuddy/mcp.json`, `models.json`, `skills/` |
 | **Claude Code** | `.claude.json`, `settings.json`, `skills/` |
-| **Codex CLI** | `.codex/config.toml`, `mcp.generated.toml` |
+| **Codex CLI** | `.codex/config.toml` |
 | **Gemini CLI** | Environment variables |
 | **Continue** | `.continue/config.yaml` |
 | **Cline** (VSCode) | MCP settings JSON, `skills/` |
@@ -81,4 +81,3 @@ bash install-hooks.sh
 ## License
 
 [MIT](LICENSE)
-

@@ -23,6 +23,7 @@ env/
 │
 ├── platforms/                ← 平台专属配置
 │   ├── claude.json
+│   ├── cline.json
 │   ├── codex.json
 │   ├── codebuddy.json
 │   ├── continue.json

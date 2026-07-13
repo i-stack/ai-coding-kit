@@ -114,6 +114,8 @@ PLATFORM_FIELDS = {
         "primary_model", "fallback_model", "model", "context", "tools", "skills",
         "hooksConfig", "security", "experimental", "contextManagement",
     },
+    # Cline-specific
+    "cline": {"globalState", "secrets"},
 }
 
 

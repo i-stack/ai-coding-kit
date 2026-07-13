@@ -311,8 +311,9 @@ def merge_object(existing: Any, updates: dict[str, Any]) -> dict[str, Any]:
 
 from .paths import (  # noqa: F401
     codex_config_path,
-    codex_generated_toml_path,
+    codex_root_dir,
     xcode_codex_dir,
+    xcode_coding_assistant_exists,
     xcode_gemini_dir,
     gemini_settings_path,
 )

@@ -44,6 +44,7 @@ class GeminiSyncTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
+        (self.root / "home" / ".gemini").mkdir(parents=True, exist_ok=True)
         self.platform_cfg = json.loads(
             (REPO_ROOT / "env" / "platforms" / "gemini.json").read_text()
         )
@@ -211,18 +212,14 @@ class GeminiSyncTests(unittest.TestCase):
     # ── Xcode target ─────────────────────────────────────────────────────────
 
     def test_xcode_target_receives_same_settings(self) -> None:
+        xcode_root = self.root / "home" / "Library" / "Developer" / "Xcode" / "CodingAssistant"
+        xcode_root.mkdir(parents=True, exist_ok=True)
+        xc_settings_path = (
+            xcode_root / "gemini" / "settings.json"
+        )
+
         self._run_gemini_sync()
 
-        xc_settings_path = (
-            self.root
-            / "home"
-            / "Library"
-            / "Developer"
-            / "Xcode"
-            / "CodingAssistant"
-            / "gemini"
-            / "settings.json"
-        )
         self.assertTrue(xc_settings_path.exists(), "Xcode Gemini settings.json was not created")
 
         native = self._read_json(self.root / "home" / ".gemini" / "settings.json")
@@ -230,15 +227,10 @@ class GeminiSyncTests(unittest.TestCase):
         self.assertEqual(native, xcode)
 
     def test_xcode_target_preserves_existing_user_keys(self) -> None:
+        xcode_root = self.root / "home" / "Library" / "Developer" / "Xcode" / "CodingAssistant"
+        xcode_root.mkdir(parents=True, exist_ok=True)
         xc_settings_path = (
-            self.root
-            / "home"
-            / "Library"
-            / "Developer"
-            / "Xcode"
-            / "CodingAssistant"
-            / "gemini"
-            / "settings.json"
+            xcode_root / "gemini" / "settings.json"
         )
         self._write_json(
             xc_settings_path,
@@ -255,6 +247,22 @@ class GeminiSyncTests(unittest.TestCase):
         self.assertEqual(xcode["context"]["fileFiltering"]["customXcodeFilter"], "keep-me")
         self.assertTrue(xcode["context"]["fileFiltering"]["respectGitIgnore"])
         self.assertIn("mcpServers", xcode)
+
+    def test_missing_xcode_path_skips_xcode_gemini_target_only(self) -> None:
+        native = self._run_gemini_sync()
+
+        self.assertEqual(native["model"]["name"], "gemini-3.5-flash")
+        self.assertIn("mcpServers", native)
+        self.assertFalse(
+            (
+                self.root
+                / "home"
+                / "Library"
+                / "Developer"
+                / "Xcode"
+                / "CodingAssistant"
+            ).exists()
+        )
 
     # ── zshrc env export ─────────────────────────────────────────────────────
 
@@ -309,6 +317,39 @@ class GeminiSyncTests(unittest.TestCase):
         # Block should appear exactly once
         self.assertEqual(zshrc_text.count("# BEGIN GEMINI ENV SYNC"), 1)
         self.assertEqual(zshrc_text.count("# END GEMINI ENV SYNC"), 1)
+
+    def test_missing_gemini_root_skips_sync_and_env_export(self) -> None:
+        (self.root / "home" / ".gemini").rmdir()
+        zshrc = self.root / "home" / ".zshrc"
+        zshrc.parent.mkdir(parents=True, exist_ok=True)
+        zshrc.write_text("export OTHER=value\n", encoding="utf-8")
+
+        cfg = dict(self.platform_cfg)
+        cfg["export_env_to_zshrc"] = {
+            "GEMINI_API_KEY": "sk-test-gemini",
+            "GOOGLE_GEMINI_BASE_URL": "https://generativelanguage.googleapis.com",
+            "GEMINI_MODEL": "gemini-3.5-flash",
+        }
+        self._write_json(self.root / "env" / "platforms" / "gemini.json", cfg)
+
+        with patched_sync_environment(self.root):
+            sys.argv = ["sync_config.py", "--target", "gemini"]
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                sync_config.main()
+
+        self.assertFalse((self.root / "home" / ".gemini").exists())
+        self.assertFalse(
+            (
+                self.root
+                / "home"
+                / "Library"
+                / "Developer"
+                / "Xcode"
+                / "CodingAssistant"
+                / "gemini"
+            ).exists()
+        )
+        self.assertEqual(zshrc.read_text(encoding="utf-8"), "export OTHER=value\n")
 
     # ── Property coverage ────────────────────────────────────────────────────
 

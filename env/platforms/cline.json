@@ -1,0 +1,14 @@
+{
+    "_comment": "Cline (VSCode extension) global state + secrets sync. Set 'enabled' to true to sync the 5 globalState keys + geminiApiKey; set to false to clear geminiBaseUrl (disable the third-party API) while leaving the other keys and the secret intact. The 5 keys under 'globalState' are merged into ~/.cline/data/globalState.json (all other keys are preserved). 'geminiBaseUrl' uses ${cline.url}; leave cline.url empty in secrets.json to disable the third-party API (geminiBaseUrl becomes \"\"). The 'secrets' object is merged into ~/.cline/data/secrets.json — Cline stores the key under the <provider>ApiKey key, e.g. geminiApiKey for provider 'gemini'.",
+    "enabled": true,
+    "globalState": {
+        "planModeApiProvider": "gemini",
+        "actModeApiProvider": "gemini",
+        "geminiBaseUrl": "${cline.url}",
+        "planModeApiModelId": "gemini-3.5-flash",
+        "actModeApiModelId": "gemini-3.5-flash"
+    },
+    "secrets": {
+        "geminiApiKey": "${cline.key}"
+    }
+}

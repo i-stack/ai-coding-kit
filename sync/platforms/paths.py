@@ -23,6 +23,10 @@ def xcode_coding_assistant_dir() -> Path:
     return _home() / "Library/Developer/Xcode/CodingAssistant"
 
 
+def xcode_coding_assistant_exists() -> bool:
+    return xcode_coding_assistant_dir().exists()
+
+
 def xcode_codex_dir() -> Path:
     """Xcode Codex agent config directory."""
     return xcode_coding_assistant_dir() / "codex"
@@ -54,15 +58,21 @@ def codex_config_path() -> Path:
     return _home() / ".codex/config.toml"
 
 
-def codex_generated_toml_path() -> Path:
+def codex_root_dir() -> Path:
     import os
     if home := os.environ.get("CODEX_HOME"):
-        return Path(home).expanduser() / "mcp.generated.toml"
-    return _home() / ".codex/mcp.generated.toml"
+        return Path(home).expanduser()
+    if p := os.environ.get("CODEX_CONFIG"):
+        return Path(p).expanduser().parent
+    return _home() / ".codex"
 
 
 def claude_json_path() -> Path:
     return _home() / ".claude.json"
+
+
+def claude_root_dir() -> Path:
+    return _home() / ".claude"
 
 
 def claude_settings_json_path() -> Path:
@@ -81,12 +91,20 @@ def gemini_settings_path() -> Path:
     return _home() / ".gemini/settings.json"
 
 
+def gemini_root_dir() -> Path:
+    return _home() / ".gemini"
+
+
 def cursor_mcp_path() -> Path:
     return _home() / ".cursor/mcp.json"
 
 
 def codebuddy_mcp_path() -> Path:
     return _home() / ".codebuddy/mcp.json"
+
+
+def codebuddy_root_dir() -> Path:
+    return _home() / ".codebuddy"
 
 
 def codebuddy_models_path() -> Path:
@@ -99,6 +117,31 @@ def cline_mcp_candidate_paths() -> list[Path]:
         _home() / f"Library/Application Support/{editor}/User/globalStorage/{suffix}"
         for editor in ("Cursor", "Code", "Code - Insiders")
     ]
+
+
+def cline_root_dir() -> Path:
+    return _home() / ".cline"
+
+
+def continue_root_dir() -> Path:
+    return _home() / ".continue"
+
+
+# ── Cline data paths ──────────────────────────────────────────────────────────
+
+def cline_data_dir() -> Path:
+    """~/.cline/data — Cline's global state + secrets storage."""
+    return _home() / ".cline" / "data"
+
+
+def cline_global_state_path() -> Path:
+    """~/.cline/data/globalState.json — Cline's global VS Code state."""
+    return cline_data_dir() / "globalState.json"
+
+
+def cline_secrets_path() -> Path:
+    """~/.cline/data/secrets.json — Cline's encrypted-at-rest API secrets."""
+    return cline_data_dir() / "secrets.json"
 
 
 # ── Skill cache base directories ─────────────────────────────────────────────
@@ -133,3 +176,25 @@ def cline_skills_base() -> Path:
 
 def codebuddy_skills_base() -> Path:
     return _home() / ".codebuddy/skills"
+
+
+_INSTALL_ROOTS = {
+    "cline": cline_root_dir,
+    "codex": codex_root_dir,
+    "claude": claude_root_dir,
+    "codebuddy": codebuddy_root_dir,
+    "gemini": gemini_root_dir,
+    "continue": continue_root_dir,
+}
+
+
+def platform_install_root(platform: str) -> Path | None:
+    getter = _INSTALL_ROOTS.get(platform)
+    if getter is None:
+        return None
+    return getter()
+
+
+def platform_is_installed(platform: str) -> bool:
+    root = platform_install_root(platform)
+    return root is None or root.exists()

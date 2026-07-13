@@ -2,7 +2,12 @@ from pathlib import Path
 from typing import Any
 
 from .common import read_json_object, write_json
-from .paths import gemini_settings_path, xcode_gemini_dir
+from .paths import (
+    gemini_root_dir,
+    gemini_settings_path,
+    xcode_coding_assistant_exists,
+    xcode_gemini_dir,
+)
 
 # Internal/platform keys that should NOT appear in the managed settings.json.
 # These are consumed by the sync engine/orchestrator, not by Gemini CLI itself.
@@ -55,12 +60,21 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     to ~/.zshrc by the orchestrator via the export_env_to_zshrc mechanism
     defined in env/platforms/gemini.json.
     """
+    root = gemini_root_dir()
+    if not root.exists():
+        print(f"[gemini] Gemini root not found: {root} — skipping (tool not installed).")
+        return
+
     managed = _extract_settings(cfg)
 
     # ── Native Gemini CLI target ──
     _sync_settings(gemini_settings_path(), managed, mcp_servers)
 
     # ── Xcode CodingAssistant target ──
+    if not xcode_coding_assistant_exists():
+        print("[gemini] Xcode CodingAssistant path not found — skipping Xcode Gemini sync.")
+        return
+
     xc = xcode_gemini_dir()
     xc.mkdir(parents=True, exist_ok=True)
     _sync_settings(xc / "settings.json", managed, mcp_servers)

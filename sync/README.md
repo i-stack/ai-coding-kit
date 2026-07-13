@@ -97,23 +97,33 @@ Each `env/platforms/<name>.json` follows that platform's **official configuratio
 | Gemini | `gemini.json` | Gemini CLI env vars |
 | Continue | `continue.json` | Continue `config.yaml` models |
 | Cursor | `cursor.json` | (no platform config needed) |
-| Cline | `cline.json` | (no platform config needed) |
+| Cline | `cline.json` | Merge `globalState` + `secrets` into `~/.cline/data/` |
 
 The JSON keys map directly to the platform's native format — no field name translation needed.
 
 ## Targets
 
+For Cline, Codex, Claude, CodeBuddy, Gemini, and Continue, sync first checks
+the tool's home directory (`~/.cline`, `~/.codex`, `~/.claude`,
+`~/.codebuddy`, `~/.gemini`, `~/.continue`). If that root does not exist, the
+target is skipped so sync does not create config for tools the user has not
+installed.
+
+Xcode CodingAssistant targets are checked separately. If
+`~/Library/Developer/Xcode/CodingAssistant` does not exist, native CLI targets
+still sync, but the Xcode-specific Codex / Claude / Gemini outputs are skipped.
+
 | Target | Output |
 |--------|--------|
 | Cursor | Replace `mcpServers` in `~/.cursor/mcp.json` |
 | CodeBuddy | Replace `mcpServers` in `~/.codebuddy/mcp.json`, sync `models.json`, skills |
-| Codex CLI | `~/.codex/mcp.generated.toml` + managed blocks in `config.toml` |
+| Codex CLI | Managed MCP + shared blocks in `~/.codex/config.toml` |
 | Xcode Codex | `~/Library/.../CodingAssistant/codex/` |
 | Claude Code | Replace `mcpServers` in `~/.claude.json` + Xcode Claude |
 | Claude settings | Merge `env` + `hooks` into `~/.claude/settings.json`, set `~/.claude/config.json` `primaryApiKey` to `self` |
-| Cline | Replace `mcpServers` in VSCode extension settings + skills sync |
+| Cline | Replace `mcpServers` in VSCode extension settings + skills sync + merge `globalState`/`secrets` into `~/.cline/data/` |
 | Gemini CLI | Replace `mcpServers` in `~/.gemini/settings.json` + `~/.zshrc` env |
-| Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml` |
+| Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml`, creating it when `~/.continue` exists |
 
 ## Adding a Platform
 
