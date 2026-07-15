@@ -1,13 +1,13 @@
 # ai-coding-kit
 
-[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-8%2B%20AI%20Coding%20Tools-5856D6)](skills-engineering/README.md)
+[![Agent Skills](https://img.shields.io/badge/Agent%20Skills-9%2B%20AI%20Coding%20Tools-5856D6)](skills-engineering/README.md)
 [![iOS Engineer Skill](https://img.shields.io/badge/iOS%20Engineer-Swift%20%7C%20SwiftUI%20%7C%20UIKit-0A84FF)](skills-engineering/ios-engineer/SKILL.md)
-[![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-8%20Platforms-663399)](sync/README.md)
+[![MCP Config Sync](https://img.shields.io/badge/MCP%20Config-9%20Platforms-663399)](sync/README.md)
 [![Validate Skills](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml/badge.svg?branch=feature_3.0.0)](https://github.com/i-stack/ai-coding-kit/actions/workflows/validate.yml)
 [![Check Hardcoded Paths](https://github.com/i-stack/ai-coding-kit/actions/workflows/hardcoded-paths.yml/badge.svg)](https://github.com/i-stack/ai-coding-kit/actions/workflows/hardcoded-paths.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> **One kit. All your AI coding tools.** Agent Skills management, MCP configuration sync, and iOS engineering rules — unified for Cursor, CodeBuddy, Codex, Claude Code, Gemini CLI, Continue, Cline, and Xcode Coding Assistant.
+> **One kit. All your AI coding tools.** Agent Skills management, MCP configuration sync, and iOS engineering rules — unified for Cursor, CodeBuddy, Codex, Claude Code, Gemini CLI, Continue, Cline, Qwen Code, and Xcode Coding Assistant.
 
 **ai-coding-kit** is a local-first AI coding workflow toolkit. Define your MCP servers, API keys, Agent Skills, and platform settings once — auto-sync to every AI coding host you use.
 
@@ -57,6 +57,7 @@ bash sync.sh
 | **Gemini CLI** | Environment variables |
 | **Continue** | `.continue/config.yaml` |
 | **Cline** (VSCode) | MCP settings JSON, `skills/` |
+| **Qwen Code** | `settings.json` env, `skills/` |
 | **Xcode Coding Assistant** | Codex + Claude Agent config paths |
 
 ## 安装 Git 钩子

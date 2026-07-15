@@ -14,7 +14,7 @@ import sys
 from collections.abc import Callable
 from typing import Any
 
-from platforms import claude, cline, codebuddy, codex, cursor, gemini
+from platforms import claude, cline, codebuddy, codex, cursor, gemini, qwen
 from platforms.common import discover_platforms, filter_mcp_for_platform, load_all_mcp, load_platform_config, sync_env_to_zshrc
 from platforms.paths import platform_install_root, platform_is_installed
 
@@ -35,6 +35,7 @@ RENDERERS: dict[str, SyncFn] = {
     "gemini": gemini.sync,
     "cline": cline.sync,
     "continue": _continue.sync,
+    "qwen": qwen.sync,
 }
 
 

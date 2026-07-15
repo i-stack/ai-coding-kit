@@ -178,6 +178,18 @@ def codebuddy_skills_base() -> Path:
     return _home() / ".codebuddy/skills"
 
 
+def qwen_settings_json_path() -> Path:
+    return _home() / ".qwen/settings.json"
+
+
+def qwen_root_dir() -> Path:
+    return _home() / ".qwen"
+
+
+def qwen_skills_base() -> Path:
+    return _home() / ".qwen/skills"
+
+
 _INSTALL_ROOTS = {
     "cline": cline_root_dir,
     "codex": codex_root_dir,
@@ -185,6 +197,7 @@ _INSTALL_ROOTS = {
     "codebuddy": codebuddy_root_dir,
     "gemini": gemini_root_dir,
     "continue": continue_root_dir,
+    "qwen": qwen_root_dir,
 }
 
 

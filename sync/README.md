@@ -98,16 +98,17 @@ Each `env/platforms/<name>.json` follows that platform's **official configuratio
 | Continue | `continue.json` | Continue `config.yaml` models |
 | Cursor | `cursor.json` | (no platform config needed) |
 | Cline | `cline.json` | Merge `globalState` + `secrets` into `~/.cline/data/` |
+| Qwen Code | `qwen.json` | Merge `env` into `~/.qwen/settings.json`, sync skills |
 
 The JSON keys map directly to the platform's native format — no field name translation needed.
 
 ## Targets
 
-For Cline, Codex, Claude, CodeBuddy, Gemini, and Continue, sync first checks
+For Cline, Codex, Claude, CodeBuddy, Gemini, Continue, and Qwen Code, sync first checks
 the tool's home directory (`~/.cline`, `~/.codex`, `~/.claude`,
-`~/.codebuddy`, `~/.gemini`, `~/.continue`). If that root does not exist, the
-target is skipped so sync does not create config for tools the user has not
-installed.
+`~/.codebuddy`, `~/.gemini`, `~/.continue`, `~/.qwen`). If that root does not
+exist, the target is skipped so sync does not create config for tools the user
+has not installed.
 
 Xcode CodingAssistant targets are checked separately. If
 `~/Library/Developer/Xcode/CodingAssistant` does not exist, native CLI targets
@@ -124,6 +125,7 @@ still sync, but the Xcode-specific Codex / Claude / Gemini outputs are skipped.
 | Cline | Replace `mcpServers` in VSCode extension settings + skills sync + merge `globalState`/`secrets` into `~/.cline/data/` |
 | Gemini CLI | Replace `mcpServers` in `~/.gemini/settings.json` + `~/.zshrc` env |
 | Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml`, creating it when `~/.continue` exists |
+| Qwen Code | Merge `env` into `~/.qwen/settings.json`, sync skills to `~/.qwen/skills/` |
 
 ## Adding a Platform
 
