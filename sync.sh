@@ -85,9 +85,10 @@ run_sync() {
   echo -e "  • Xcode Codex      (~/Library/Developer/Xcode/CodingAssistant/codex/)"
   echo -e "  • Claude Code      (~/.claude.json, settings.json)"
   echo -e "  • Xcode Claude     (~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/)"
-  echo -e "  • Cline            (VSCode MCP settings)"
-  echo -e "  • Gemini CLI       (环境变量)"
+  echo -e "  • Cline            (~/.cline/data/globalState.json, secrets.json, skills)"
+  echo -e "  • Gemini CLI       (~/.gemini/settings.json, ~/.zshrc env)"
   echo -e "  • Continue         (~/.continue/config.yaml)"
+  echo -e "  • Qwen Code        (~/.qwen/settings.json, skills)"
 }
 
 # --- 主流程 ---
