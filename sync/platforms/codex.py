@@ -100,12 +100,9 @@ def generate_shared_toml(cfg: dict[str, Any]) -> str:
     if cfg.get("enabled", True) is False:
         lines.append("# model_provider (disabled via enabled=false)")
         lines.append('# preferred_auth_method = "apikey"')
-    elif model_provider:
-        lines.append(f"model_provider = {toml_quote(str(model_provider))}")
-        lines.append('preferred_auth_method = "apikey"')
     else:
         lines.append(f"model_provider = {toml_quote(str(model_provider))}")
-        lines.append('# preferred_auth_method = "apikey"')
+        lines.append('preferred_auth_method = "apikey"')
 
     # ── everything else via toml_section ──
     # Strip model_providers from cfg so toml_section's special handler won't

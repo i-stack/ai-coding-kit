@@ -1,8 +1,8 @@
 {
-    "enabled": true,
+    "enabled": false,
     "model": "gpt-5.5",
     "personality": "pragmatic",
-    "model_provider": "",
+    "model_provider": "dataeyes",
     "model_reasoning_effort": "medium",
     "model_verbosity": "medium",
     "model_reasoning_summary": "auto",
