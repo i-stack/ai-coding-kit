@@ -90,17 +90,21 @@ def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> No
 
 
 def _effective_platform_config(platform: str) -> dict[str, Any]:
-    """Load platform config and apply orchestration-only keys.
+    """Load platform config and pass orchestration-only keys to the renderer.
 
-    ``enabled`` is owned by the sync orchestrator.  Disabled platforms still run
-    their renderer with empty platform config so renderer-owned cleanup paths can
-    remove stale managed target state instead of leaving it behind.
+    ``enabled`` is owned by the sync orchestrator and is forwarded to the
+    renderer (not stripped) so each platform can decide what a disabled state
+    means via its renderer-owned cleanup path:
+      - Cline clears its third-party API base URL (geminiBaseUrl).
+      - Codex comments out its managed ``model_provider`` while keeping the rest
+        of the config intact.
+    Other platforms ignore ``enabled`` and sync normally. An absent ``enabled``
+    key is treated as enabled.
     """
     cfg = load_platform_config(platform)
     if cfg.get("enabled") is False:
-        print(f"[sync] Platform '{platform}' disabled via enabled=false — using empty platform config.")
-        return {}
-    return {k: v for k, v in cfg.items() if k != "enabled"}
+        print(f"[sync] Platform '{platform}' disabled via enabled=false — renderer applies its disabled-state handling.")
+    return dict(cfg)
 
 
 def _sync_one_platform(

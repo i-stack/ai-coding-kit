@@ -124,10 +124,11 @@ def _sync_secrets(secrets: dict[str, Any]) -> None:
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers, skills, global state, and secrets to Cline (VSCode extension).
 
-    When the platform is disabled (enabled=false), the orchestrator passes an
-    empty cfg. In that case MCP servers and skills are still synced, but the
-    managed global state is cleaned up by clearing geminiBaseUrl (disabling the
-    third-party API) while leaving the other keys and the secret intact.
+    When the platform is disabled (enabled=false), the orchestrator still passes
+    the full cfg but the renderer applies its disabled-state handling: MCP
+    servers and skills are still synced, but the managed global state is cleaned
+    up by clearing geminiBaseUrl (disabling the third-party API) while leaving
+    the other keys and the secret intact.
     """
     root = cline_root_dir()
     if not root.exists():
@@ -136,7 +137,7 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
 
     _sync_mcp(mcp_servers)
     _sync_skills()
-    if not cfg:
+    if cfg.get("enabled") is False:
         _clear_global_state_base_url()
         return
     _sync_global_state(cfg.get("globalState", {}))

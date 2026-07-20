@@ -1,4 +1,5 @@
 {
+    "enabled": true,
     "model": "gpt-5.5",
     "personality": "pragmatic",
     "model_provider": "",

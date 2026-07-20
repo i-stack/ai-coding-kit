@@ -28,6 +28,8 @@ def _repo_hooks_dir() -> Path:
 # These keys are kept in env/platforms/claude.json as reference but excluded
 # from managed (team-shared) settings — each developer sets them individually.
 _HOST_SKIP = {
+    # Orchestration-only keys
+    "enabled",
     # Personal UI/UX preferences
     "apiKeyHelper",
     "theme",

@@ -213,6 +213,7 @@ class CodexSyncTests(unittest.TestCase):
         covered_keys = {
             "model",
             "personality",
+            "enabled",
             "model_provider",
             "model_reasoning_effort",
             "model_verbosity",
