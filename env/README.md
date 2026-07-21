@@ -9,7 +9,10 @@ env/
 ├── secrets.json              ← 你唯一需要填写的文件（gitignored）
 ├── secrets.json.example      ← 模板（已提交）
 │
-├── mcp/                      ← MCP 服务器定义
+├── review.json               ← auto-code-review 配置（gitignored）
+├── review.json.example       ← review 配置模板（已提交）
+│
+├── mcp/                      ← 默认启用的 MCP 服务器定义
 │   ├── github.json
 │   ├── apifox.json
 │   ├── filesystem.json
@@ -21,6 +24,13 @@ env/
 │   ├── postgres.json
 │   └── sqlite.json
 │
+├── optional-mcps/            ← 可选 MCP 服务器（需手动启用）
+│   ├── enabled.json          ← 启用状态记录
+│   ├── filesystem-extra.json
+│   ├── puppeteer.json
+│   ├── wechat-bridge.json
+│   └── README.md
+│
 ├── platforms/                ← 平台专属配置
 │   ├── claude.json
 │   ├── cline.json
@@ -28,6 +38,7 @@ env/
 │   ├── codebuddy.json
 │   ├── continue.json
 │   ├── gemini.json
+│   └── qwen.json
 │
 └── templates/                ← 新增 MCP/平台的参考模板
     ├── mcp.template.json
@@ -48,6 +59,64 @@ env/
 ```
 
 新增平台时只需在此文件中追加对应的 `{url, key/token}` 即可。
+
+## review.json
+
+跨模型代码审查（auto-code-review）的执行参数配置：
+
+```json
+{
+  "enabled": true,
+  "reviewers": [],
+  "maxRounds": 3,
+  "allowSelfReview": false
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `enabled` | 功能是否可用（`true` 只表示功能可用，不构成当前请求授权） |
+| `reviewers` | 审查者列表（空数组则自动发现可用 CLI） |
+| `maxRounds` | 最大审查轮次 |
+| `allowSelfReview` | 是否允许自审 |
+
+**加载优先级**：`env/review.json` → `.auto-review-config.json` → `AUTO_REVIEW_*` 环境变量。
+
+复制 `review.json.example` 为 `review.json` 后填写即可。仅在用户显式启动 `/auto-review` 后加载。
+
+## optional-mcps — 可选 MCP 服务器
+
+将**非默认、社区/高级**的 MCP 服务器与开箱即用的 `env/mcp/` 集合分开，避免污染默认配置，同时保留「一键启用」能力。
+
+### 工作机制
+
+- `env/optional-mcps/*.json`：可选的 MCP 服务器定义（**不**自动同步）
+- `sync/optional_mcps.sh enable <name>`：启用并同步到 `env/mcp/`
+- `sync/optional_mcps.sh disable <name>`：禁用并移除
+- 启用状态记录在 `env/optional-mcps/enabled.json`
+
+### 用法
+
+```bash
+# 列出所有可选服务器及其启用状态
+bash sync/optional_mcps.sh list
+
+# 启用一个
+bash sync/optional_mcps.sh enable puppeteer
+
+# 禁用一个
+bash sync/optional_mcps.sh disable puppeteer
+```
+
+### 可用服务器
+
+| 服务器 | 说明 | 需要 secret |
+|--------|------|-------------|
+| `puppeteer` | 浏览器自动化（与默认 `playwright` 互补，择一启用） | 否 |
+| `filesystem-extra` | 扩展文件系统访问 | 是（`filesystem_extra.root`） |
+| `wechat-bridge` | 微信桥接 | 是（`wechat.token`） |
+
+详见 [optional-mcps/README.md](optional-mcps/README.md)。
 
 ## 自定义安装路径（paths）
 
