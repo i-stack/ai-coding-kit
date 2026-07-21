@@ -11,7 +11,7 @@
 # 设计原则：
 #   - 只产出 draft，绝不自动 approve / promote（受控演进不被绕过）
 #   - 幂等：同一信号重复运行不会新建重复草稿
-#   - 只读 ledger，不改写任何演进数据
+#   - 只读 ledger，不改变 active 版本；仅落盘 draft proposal 与去重 registry
 #
 # 用法:
 #   bash scripts/suggest_skill_proposals.sh            # 生成草稿并打印建议
