@@ -1,5 +1,5 @@
 {
-    "_comment": "Cline (VSCode extension) global state + secrets sync. Set 'enabled' to true to sync the managed globalState keys + secrets; set to false to clear geminiBaseUrl (disable the third-party API) while leaving the other keys and secrets intact. The keys under 'globalState' are merged into ~/.cline/data/globalState.json (all other keys are preserved). OpenAI-compatible is the highest-priority provider (planModeApiProvider/actModeApiProvider = 'openai'); its base URL and model IDs are set literally, and its key uses ${cline.openaiKey}. The gemini keys are kept as a fallback config. 'geminiBaseUrl' uses ${cline.url}; leave cline.url empty in secrets.json to disable the third-party API (geminiBaseUrl becomes \"\"). The 'secrets' object is merged into ~/.cline/data/secrets.json — Cline stores the key under the <provider>ApiKey key, e.g. geminiApiKey for provider 'gemini' and openAiApiKey for provider 'openai'.",
+    "_comment": "Cline global state + secrets sync. Keys in 'globalState' and 'secrets' are merged into ~/.cline/data/globalState.json and ~/.cline/data/secrets.json respectively. Placeholder values (${cline.*}) are skipped by the sync script when unresolved.",
     "enabled": true,
     "globalState": {
         "openAiBaseUrl": "https://integrate.api.nvidia.com/v1",
