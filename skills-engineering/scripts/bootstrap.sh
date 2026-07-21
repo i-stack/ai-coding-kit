@@ -10,7 +10,12 @@
 #                                        ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md,
 #                                        Xcode codex/AGENTS.md,
 #                                        Xcode ClaudeAgentConfig/CLAUDE.md
-#                                        (and optional Cursor project rules)
+#                                        (and optional Cursor project rules),
+#                                        plus the historical-recall block into
+#                                        ~/.cline/rules/,
+#                                        ~/.codebuddy/CODEBUDDY.md,
+#                                        ~/.qwen/QWEN.md
+#                                        (Continue recall is injected by sync.sh)
 #
 # One-liner for a fresh device:
 #   curl -fsSL https://raw.githubusercontent.com/i-stack/ai-coding-kit/main/skills-engineering/scripts/bootstrap.sh | bash

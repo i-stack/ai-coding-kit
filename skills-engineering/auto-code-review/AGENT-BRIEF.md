@@ -16,7 +16,7 @@
 2. 确认本轮存在显式触发，并区分 `review-only` / `review-and-fix`。
 3. 加载 `env/review.json`、`.auto-review-config.json`、`AUTO_REVIEW_*`；配置不替代用户授权。
 4. 确认审查范围：精确的当前请求变更；否则让用户选择 staged 或 worktree。
-5. 先 recall 历史审查，再以只读模式调用 reviewer。
+5. 历史召回已由全局 `historical-recall` 负责，直接以只读模式调用 reviewer（不再内联 recall）。
 6. `review-only` 只仲裁、报告和归档，不修改代码。
 7. `review-and-fix` 才允许主 agent 修复并重审，最多 3 轮。
 8. 归档后 best-effort 执行 sync + merge。

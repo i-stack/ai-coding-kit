@@ -15,18 +15,26 @@ if str(SYNC_DIR) not in sys.path:
 
 import sync_config  # noqa: E402
 from platforms import common  # noqa: E402
+from platforms import paths as _paths  # noqa: E402
 
 
 @contextlib.contextmanager
 def patched_sync_environment(root: Path):
     old_env = {k: os.environ.get(k) for k in ("HOME",)}
-    old_paths = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
+    old_common = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
+    old_paths_sp = _paths.SECRETS_PATH
+    old_overrides = _paths._PATH_OVERRIDES
     old_argv = sys.argv[:]
     try:
         os.environ["HOME"] = str(root / "home")
         common.MCP_DIR = root / "env" / "mcp"
         common.PLATFORMS_DIR = root / "env" / "platforms"
         common.SECRETS_PATH = root / "env" / "secrets.json"
+        # Isolate platform install-root resolution: point paths at the same
+        # patched secrets and drop any module-level cache so a developer's
+        # local env/secrets.json overrides can't leak into this test.
+        _paths.SECRETS_PATH = root / "env" / "secrets.json"
+        _paths._PATH_OVERRIDES = None
         yield
     finally:
         for key, value in old_env.items():
@@ -34,7 +42,9 @@ def patched_sync_environment(root: Path):
                 os.environ.pop(key, None)
             else:
                 os.environ[key] = value
-        common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_paths
+        common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_common
+        _paths.SECRETS_PATH = old_paths_sp
+        _paths._PATH_OVERRIDES = old_overrides
         sys.argv = old_argv
 
 
@@ -109,6 +119,20 @@ class PlatformInstallRootSkipTests(unittest.TestCase):
         self.assertIn("Platform 'continue' root not found", output)
         self.assertFalse((self.home / ".continue").exists())
         self.assertEqual(target.read_text(encoding="utf-8"), "name: existing\n")
+
+    def test_missing_cursor_root_skips_cursor_config(self) -> None:
+        # Regression: cursor must participate in the "skip if not installed"
+        # contract via platform_install_root(), otherwise an overridden (or
+        # default) cursor root would be created instead of skipped.
+        self._write_json(
+            self.root / "env" / "platforms" / "cursor.json",
+            {"mcp_target": str(self.home / ".cursor" / "mcp.json")},
+        )
+
+        output = self._run_target("cursor")
+
+        self.assertIn("Platform 'cursor' root not found", output)
+        self.assertFalse((self.home / ".cursor").exists())
 
     def test_existing_continue_root_creates_missing_config_yaml(self) -> None:
         (self.home / ".continue").mkdir(parents=True, exist_ok=True)

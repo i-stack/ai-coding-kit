@@ -22,7 +22,7 @@ supported_locales: [zh-CN, en-US]
 - [ACR-003] **reviewer 只读**：reviewer 始终只读运行，只输出审查意见，不修改文件。
 - [ACR-004] **写权限分层**：默认 `review-only`，主 agent 只仲裁并报告；只有用户明确指定 `--fix` 或“审查并修复”时，主 agent 才可修复并再次审查。
 - [ACR-005] **MAX_ROUNDS=3**：`review-only` 只运行一轮；`review-and-fix` 最多运行 3 轮。未收敛时输出 deadlock，不假装通过。
-- [ACR-006] **授权后闭环**：显式启动后，执行 recall → review → archive → sync → merge；归档写入 `.plan-reviews/`，且仅属于已授权的审查会话。
+- [ACR-006] **授权后闭环**：显式启动后，执行 review → archive → sync → merge；历史召回已由全局 `historical-recall` 负责，本处不再内联 recall。归档写入 `.plan-reviews/`，且仅属于已授权的审查会话。
 - [ACR-007] **可配置 reviewer**：允许配置 reviewer、轮次和单模型降级；`AUTO_REVIEW_ENABLED=false` 是能力级禁用开关，`true` 不构成用户授权。
 - [ACR-008] **单模型降级需显式允许**：默认不做同模型自审；只有配置明确允许时才降级，并在日志中标注可信度降低。
 

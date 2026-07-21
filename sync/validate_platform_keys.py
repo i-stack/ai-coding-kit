@@ -28,7 +28,7 @@ ENGINE_HANDLED_KEYS = {
     "enabled", "env", "hooks", "export_env_to_zshrc", "_comment", "_hostSettings", "mcp_target"
 }
 ENGINE_HANDLED_BY_PLATFORM = {
-    "continue": {"path"},
+    "continue": {"path", "recall"},
 }
 
 # Canonical host-specific (personal) keys per platform. A key from this set that

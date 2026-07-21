@@ -10,6 +10,34 @@ if [[ -f "${LOCAL_CONFIG}" ]]; then
   source "${LOCAL_CONFIG}"
 fi
 
+# Resolve a platform's install root, honoring the top-level `paths` override in
+# env/secrets.json — the SAME source as the Python sync engine (sync/platforms/paths.py).
+# Falls back to `default` when no override is configured or secrets is absent/malformed.
+resolve_install_root() {
+  local platform="$1"
+  local default="$2"
+  local secrets="${SCRIPT_DIR}/../../env/secrets.json"
+  if [[ ! -f "${secrets}" ]]; then
+    printf '%s' "${default}"
+    return
+  fi
+  python3 - "$platform" "$default" "$secrets" <<'PY'
+import json, sys
+plat, default, secrets = sys.argv[1], sys.argv[2], sys.argv[3]
+try:
+    with open(secrets, encoding="utf-8") as f:
+        data = json.load(f)
+    paths = data.get("paths") or {}
+    val = paths.get(plat)
+    if isinstance(val, str) and val.strip():
+        print(val)
+    else:
+        print(default)
+except Exception:
+    print(default)
+PY
+}
+
 SKILL_NAME="${SKILL_NAME:-ios-engineer}"
 
 TEMPLATE="${TEMPLATE:-${SCRIPT_DIR}/templates/agent-preamble.md.tmpl}"
@@ -20,11 +48,27 @@ GEMINI_TARGET="${GEMINI_TARGET:-${HOME}/.gemini/GEMINI.md}"
 XCODE_CODEX_TARGET="${XCODE_CODEX_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md}"
 XCODE_CLAUDE_TARGET="${XCODE_CLAUDE_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md}"
 CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
+# Recall-only preamble targets for platforms whose global always-on context
+# file is NOT one of the ios-engineer preamble targets above. These receive
+# only the # global historical recall managed block (no ios-engineer audit).
+# Install roots honor the `paths` override in env/secrets.json (same as the
+# Python sync engine) so a custom install location is reflected here too.
+CLINE_ROOT="$(resolve_install_root cline "${HOME}/.cline")"
+CLINE_ROOT="${CLINE_ROOT/#\~/$HOME}"
+CODEBUDDY_ROOT="$(resolve_install_root codebuddy "${HOME}/.codebuddy")"
+CODEBUDDY_ROOT="${CODEBUDDY_ROOT/#\~/$HOME}"
+QWEN_ROOT="$(resolve_install_root qwen "${HOME}/.qwen")"
+QWEN_ROOT="${QWEN_ROOT/#\~/$HOME}"
+CLINE_TARGET="${CLINE_TARGET:-${CLINE_ROOT}/rules/ai-coding-kit-recall.md}"
+CODEBUDDY_TARGET="${CODEBUDDY_TARGET:-${CODEBUDDY_ROOT}/CODEBUDDY.md}"
+QWEN_TARGET="${QWEN_TARGET:-${QWEN_ROOT}/QWEN.md}"
 
 BEGIN_MARKER="<!-- managed-block:ios-engineer:begin"
 END_MARKER="<!-- managed-block:ios-engineer:end"
 CLAUDE_ROUTER_BEGIN_MARKER="<!-- managed-block:claude-router-pro-mode:begin"
 CLAUDE_ROUTER_END_MARKER="<!-- managed-block:claude-router-pro-mode:end"
+RECALL_BEGIN_MARKER="<!-- managed-block:historical-recall:begin"
+RECALL_END_MARKER="<!-- managed-block:historical-recall:end"
 
 CURSOR_MDC_PROLOGUE='---
 description: ios-engineer skill usage and audit rules
@@ -215,6 +259,10 @@ EOF
 )
 
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
+# Absolute path to the recall CLI, injected into the recall block so it works
+# from any working directory (these global context files are used across projects).
+RECALL_CLI_PATH="${REPO_ROOT}/skills-engineering/plan-reviews/dist/cli.js"
 SE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 DRY_RUN=false
@@ -227,8 +275,14 @@ Usage:
 Renders scripts/templates/agent-preamble.md.tmpl into preamble managed blocks and
 generates Cursor .mdc rules from skill references (see sync-manifest in tmpl).
 
-Preamble targets:
+Preamble targets (full ios-engineer block):
   ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md, Xcode AGENTS.md / CLAUDE.md
+
+Recall-only targets (historical-recall managed block, no ios-engineer audit):
+  ~/.cline/rules/ai-coding-kit-recall.md            (Cline global rules)
+  ~/.codebuddy/CODEBUDDY.md                          (CodeBuddy user memory)
+  ~/.qwen/QWEN.md                                    (Qwen Code global memory)
+  Continue: config.yaml `rules` (injected by sync/platforms/continue.py)
 
 Cursor project rules (from sync-manifest skill:* lines):
   <repo>/.cursor/rules/<skill>.mdc
@@ -297,9 +351,11 @@ skill_primary_reference() {
 }
 
 render_managed_block() {
-  local tool_name="$1"
-  local skills_dir="$2"
-  local ce_dir lr_dir ed_dir pa_dir pg_dir ei_dir
+  local begin_marker="$1"
+  local end_marker="$2"
+  local tool_name="$3"
+  local skills_dir="$4"
+  local ce_dir lr_dir ed_dir pa_dir pg_dir ei_dir hr_dir
   ce_dir="$(sibling_skill_dir "${skills_dir}" "cognitive-expansion")"
   lr_dir="$(sibling_skill_dir "${skills_dir}" "logical-reasoning")"
   ed_dir="$(sibling_skill_dir "${skills_dir}" "engineering-discipline")"
@@ -307,7 +363,7 @@ render_managed_block() {
   pg_dir="$(sibling_skill_dir "${skills_dir}" "plan-grill")"
   ei_dir="$(sibling_skill_dir "${skills_dir}" "epistemic-integrity")"
   hr_dir="$(sibling_skill_dir "${skills_dir}" "historical-recall")"
-  awk -v begin="${BEGIN_MARKER}" -v end="${END_MARKER}" '
+  awk -v begin="${begin_marker}" -v end="${end_marker}" '
     index($0, begin) > 0 { inblock = 1; print; next }
     inblock && index($0, end) > 0 { print; exit }
     inblock { print }
@@ -319,7 +375,8 @@ render_managed_block() {
       -e "s|{{PROBLEM_ANALYSIS_SKILLS_DIR}}|${pa_dir}|g" \
       -e "s|{{PLAN_GRILL_SKILLS_DIR}}|${pg_dir}|g" \
       -e "s|{{EPISTEMIC_INTEGRITY_SKILLS_DIR}}|${ei_dir}|g" \
-      -e "s|{{HISTORICAL_RECALL_SKILLS_DIR}}|${hr_dir}|g"
+      -e "s|{{HISTORICAL_RECALL_SKILLS_DIR}}|${hr_dir}|g" \
+      -e "s|{{RECALL_CLI_PATH}}|${RECALL_CLI_PATH}|g"
 }
 
 sync_target() {
@@ -327,13 +384,15 @@ sync_target() {
   local tool_name="$2"
   local skills_dir="$3"
   local prologue="${4:-}"
+  local begin_marker="${5:-${BEGIN_MARKER}}"
+  local end_marker="${6:-${END_MARKER}}"
 
   mkdir -p "$(dirname "${target}")"
 
   local rendered new_content
   rendered="$(mktemp)"
   new_content="$(mktemp)"
-  render_managed_block "${tool_name}" "${skills_dir}" > "${rendered}"
+  render_managed_block "${begin_marker}" "${end_marker}" "${tool_name}" "${skills_dir}" > "${rendered}"
 
   if [[ ! -f "${target}" ]]; then
     {
@@ -342,10 +401,10 @@ sync_target() {
       fi
       cat "${rendered}"
     } > "${new_content}"
-  elif grep -Fq "${BEGIN_MARKER}" "${target}"; then
+  elif grep -Fq "${begin_marker}" "${target}"; then
     awk -v rendered_file="${rendered}" \
-        -v begin="${BEGIN_MARKER}" \
-        -v end="${END_MARKER}" '
+        -v begin="${begin_marker}" \
+        -v end="${end_marker}" '
       BEGIN { in_block = 0 }
       {
         if (!in_block && index($0, begin) > 0) {
@@ -568,6 +627,32 @@ elif [[ -n "${SYNC_XCODE_CLAUDE:-}" ]]; then
   echo "Skip Xcode Claude preamble: disabled via SYNC_XCODE_CLAUDE=${SYNC_XCODE_CLAUDE}."
 else
   echo "Skip Xcode Claude preamble: ${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig not found (set SYNC_XCODE_CLAUDE=1 to force)."
+fi
+
+# ── Recall-only preamble for platforms whose global always-on context file is
+#    not one of the ios-engineer preamble targets above. These receive only the
+#    # global historical recall managed block (no ios-engineer audit block), so
+#    general-purpose tools are not polluted with iOS-specific instructions. ──
+if sync_enabled "${SYNC_CLINE:-}" "${CLINE_ROOT}"; then
+  sync_target "${CLINE_TARGET}" "cline" "${CLINE_ROOT}/skills/ios-engineer/" "" "${RECALL_BEGIN_MARKER}" "${RECALL_END_MARKER}"
+elif [[ -n "${SYNC_CLINE:-}" ]]; then
+  echo "Skip Cline recall preamble: disabled via SYNC_CLINE=${SYNC_CLINE}."
+else
+  echo "Skip Cline recall preamble: ${CLINE_ROOT} not found (set SYNC_CLINE=1 to force)."
+fi
+if sync_enabled "${SYNC_CODEBUDDY:-}" "${CODEBUDDY_ROOT}"; then
+  sync_target "${CODEBUDDY_TARGET}" "codebuddy" "${CODEBUDDY_ROOT}/skills/ios-engineer/" "" "${RECALL_BEGIN_MARKER}" "${RECALL_END_MARKER}"
+elif [[ -n "${SYNC_CODEBUDDY:-}" ]]; then
+  echo "Skip CodeBuddy recall preamble: disabled via SYNC_CODEBUDDY=${SYNC_CODEBUDDY}."
+else
+  echo "Skip CodeBuddy recall preamble: ${CODEBUDDY_ROOT} not found (set SYNC_CODEBUDDY=1 to force)."
+fi
+if sync_enabled "${SYNC_QWEN:-}" "${QWEN_ROOT}"; then
+  sync_target "${QWEN_TARGET}" "qwen" "${QWEN_ROOT}/skills/ios-engineer/" "" "${RECALL_BEGIN_MARKER}" "${RECALL_END_MARKER}"
+elif [[ -n "${SYNC_QWEN:-}" ]]; then
+  echo "Skip Qwen recall preamble: disabled via SYNC_QWEN=${SYNC_QWEN}."
+else
+  echo "Skip Qwen recall preamble: ${QWEN_ROOT} not found (set SYNC_QWEN=1 to force)."
 fi
 
 sync_manifest_skill_cursor_rules "${REPO_ROOT}"

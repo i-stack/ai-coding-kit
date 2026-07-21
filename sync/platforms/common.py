@@ -19,13 +19,20 @@ _ENV_VAR_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 def _flatten_secrets(data: dict[str, Any], prefix: str = "") -> dict[str, str]:
     """Recursively flatten nested dict into {prefix.key: str_value} entries.
 
-    Skips _comment keys at any level.
+    Skips _comment keys at any level. The top-level `paths` object is reserved
+    for install-root overrides (resolved by platforms.paths), not secrets, so
+    it is skipped only at the top level — a nested `paths` key under a platform
+    is still flattened normally.
     Example: {"codex": {"url": "https://...", "key": "sk-..."}}
           -> {"codex.url": "https://...", "codex.key": "sk-..."}
     """
     flat: dict[str, str] = {}
     for k, v in data.items():
         if k.startswith("_"):
+            continue
+        # Skip the top-level `paths` object (install-root overrides), but allow
+        # nested `paths` keys inside platforms to be flattened as secrets.
+        if prefix == "" and k == "paths":
             continue
         full_key = f"{prefix}.{k}" if prefix else k
         if isinstance(v, dict):

@@ -117,7 +117,7 @@ PLATFORM_FIELDS = {
     # CodeBuddy-specific
     "codebuddy": {"models", "availableModels"},
     # Continue-specific
-    "continue": {"models", "path"},
+    "continue": {"models", "path", "recall"},
     # Gemini-specific
     "gemini": {
         "primary_model", "fallback_model", "model", "context", "tools", "skills",

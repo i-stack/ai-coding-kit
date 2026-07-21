@@ -22,7 +22,7 @@ When this skill is triggered, you MUST read [references/auto_code_review.md](../
 - [ACR-003] **Reviewer Read-Only**: The reviewer ALWAYS runs in read-only mode, outputting review comments without modifying files.
 - [ACR-004] **Layered Write Permissions**: Default is `review-only`; the main agent only triages and reports. Only when the user explicitly specifies `--fix` or "review and fix" may the main agent apply fixes and re-review.
 - [ACR-005] **MAX_ROUNDS=3**: `review-only` runs exactly one round; `review-and-fix` runs at most 3 rounds. On non-convergence, output deadlock — do NOT fake a pass.
-- [ACR-006] **Post-Authorization Closed Loop**: After explicit trigger, execute recall → review → archive → sync → merge. Archives are written to `.plan-reviews/` and belong only to the authorized review session.
+- [ACR-006] **Post-Authorization Closed Loop**: After explicit trigger, execute review → archive → sync → merge. History recall is now handled by the global `historical-recall` skill, so this skill no longer recalls inline. Archives are written to `.plan-reviews/` and belong only to the authorized review session.
 - [ACR-007] **Configurable Reviewer**: Reviewer, rounds, and single-model fallback are all configurable. `AUTO_REVIEW_ENABLED=false` is the capability-level disable switch; `true` does NOT constitute user authorization.
 - [ACR-008] **Single-Model Fallback Requires Explicit Permission**: Same-model self-review is NOT performed by default. Fallback occurs only when explicitly allowed by configuration, and logs must note reduced credibility.
 

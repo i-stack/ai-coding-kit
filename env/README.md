@@ -49,6 +49,33 @@ env/
 
 新增平台时只需在此文件中追加对应的 `{url, key/token}` 即可。
 
+## 自定义安装路径（paths）
+
+各平台的安装根目录默认是 `~/.codex`、`~/.claude`、`~/.gemini` 等固定位置。
+如果某工具安装在非默认路径（例如自定义前缀、便携版、或 Xcode 的 CodingAssistant 目录被移动），
+可以在 `secrets.json` 顶层增加 `paths` 对象来覆盖：
+
+```json
+{
+  "paths": {
+    "codex": "/opt/codex",
+    "claude": "/custom/.claude",
+    "gemini": "/custom/.gemini",
+    "codebuddy": "/custom/.codebuddy",
+    "cursor": "/custom/.cursor",
+    "cline": "/custom/.cline",
+    "continue": "/custom/.continue",
+    "qwen": "/custom/.qwen",
+    "xcode_coding_assistant": "~/Library/Developer/Xcode/CodingAssistant"
+  }
+}
+```
+
+- 键名与平台一致；留空字符串 `""` 或删除该键即回退默认路径。
+- 设置后，该平台的所有派生路径（配置、settings、skills、MCP 文件等）都会基于覆盖值解析。
+- Codex 仍优先使用标准环境变量 `CODEX_HOME` / `CODEX_CONFIG`，其次才是此处覆盖。
+- `paths` 不是密钥，不会参与 `${...}` 占位符注入，仅用于路径解析。
+
 ## 占位符机制
 
 所有 `mcp/` 和 `platforms/` 下的配置使用 `${platform.field}` 语法引用 secrets：

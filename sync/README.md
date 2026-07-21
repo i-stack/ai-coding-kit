@@ -114,6 +114,23 @@ Xcode CodingAssistant targets are checked separately. If
 `~/Library/Developer/Xcode/CodingAssistant` does not exist, native CLI targets
 still sync, but the Xcode-specific Codex / Claude / Gemini outputs are skipped.
 
+## Custom Install Paths
+
+All platform paths are centralized in `sync/platforms/paths.py`. By default
+each tool resolves under its well-known home location (`~/.codex`, `~/.claude`,
+`~/.gemini`, …). To support tools installed in non-default locations, override
+any platform's install root via the `paths` object in `env/secrets.json`:
+
+```json
+{ "paths": { "codex": "/opt/codex", "claude": "/custom/.claude" } }
+```
+
+When a key is set, every derived path for that platform (config, settings,
+skills, MCP files) resolves under the override. Empty string `""` or a missing
+key falls back to the default. For Codex, the standard `CODEX_HOME` /
+`CODEX_CONFIG` env vars still take precedence over this override. See
+[env/README.md](../env/README.md#自定义安装路径paths) for the full key list.
+
 | Target | Output |
 |--------|--------|
 | Cursor | Replace `mcpServers` in `~/.cursor/mcp.json` |
@@ -126,6 +143,14 @@ still sync, but the Xcode-specific Codex / Claude / Gemini outputs are skipped.
 | Gemini CLI | Replace `mcpServers` in `~/.gemini/settings.json` + `~/.zshrc` env |
 | Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml`, creating it when `~/.continue` exists |
 | Qwen Code | Merge `env` into `~/.qwen/settings.json`, sync skills to `~/.qwen/skills/` |
+
+> **End-to-end recall:** the historical-recall trigger is also wired to Cline
+> (`~/.cline/rules/ai-coding-kit-recall.md`), CodeBuddy
+> (`~/.codebuddy/CODEBUDDY.md`), and Qwen Code (`~/.qwen/QWEN.md`) via
+> `skills-engineering/scripts/sync-agent-preamble.sh`, and to Continue via the
+> `rules` field in `~/.continue/config.yaml` (injected by `sync/platforms/continue.py`).
+> Run **both** `sync.sh` (covers Continue) and `sync-agent-preamble.sh`
+> (covers Cline / CodeBuddy / Qwen) so every platform receives the recall block.
 
 ## Adding a Platform
 

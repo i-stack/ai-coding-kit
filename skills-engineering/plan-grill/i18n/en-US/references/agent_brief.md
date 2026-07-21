@@ -17,7 +17,7 @@ For every non-trivial build/modify/solution request, first perform requirements 
 ## Key Behaviors
 
 1. Read `SKILL.md` + full text of `references/plan_grill.md`.
-2. First execute requirements clarity gate (PG-000); after entering, first recall untrusted historical clues (PG-006).
+2. First execute requirements clarity gate (PG-000); history recall is handled by the global `historical-recall` skill, so this skill no longer recalls inline (PG-006 only declares the delegation).
 3. One question at a time (PG-001), each question with recommended answer + reasoning (PG-002).
 4. For questions answerable by checking code, check directly, don't ask user (PG-003).
 5. When PG-003 involves cross-file/cross-module dependency analysis and platform engineer is loaded, pause grilling, delegate quick architecture analysis and write `architecture-analysis.md` path back to PLAN.md (PG-005).
