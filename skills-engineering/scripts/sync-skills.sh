@@ -225,9 +225,11 @@ sync_all_skills() {
     done
   done
   # 等待所有剩余后台同步完成，并逐个检查退出码（无参 wait 会吞掉失败）
-  for pid in "${pids[@]}"; do
-    wait "$pid" || sync_failed=1
-  done
+  if [[ ${#pids[@]} -gt 0 ]]; then
+    for pid in "${pids[@]}"; do
+      wait "$pid" || sync_failed=1
+    done
+  fi
   if [[ $sync_failed -ne 0 ]]; then
     echo "Error: one or more skill sync jobs failed." >&2
     exit 1
