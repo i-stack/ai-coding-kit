@@ -95,7 +95,7 @@ def _effective_platform_config(platform: str) -> dict[str, Any]:
     ``enabled`` is owned by the sync orchestrator and is forwarded to the
     renderer (not stripped) so each platform can decide what a disabled state
     means via its renderer-owned cleanup path:
-      - Cline clears its third-party API base URL (geminiBaseUrl).
+      - Cline removes every key it manages from globalState.json and secrets.json.
       - Codex comments out its managed ``model_provider`` while keeping the rest
         of the config intact.
     Other platforms ignore ``enabled`` and sync normally. An absent ``enabled``
