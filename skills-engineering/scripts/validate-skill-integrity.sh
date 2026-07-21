@@ -89,6 +89,12 @@ PY
 
 SKILLS=()
 if [[ -n "$SKILL_ARG" ]]; then
+  # 单 skill 模式：先断言目录存在且含 SKILL.md，避免拼写错误的技能名
+  # 被当成「0 文件」空集合而静默通过完整性门禁。
+  if [[ ! -d "$SE_DIR/$SKILL_ARG" || ! -f "$SE_DIR/$SKILL_ARG/SKILL.md" ]]; then
+    echo "Skill not found or missing SKILL.md: $SKILL_ARG" >&2
+    exit 1
+  fi
   SKILLS=("$SE_DIR/$SKILL_ARG")
 else
   for d in "$SE_DIR"/*/; do
@@ -104,8 +110,12 @@ for skill_dir in "${SKILLS[@]}"; do
 
   if [[ ! -f "$baseline" ]]; then
     echo "=== $name ==="
-    echo "  [baseline] created ($(echo "$cur" | grep -c .) files hashed)"
-    if [[ "$CHECK_ONLY" -ne 1 ]]; then
+    if [[ "$CHECK_ONLY" -eq 1 ]]; then
+      # --check-only 只比对不写基线：无基线即「无可比对」，应判失败而非静默通过。
+      echo "  FAIL: no integrity baseline for '$name' (run without --check-only first to create it)"
+      TOTAL_FAIL=$((TOTAL_FAIL + 1))
+    else
+      echo "  [baseline] created ($(echo "$cur" | grep -c .) files hashed)"
       echo "$cur" > "$baseline"
     fi
     continue

@@ -17,6 +17,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ENV_DIR = REPO_ROOT / "env"
 MCP_DIR = ENV_DIR / "mcp"
+OPTIONAL_MCP_DIR = ENV_DIR / "optional-mcps"
 PLATFORMS_DIR = ENV_DIR / "platforms"
 
 # ── MCP server schema ────────────────────────────────────────────────────────
@@ -46,6 +47,14 @@ def validate_mcp_file(path: Path) -> list[str]:
     srv_type = data.get("type")
     if srv_type is not None and srv_type not in MCP_VALID_TYPES:
         errors.append(f"{path.name}: invalid type '{srv_type}' (must be one of {MCP_VALID_TYPES})")
+
+    # 渲染兜底：必须有可渲染的入口——stdio 需要 command，sse 需要 url。
+    # 任意其一存在即可（type 可省略，由字段推断），但都不能缺失，否则
+    # load_all_mcp() 后平台渲染器在 cfg['command']/cfg['url'] 处 KeyError 崩溃。
+    has_command = "command" in data
+    has_url = "url" in data
+    if not has_command and not has_url:
+        errors.append(f"{path.name}: MCP definition must include 'command' (stdio) or 'url' (sse)")
 
     # Check stdio requires command
     if srv_type == "stdio" and "command" not in data:
@@ -170,14 +179,22 @@ def main() -> None:
 
     all_errors: list[str] = []
 
-    # Validate MCP files
-    if not args.platforms_only and MCP_DIR.is_dir():
-        mcp_files = sorted(MCP_DIR.glob("*.json"))
-        if not mcp_files:
-            all_errors.append("env/mcp/: no JSON files found")
-        for f in mcp_files:
-            all_errors.extend(validate_mcp_file(f))
-        print(f"Checked {len(mcp_files)} MCP file(s).")
+    # Validate MCP files (env/mcp + env/optional-mcps)
+    if not args.platforms_only:
+        mcp_dirs = [MCP_DIR]
+        if OPTIONAL_MCP_DIR.is_dir():
+            mcp_dirs.append(OPTIONAL_MCP_DIR)
+        total_mcp = 0
+        for d in mcp_dirs:
+            if not d.is_dir():
+                all_errors.append(f"{d.relative_to(REPO_ROOT)}/: no JSON files found")
+                continue
+            for f in sorted(d.glob("*.json")):
+                if d is OPTIONAL_MCP_DIR and f.name == "enabled.json":
+                    continue  # registry 文件，不是 MCP 定义
+                all_errors.extend(validate_mcp_file(f))
+                total_mcp += 1
+        print(f"Checked {total_mcp} MCP file(s) (incl. optional-mcps).")
 
     # Validate platform files
     if not args.mcp_only and PLATFORMS_DIR.is_dir():

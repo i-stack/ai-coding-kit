@@ -95,6 +95,7 @@ if $SCENARIOS; then
   run_step "S1" "Validate scenario specs" bash scripts/validate_scenario_specs.sh
   run_step "S2" "Validate internal markdown links" bash -c \
     'ruby <<'"'"'RUBY'"'"'
+root = File.expand_path(".")
 broken = 0
 Dir.glob("references/*.md").sort.each do |file|
   File.foreach(file).with_index(1) do |line, lineno|
@@ -103,6 +104,10 @@ Dir.glob("references/*.md").sort.each do |file|
       path = link.split("#", 2).first.to_s
       next if path.empty?
       full = File.expand_path(path, File.dirname(file))
+      # 跳过指向 skill 根目录之外的链接（如 ../../sibling-skill/、../../../env/）。
+      # 这些只在完整仓库布局中有效，独立 bundle 无法包含对应文件；
+      # 仅校验 bundle 内承诺存在的链接，使导入后的技能可自校验通过。
+      next unless full == root || full.start_with?(root + File::SEPARATOR)
       unless File.exist?(full)
         puts "Broken link in #{file}:#{lineno} -> #{link} (resolved: #{full})"
         broken += 1
@@ -119,6 +124,7 @@ if $LINKS; then
   echo "=== Link Validation ==="
   run_step "L1" "Validate internal markdown links" bash -c \
     'ruby <<'"'"'RUBY'"'"'
+root = File.expand_path(".")
 broken = 0
 Dir.glob("references/*.md").sort.each do |file|
   File.foreach(file).with_index(1) do |line, lineno|
@@ -127,6 +133,10 @@ Dir.glob("references/*.md").sort.each do |file|
       path = link.split("#", 2).first.to_s
       next if path.empty?
       full = File.expand_path(path, File.dirname(file))
+      # 跳过指向 skill 根目录之外的链接（如 ../../sibling-skill/、../../../env/）。
+      # 这些只在完整仓库布局中有效，独立 bundle 无法包含对应文件；
+      # 仅校验 bundle 内承诺存在的链接，使导入后的技能可自校验通过。
+      next unless full == root || full.start_with?(root + File::SEPARATOR)
       unless File.exist?(full)
         puts "Broken link in #{file}:#{lineno} -> #{link} (resolved: #{full})"
         broken += 1

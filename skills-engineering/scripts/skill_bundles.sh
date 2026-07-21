@@ -103,9 +103,32 @@ case "$cmd" in
     fi
     DEST="${OUT_DIR}/${SKILL}"
     rm -rf "$DEST"; mkdir -p "$DEST"
-    # agentskills.io 布局：SKILL.md + references/（+ 允许的 companion 文件）
+    # agentskills.io 布局：SKILL.md + 随技能分发的支持目录（references/ scripts/
+    # templates/ examples/ assets/）+ 允许的 companion 文件。scripts/ 等目录被
+    # references/*.md 以 ../scripts/... 形式引用，必须随包分发，否则导出的技能不完整。
     cp "${SRC}/SKILL.md" "$DEST/SKILL.md"
-    [ -d "${SRC}/references" ] && cp -R "${SRC}/references" "$DEST/references"
+    # 随技能分发的支持目录（被 references/ 与 scripts/ 引用，必须随包分发）。
+    # 注意：这是「允许随包分发」的白名单——新增需要在 bundle 中可用的目录时，
+    # 需在此处登记；若某 skill 不含该目录则自动跳过（不影响通用性）。
+    for subdir in references scripts templates examples assets agents; do
+      [ -d "${SRC}/${subdir}" ] && cp -R "${SRC}/${subdir}" "$DEST/${subdir}"
+    done
+    # 自校验（scripts/validate.sh --quick / --scenarios）依赖的演进工具链最小必要子集。
+    # 不复制整个 evolution/（含 490+ history 文件，会使 bundle 臃肿且含仓库内部演进历史），
+    # 仅复制运行校验所需的：active_version.json、scenarios/，并保留空的演进工作目录结构。
+    if [ -d "${SRC}/evolution" ]; then
+      mkdir -p "${DEST}/evolution"
+      [ -f "${SRC}/evolution/active_version.json" ] && cp "${SRC}/evolution/active_version.json" "${DEST}/evolution/active_version.json"
+      [ -d "${SRC}/evolution/scenarios" ] && cp -R "${SRC}/evolution/scenarios" "${DEST}/evolution/scenarios"
+      # 演进工作目录：保留空结构，避免校验/工具因目录缺失而失败。
+      # usage.jsonl 是运行时生成的用量账本，bundle 内创建空文件以满足
+      # references 中的 ../evolution/usage/usage.jsonl 链接（避免自校验断链）。
+      for wd in proposals validations approvals; do
+        mkdir -p "${DEST}/evolution/${wd}"
+      done
+      mkdir -p "${DEST}/evolution/usage"
+      : > "${DEST}/evolution/usage/usage.jsonl"
+    fi
     for extra in AGENT-BRIEF.md OUT-OF-SCOPE.md; do
       [ -f "${SRC}/${extra}" ] && cp "${SRC}/${extra}" "$DEST/${extra}"
     done
@@ -184,22 +207,40 @@ if fm["lines"] > 500:
     fail(f"SKILL.md too long: {fm['lines']} lines (>500)")
 else:
     ok(f"SKILL.md size = {fm['lines']} lines")
-# 本地引用解析
-refs_dir = os.path.join(src, "references")
+# 本地引用解析：扫描 SKILL.md + 所有 references/*.md，校验全部本地相对链接
+# （含 ../scripts/... 等非 .md 目标），链接相对「所在文件目录」解析，限定在 skill 根内。
 link_re = re.compile(r'\[([^\]]*)\]\(([^)]+)\)')
-missing = 0
+src_root = os.path.normpath(src)
+
+md_files = []
+skill_md = os.path.join(src, "SKILL.md")
+if os.path.isfile(skill_md):
+    md_files.append(skill_md)
+refs_dir = os.path.join(src, "references")
 if os.path.isdir(refs_dir):
     for rf in sorted(os.listdir(refs_dir)):
-        if not rf.endswith(".md"): continue
-        with open(os.path.join(refs_dir, rf), encoding="utf-8") as f:
-            for line in f:
-                for _, link in link_re.findall(line):
-                    if re.match(r'^(https?|mailto):', link): continue
-                    path = link.split('#',1)[0].strip()
-                    if not path: continue
-                    full = os.path.normpath(os.path.join(refs_dir, path))
-                    if full.startswith(refs_dir + os.sep) and full.endswith(".md") and not os.path.isfile(full):
-                        missing += 1; print(f"  FAIL: missing local reference in references/{rf}: {link}")
+        if rf.endswith(".md"):
+            md_files.append(os.path.join(refs_dir, rf))
+
+missing = 0
+for md in md_files:
+    base_dir = os.path.dirname(md)
+    rel_label = os.path.relpath(md, src)
+    with open(md, encoding="utf-8") as f:
+        for line in f:
+            for _, link in link_re.findall(line):
+                if re.match(r'^(https?|mailto|tel):', link): continue
+                path = link.split('#', 1)[0].strip()
+                if not path: continue          # 纯锚点（#section）跳过
+                if path.startswith("//"): continue
+                full = os.path.normpath(os.path.join(base_dir, path))
+                # 只校验解析后仍落在 skill 根目录内的本地链接
+                if full != src_root and not full.startswith(src_root + os.sep):
+                    continue
+                exists = os.path.isdir(full) if link.rstrip().endswith("/") else (os.path.isfile(full) or os.path.isdir(full))
+                if not exists:
+                    missing += 1
+                    fail(f"missing local reference in {rel_label}: {link}")
 if missing == 0:
     ok("local references resolve")
 print(f"--- {os.path.basename(src)}: {'PASS' if fails==0 else 'FAIL ('+str(fails)+')'} (agentskills.io compatible: {fails==0}) ---")
