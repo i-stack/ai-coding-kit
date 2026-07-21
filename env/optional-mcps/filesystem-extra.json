@@ -1,0 +1,9 @@
+{
+  "name": "filesystem-extra",
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-filesystem", "${filesystem_extra.root}"],
+  "env": {},
+  "platforms": ["claude", "codex", "codebuddy", "cursor", "cline", "gemini"],
+  "_comment": "可选 MCP：扩展文件系统访问。需在 env/secrets.json 增加 \"filesystem_extra\": { \"root\": \"/abs/path/allowed\" } 占位解析。enable 后同步。"
+}

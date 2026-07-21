@@ -458,3 +458,16 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all
 - `.agents/invocation.md`：触发矩阵补齐缺失的 `plan-grill` 与 `cross-model-review`，并指向 `composition.md`。
 - `cognitive-expansion` / `logical-reasoning` 及 `cognitive_expansion.md`：对 ios-engineer 的跨技能链接加"条件性"说明，消除非 iOS 环境死链风险。
 - `ios-engineer/SKILL.md`：en-US 镜像声明改为诚实的部分镜像说明（符合 GR-011）。
+
+### 3.0.2 — 2026-07-21（对标 NousResearch/hermes-agent 补充）
+
+> 分析开源库 `NousResearch/hermes-agent` 后，按优先级补入与其「受控演进」定位契合、且不与其运行时能力冲突的能力：
+
+- **P0-1 Skill 自我改进闭环**：新增 `ios-engineer/scripts/suggest_skill_proposals.sh`，读取 `summarize_usage_ledger.sh --json` 的提案候选信号，**自动生成 draft proposal**（仅 draft，不自动晋升），并用 `evolution/.auto_proposal_registry.json` 去重。对齐 Hermes 学习循环，但落在既有受控演进闸门内（观测 → 建议 → 人工审批）。
+- **P0-2 agentskills.io 兼容打包/导入/校验**：新增 `scripts/skill_bundles.sh`（`export` / `validate` / `import` / `list`），把任一 skill 打包成 agentskills.io 兼容产物（`SKILL.md` + `references/` + `bundle.json` 含 sha256），支持从社区 Skills Hub / Hermes 兼容 bundle 导入。导出产物落在 `skills-engineering/.bundles/`（已 gitignore）。
+- **P1-3 定时同步自动化**：新增 `cron/`（launchd 默认、`--cron` 可选 crontab），`run-sync.sh` 复用 `sync.sh` + 技能同步 + preamble + 校验，日志滚动保留 30 份。
+- **P1-4 可选 MCP 服务器目录**：新增 `env/optional-mcps/`（playwright 改名 `puppeteer` 避免与默认 `env/mcp/playwright.json` 冲突；另含 `filesystem-extra`、`wechat-bridge` 示例）与 `sync/optional_mcps.sh`（`enable` / `disable` / `list` / `sync`）。`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认 `env/mcp/*.json`。
+- **P1-5 跨会话用户画像**：新增仓库根 `USER.md.example` 与 `scripts/sync-user-profile.sh`，把用户画像同步到 `~/.ai-coding-kit/USER.md` 并注入各端 preamble 的 `user-profile` 托管块（与 ios-engineer 块标记独立、互不干扰）；个人 `USER.md` 已 gitignore。
+- **P2-6 多平台模型路由抽象**：新增 `sync/list_models.sh`（跨平台 model/provider 配置总览，密钥打码）与 `sync/model_routing.md`（统一 Provider 层设计说明）。
+- **P2-7 子代理并行同步**：`scripts/sync-skills.sh` 支持 `PARALLEL=1`（默认 `MAX_PARALLEL=4`），把 (skill × target) 同步以子代理式后台并行执行。
+- **P2-8 技能校验加固**：新增 `scripts/validate-skill-integrity.sh`（sha256 基线比对，发现 ADDED/MODIFIED/REMOVED；`--verify-bundle` 校验 `skill_bundles` 产物 checksum），基线落在 `skills-engineering/.integrity/`（已 gitignore）。

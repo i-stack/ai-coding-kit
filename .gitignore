@@ -23,5 +23,13 @@ docs/.vitepress/.temp/
 
 skills-engineering/ios-engineer/evolution/usage/*
 !skills-engineering/ios-engineer/evolution/usage/usage.jsonl
+# 自动生成的提案去重注册表（由 suggest_skill_proposals.sh 维护）
+skills-engineering/ios-engineer/evolution/.auto_proposal_registry.json
+# skill_bundles.sh 导出的 agentskills.io bundle 产物
+skills-engineering/.bundles/
+# 用户个人画像（从 USER.md.example 复制，不提交）
+USER.md
+# 技能完整性校验基线（由 validate-skill-integrity.sh 生成）
+skills-engineering/.integrity/
 templates/portability-ecosystem.md
 PRD/

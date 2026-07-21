@@ -150,6 +150,18 @@ python3 sync/sync_config.py --target all  # sync all (Python direct)
 python3 sync/sync_config.py --target codex  # single platform
 ```
 
+## 可选 MCP 服务器
+
+开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional-mcps/`，用 `sync/optional_mcps.sh` 按需启用：
+
+```bash
+bash sync/optional_mcps.sh list                       # 查看可选服务器与启用状态
+bash sync/optional_mcps.sh enable puppeteer           # 启用 -> 下次 sync.sh 生效
+bash sync/optional_mcps.sh disable puppeteer          # 停用
+```
+
+`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认的 `env/mcp/*.json`。详见 `env/optional-mcps/README.md`。
+
 ## Design Principles
 
 1. **One file to configure**: user only edits `env/secrets.json` — each platform has its own `{url, key/token}` object

@@ -45,6 +45,9 @@ Environment variables:
   SKILL_NAME       Sync only this skill (e.g. ios-engineer)
   SKILL_NAMES      Colon-separated list (e.g. ios-engineer:cognitive-expansion)
   SOURCE_DIR       Override source when SKILL_NAME is set (default: <repo>/<SKILL_NAME>)
+  PARALLEL         Set to 1 to sync (skill × target) pairs concurrently in the
+                   background (子代理式并行); capped by MAX_PARALLEL (default 4).
+  MAX_PARALLEL     Max concurrent sync jobs when PARALLEL=1 (default 4).
   CODEX_DEST_BASE  Default: ~/.codex/skills
   CLAUDE_DEST_BASE Default: ~/.claude/skills
   CURSOR_DEST_BASE Default: ~/.cursor/skills
@@ -188,6 +191,10 @@ sync_one_skill_to_target() {
 
 sync_all_skills() {
   local skill source_dir base
+  local jobs=0
+  local pids=()
+  local sync_failed=0
+  local max_parallel="${MAX_PARALLEL:-4}"
   for skill in "${SKILL_LIST[@]}"; do
     if [[ -n "${SKILL_NAME:-}" && -n "${SOURCE_DIR:-}" ]]; then
       source_dir="${SOURCE_DIR}"
@@ -199,9 +206,31 @@ sync_all_skills() {
       exit 1
     fi
     for base in "${DEST_BASES[@]}"; do
-      sync_one_skill_to_target "${source_dir}" "${base}/${skill}"
+      if [[ "${PARALLEL:-0}" == "1" ]]; then
+        # 子代理式并行：每个 (skill, target) 同步在后台运行，受 max_parallel 限制
+        sync_one_skill_to_target "${source_dir}" "${base}/${skill}" &
+        pids+=($!)
+        jobs=$((jobs + 1))
+        if [[ $jobs -ge $max_parallel ]]; then
+          for pid in "${pids[@]}"; do
+            wait "$pid" || sync_failed=1
+          done
+          pids=()
+          jobs=0
+        fi
+      else
+        sync_one_skill_to_target "${source_dir}" "${base}/${skill}" || sync_failed=1
+      fi
     done
   done
+  # 等待所有剩余后台同步完成，并逐个检查退出码（无参 wait 会吞掉失败）
+  for pid in "${pids[@]}"; do
+    wait "$pid" || sync_failed=1
+  done
+  if [[ $sync_failed -ne 0 ]]; then
+    echo "Error: one or more skill sync jobs failed." >&2
+    exit 1
+  fi
 }
 
 resolve_skill_list
