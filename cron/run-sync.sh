@@ -45,6 +45,7 @@ if [ -d "$SE" ]; then
   bash "${SE}/scripts/sync-skills.sh" >>"$LOG_FILE" 2>&1 && log "  sync-skills.sh OK" || log "  sync-skills.sh FAILED"
   bash "${SE}/scripts/sync-agent-preamble.sh" >>"$LOG_FILE" 2>&1 && log "  sync-agent-preamble.sh OK" || log "  sync-agent-preamble.sh FAILED"
   bash "${SE}/scripts/sync-user-profile.sh" >>"$LOG_FILE" 2>&1 && log "  sync-user-profile.sh OK" || log "  sync-user-profile.sh FAILED"
+  bash "${SE}/scripts/sync-memory.sh" >>"$LOG_FILE" 2>&1 && log "  sync-memory.sh OK" || log "  sync-memory.sh FAILED"
   bash "${SE}/scripts/verify-sync.sh" >>"$LOG_FILE" 2>&1 && log "  verify-sync.sh OK" || log "  verify-sync.sh FAILED"
 fi
 

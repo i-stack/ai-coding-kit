@@ -13,7 +13,8 @@
 #      读取该记忆；并把本脚本自复制到 ~/.ai-coding-kit/sync-memory.sh，
 #      使 Agent 在任意会话都能用稳定路径调用 remember / recall。
 #   3. `remember "..."`：追加一条带时间戳的记忆（可选 --tag 分类）
-#   4. `recall [关键词]`：打印全部记忆，或按关键词过滤
+#   4. `recall [关键词]`：打印全部记忆，或按关键词过滤（字面短语匹配：-F 固定字符串，
+#      多词按完整短语而非分词；如 `recall swift async` 搜的是字面量 "swift async"）
 #
 # 该托管块与 user-profile / ios-engineer 块标记互相独立，互不干扰。
 #
@@ -28,7 +29,6 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-KIT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 MEMORY_DIR="${HOME}/.ai-coding-kit"
 MEMORY_FILE="${MEMORY_DIR}/MEMORY.md"
 SELF_COPY="${MEMORY_DIR}/sync-memory.sh"
@@ -167,6 +167,14 @@ self_copy() {
     echo "  [dry-run] would copy self -> $SELF_COPY"
     return 0
   fi
+  # 若已运行在稳定路径上，则无需自复制（cp 会拒绝同路径复制）
+  local src dst
+  src="$(cd "$(dirname "$0")" 2>/dev/null && pwd)/$(basename "$0")"
+  dst="$(cd "$(dirname "$SELF_COPY")" 2>/dev/null && pwd)/$(basename "$SELF_COPY")"
+  if [ "$src" = "$dst" ]; then
+    echo "  self-copy skipped (already running from stable path: $SELF_COPY)"
+    return 0
+  fi
   mkdir -p "$MEMORY_DIR" || { echo "  ERROR: cannot create $MEMORY_DIR" >&2; return 1; }
   cp "$0" "$SELF_COPY" || { echo "  ERROR: cannot copy self to $SELF_COPY" >&2; return 1; }
   chmod +x "$SELF_COPY" 2>/dev/null || true
@@ -178,7 +186,7 @@ do_sync() {
     echo "Removing user-memory managed blocks from all targets..."
     for t in "${TARGETS[@]}"; do remove_block "$t"; done
     echo "Done. (MEMORY.md at $MEMORY_FILE is preserved — remove it manually if desired.)"
-    exit 0
+    return 0
   fi
   ensure_memory_file
   BLOCK="$(build_block)"
@@ -194,8 +202,7 @@ do_remember() {
     echo "Usage: sync-memory.sh remember \"<text>\" [--tag <label>]" >&2
     exit 1
   fi
-  mkdir -p "$MEMORY_DIR" || { echo "  ERROR: cannot create $MEMORY_DIR" >&2; return 1; }
-  [ -f "$MEMORY_FILE" ] || ensure_memory_file
+  ensure_memory_file
   local ts tag
   ts="$(date '+%Y-%m-%d %H:%M')"
   tag="${REMEMBER_TAG:-未分类}"
@@ -221,7 +228,7 @@ do_recall() {
   if [ ! -f "$MEMORY_FILE" ]; then
     echo "No memory file yet at $MEMORY_FILE"
     echo "Add one with: ~/.ai-coding-kit/sync-memory.sh remember \"...\""
-    exit 0
+    return 0
   fi
   if [ -n "$REMEMBER_TEXT" ]; then
     echo "=== recall matching: $REMEMBER_TEXT ==="

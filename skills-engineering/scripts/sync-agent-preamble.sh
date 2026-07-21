@@ -306,6 +306,7 @@ render_managed_block() {
   pa_dir="$(sibling_skill_dir "${skills_dir}" "problem-analysis")"
   pg_dir="$(sibling_skill_dir "${skills_dir}" "plan-grill")"
   ei_dir="$(sibling_skill_dir "${skills_dir}" "epistemic-integrity")"
+  hr_dir="$(sibling_skill_dir "${skills_dir}" "historical-recall")"
   awk -v begin="${BEGIN_MARKER}" -v end="${END_MARKER}" '
     index($0, begin) > 0 { inblock = 1; print; next }
     inblock && index($0, end) > 0 { print; exit }
@@ -317,7 +318,8 @@ render_managed_block() {
       -e "s|{{ENGINEERING_DISCIPLINE_SKILLS_DIR}}|${ed_dir}|g" \
       -e "s|{{PROBLEM_ANALYSIS_SKILLS_DIR}}|${pa_dir}|g" \
       -e "s|{{PLAN_GRILL_SKILLS_DIR}}|${pg_dir}|g" \
-      -e "s|{{EPISTEMIC_INTEGRITY_SKILLS_DIR}}|${ei_dir}|g"
+      -e "s|{{EPISTEMIC_INTEGRITY_SKILLS_DIR}}|${ei_dir}|g" \
+      -e "s|{{HISTORICAL_RECALL_SKILLS_DIR}}|${hr_dir}|g"
 }
 
 sync_target() {
