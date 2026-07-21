@@ -38,9 +38,11 @@
       ↓
 加载配置并探测 reviewer CLI
       ↓
+生成唯一 review package，并冻结 selected reviewers
+      ↓
 历史召回已由全局 historical-recall 在动手前完成（不可信线索）
       ↓
-reviewer 只读审查
+reviewer 只读审查；每轮记录 status / raw / verdict
       ├─ review-only：报告 findings → 归档 → sync/merge
       └─ review-and-fix：主 agent 修复 → 再审查（最多 3 轮）→ 归档 → sync/merge
 ```
@@ -56,6 +58,35 @@ reviewer 只读审查
 如果在后续对话中才触发，而工作区已经存在其它修改，agent 会让用户选择 staged 或 worktree。`git diff HEAD` 不能证明哪些修改属于当前对话，也不包含未跟踪文件。
 
 审查敏感文件前必须停止：`.env`、密钥、证书、Token 等内容不得传给 reviewer。
+
+## review package 与 quorum
+
+调用 reviewer 前，agent 必须生成一份唯一 review package，所有 reviewer 审同一份输入。package 至少记录：
+
+```text
+Review mode: review-only | review-and-fix
+Review scope: turn | staged | worktree
+Change intent: <本轮改动目的>
+Files:
+- <path>
+Patch source: <turn patch | git diff --cached | git diff HEAD + untracked files>
+Tests: <已运行 / 未运行 / 失败>
+Selected reviewers: <reviewer 列表>
+Expected reviewer count: <N>
+Sensitive paths excluded: <yes/no + reason>
+```
+
+每轮开始前冻结 selected reviewers。每个 reviewer 都必须在 `REVIEW-LOG.md` 中记录：
+
+```text
+Status: completed | timeout | failed | invalid-verdict
+Raw: .plan-reviews/<date>-<slug>/raw/<reviewer>-round<N>.<txt|json>
+Verdict: APPROVED | REVISE | MISSING
+```
+
+`review-and-fix` 的通过条件是：同一轮所有 selected reviewers 都完成调用、raw 文件存在、verdict 合法且全部为 `APPROVED`。任一 reviewer 缺席、超时、raw 缺失或非法 verdict，都必须判为未通过。并发运行 reviewer 是推荐效率优化，但不是通过条件；通过条件取决于 quorum 证据完整。
+
+`review-only` 只运行一轮并报告，不得输出“通过 gate”措辞；若所有 selected reviewers 都 `APPROVED`，只能写“reviewers approved, no code changes made”，不能写 gate passed。
 
 ## 配置
 
@@ -145,8 +176,8 @@ VERDICT: REVISE
 ```text
 .plan-reviews/<date>-<slug>/
 ├── QUESTION.md
-├── RESPONSE.md       # 包含 mode、scope、文件列表
-├── REVIEW-LOG.md
+├── RESPONSE.md       # 包含 mode、scope、文件列表、selected reviewers、最终状态
+├── REVIEW-LOG.md     # 包含每轮 status、raw、verdict、仲裁记录
 ├── diff.patch
 └── raw/
 ```

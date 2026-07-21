@@ -33,7 +33,7 @@ usage() {
 Usage:
   ./scripts/sync-skills.sh [options]
 
-Syncs SKILL.md + references/ for each skill under skills-engineering/ to local
+Syncs SKILL.md + references/ + i18n/ for each skill under skills-engineering/ to local
 Agent skill directories (Codex, Claude, Cursor, Xcode paths).
 
 Options:
@@ -180,6 +180,7 @@ sync_one_skill_to_target() {
     --include "/AGENT-BRIEF.md" \
     --include "/OUT-OF-SCOPE.md" \
     --include "/references/" --include "/references/**" \
+    --include "/i18n/" --include "/i18n/**" \
     --exclude "*")
   if [[ "${DRY_RUN}" == "true" ]]; then
     rsync_flags+=(--dry-run --itemize-changes)

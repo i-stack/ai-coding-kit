@@ -15,7 +15,7 @@ supported_locales: [zh-CN, en-US]
 - 未获得当前请求中的显式授权时，不得探测 reviewer CLI、调用 reviewer 或创建审查归档。
 - 运行前置依赖（不随 skill 同步包分发，需宿主环境另行提供）：`env/review.json`（模板 `env/review.json.example`）、项目内 `.auto-review-config.json`、以及 `AUTO_REVIEW_*` 环境变量。配置加载优先级与字段含义见 `AGENT-BRIEF.md` 与 `docs/auto-code-review.md`。
 
-## 八条核心规则
+## 九条核心规则
 
 - [ACR-001] **显式授权门**：只有用户明确触发本 skill 才进入审查；代码修改完成本身不是触发条件。配置只能控制能力是否可用，不能代表当前请求已授权。
 - [ACR-002] **范围可追溯**：优先审查当前请求中可精确追踪的变更；无法证明范围时，先让用户选择 staged 或 worktree，不得把 `git diff HEAD` 冒充为“本轮修改”。
@@ -25,6 +25,7 @@ supported_locales: [zh-CN, en-US]
 - [ACR-006] **授权后闭环**：显式启动后，执行 review → archive → sync → merge；历史召回已由全局 `historical-recall` 负责，本处不再内联 recall。归档写入 `.plan-reviews/`，且仅属于已授权的审查会话。
 - [ACR-007] **可配置 reviewer**：允许配置 reviewer、轮次和单模型降级；`AUTO_REVIEW_ENABLED=false` 是能力级禁用开关，`true` 不构成用户授权。
 - [ACR-008] **单模型降级需显式允许**：默认不做同模型自审；只有配置明确允许时才降级，并在日志中标注可信度降低。
+- [ACR-009] **执行包与 quorum 证明**：调用 reviewer 前必须生成同一份 review package；每轮必须记录 selected reviewers、Expected reviewer count、raw 输出路径、合法 verdict 和通过/未通过原因。只有同一轮所有 selected reviewers 都输出合法 `VERDICT: APPROVED` 才能通过；缺失 reviewer、缺失 raw、超时或非法 verdict 一律按未通过处理。`review-only` 模式不得声明 gate 已通过，只能报告 reviewers approved, no code changes made。
 
 ## 模式
 
@@ -45,7 +46,7 @@ supported_locales: [zh-CN, en-US]
 ## 工作流
 
 ```text
-实施完成 → 用户显式触发 → 选择范围/模式 → reviewer 只读审查
-                                      ├─ review-only：报告并归档
-                                      └─ review-and-fix：修复 → 再审查 → 归档
+实施完成 → 用户显式触发 → 选择范围/模式 → 生成唯一 review package 并冻结 selected reviewers → reviewer 只读审查
+                                                                                    ├─ review-only：报告并归档（不声明 gate 通过）
+                                                                                    └─ review-and-fix：修复 → 再审查 → 归档
 ```
