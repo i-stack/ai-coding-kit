@@ -219,7 +219,8 @@ sync_all_skills() {
           jobs=0
         fi
       else
-        sync_one_skill_to_target "${source_dir}" "${base}/${skill}" || sync_failed=1
+        # 非并行模式：保留 set -e 的「首次失败即中止」语义
+        sync_one_skill_to_target "${source_dir}" "${base}/${skill}"
       fi
     done
   done
