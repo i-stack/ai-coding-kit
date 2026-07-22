@@ -311,6 +311,51 @@ def _repo_root() -> Path:
     return here.parents[2]
 
 
+def _api_enabled(cfg: dict[str, Any]) -> bool:
+    """Continue third-party API sync toggle.
+
+    Missing ``api`` or missing ``api.enabled`` defaults to enabled, preserving
+    the historical always-sync behavior for the managed ``models`` block. Only
+    an explicit ``false`` disables synced API model fields.
+    """
+    api = cfg.get("api")
+    if not isinstance(api, dict):
+        return True
+    return api.get("enabled", True) is True
+
+
+def _remove_yaml_root_key(yaml_text: str, key_name: str) -> str:
+    """Remove a top-level key (and its nested block) from YAML text.
+
+    Ownership-aware cleanup: Continue's syncer owns the entire ``models`` block
+    (it is replaced wholesale on each sync), so disabling API sync removes the
+    key rather than leaving a stale managed block behind.
+    """
+    lines = yaml_text.splitlines()
+    new_lines: list[str] = []
+    in_key = False
+    for line in lines:
+        stripped = line.strip()
+        is_empty_or_comment = not stripped or stripped.startswith("#")
+        is_root_key = False
+        if not is_empty_or_comment and not line.startswith(" "):
+            if ":" in line:
+                is_root_key = True
+        if is_root_key:
+            if in_key:
+                in_key = False
+            curr_key = line.split(":", 1)[0].strip()
+            if curr_key == key_name:
+                in_key = True
+                continue
+        if in_key:
+            continue
+        new_lines.append(line)
+    while new_lines and new_lines[-1].strip() == "":
+        new_lines.pop()
+    return "\n".join(new_lines) + "\n" if new_lines else ""
+
+
 def _sync_recall(cfg: dict[str, Any], yaml_text: str) -> str:
     """Merge the historical-recall managed block into config.yaml `rules`.
 
@@ -384,9 +429,16 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
 
     yaml_text = update_yaml_root_key(yaml_text, "mcpServers", new_mcp_yaml)
 
-    # 2. Sync models (only if present in configuration)
+    # 2. Sync models (API-sync fields, gated by api.enabled)
+    #    Continue's syncer owns the entire `models` root key (replaced wholesale
+    #    on each sync), so disabling API sync removes the managed block instead
+    #    of leaving stale model definitions behind.
     models = cfg.get("models")
-    if models is not None:
+    api_enabled = _api_enabled(cfg)
+    if not api_enabled:
+        yaml_text = _remove_yaml_root_key(yaml_text, "models")
+        print("[continue] API sync disabled — removed managed 'models' block from config.")
+    elif models is not None:
         if not isinstance(models, list):
             print("[warn] platforms.continue.models must be a list. Skipping model sync.")
         else:

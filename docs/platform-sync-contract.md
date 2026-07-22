@@ -390,6 +390,132 @@ Answers to the platform-addition questions:
     settings-fields merge/cleanup, `$version` preservation, models.json not
     managed, idempotent re-sync, and re-enable-restore.
 
+## Continue Reference
+
+Continue is a platform with an explicit `api.enabled` toggle.
+
+`env/platforms/continue.json` should stay close to:
+
+```json
+{
+  "_comment": "Continue platform configuration. The 'models' block in config.yaml is synced as a third-party API definition by default; set api.enabled=false to disable API sync and remove the managed 'models' block. MCP servers and the historical-recall preamble are independent of API sync and always sync.",
+  "api": {
+    "enabled": true
+  },
+  "path": "~/.continue/config.yaml",
+  "models": [
+    {
+      "name": "deepseek-v4-pro",
+      "provider": "openai",
+      "model": "deepseek-v4-pro",
+      "apiKey": "${continue.key}",
+      "apiBase": "${continue.url}",
+      "defaultCompletionOptions": {
+        "maxTokens": 128000
+      }
+    }
+  ],
+  "preamble": {
+    "mode": "recall",
+    "tool": "continue",
+    "format": "yaml"
+  }
+}
+```
+
+Answers to the platform-addition questions:
+
+1. Target files: `~/.continue/config.yaml` (`models` + `mcpServers` + the
+   `rules` managed block for global historical recall).
+2. API sync fields: `models` inside `~/.continue/config.yaml`.
+3. Default for `api.enabled`: `true`. Continue historically always synced its
+   model definition, so a missing `api` block or missing `api.enabled` keeps the
+   old always-sync behavior. Only an explicit `false` disables it.
+4. Owned target fields: `~/.continue/config.yaml` → `models` (gated by
+   `api.enabled`); `mcpServers` (always synced); the managed `rules` recall
+   block (preamble, always synced).
+5. Cleanup when `api.enabled=false`: the entire syncer-owned `models` root key
+   is removed from `config.yaml` (Continue replaces the block wholesale on each
+   sync, so removal is deterministic and re-enable restores it).
+6. Unrelated user fields preserved: any top-level key other than `models` in
+   `config.yaml` (e.g. `name`, `version`, `contextProviders`,
+   `slashCommands`, user `mcpServers`), and user `rules` entries outside the
+   managed recall block.
+7. MCP servers are independent of API sync — they still sync when `api.enabled=false`.
+8. Skills / preamble are independent of API sync — they still sync when
+   `api.enabled=false`. Continue has no standalone preamble markdown file; the
+   recall block is injected into `config.yaml` `rules` (preamble.format=yaml,
+   target=None by design), so a missing `preamble.target` is intentional.
+9. No login-bypass field like Claude `primaryApiKey=self`.
+10. Tests live in `tests/test_continue_sync.py` and cover enable-by-default,
+    disable-removes-models, user-field preservation, idempotent re-sync, and
+    re-enable-restore.
+
+## Cline Reference
+
+Cline is the fourth platform with an explicit `api.enabled` toggle.
+
+`env/platforms/cline.json` should stay close to:
+
+```json
+{
+  "api": {
+    "enabled": true
+  },
+  "globalState": {
+    "openAiBaseUrl": "${cline.url}",
+    "planModeOpenAiModelId": "deepseek-ai/deepseek-v4-pro",
+    "actModeOpenAiModelId": "deepseek-ai/deepseek-v4-flash"
+  },
+  "secrets": {
+    "openAiApiKey": "${cline.key}"
+  },
+  "preamble": {
+    "target": "rules/ai-coding-kit-recall.md",
+    "mode": "recall",
+    "tool": "cline"
+  }
+}
+```
+
+Answers to the platform-addition questions:
+
+1. Target files: `~/.cline/data/globalState.json` (`globalState` keys),
+   `~/.cline/data/secrets.json` (`secrets` keys), the MCP candidate paths
+   under `~/Library/Application Support/<editor>/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+   (MCP), `~/.cline/skills/` (skills copied from Claude), and the recall
+   preamble `rules/ai-coding-kit-recall.md` (rendered by the Bash
+   `sync-agent-preamble.sh`, not by the Python sync — the Python `cline.py`
+   does not touch the preamble file).
+2. API sync fields: `globalState` and `secrets` inside `~/.cline/data/`.
+3. Default for `api.enabled`: `true`. Cline historically always merged its
+   globalState + secrets, so a missing `api` block or missing `api.enabled`
+   keeps the old always-sync behavior. Only an explicit `false` disables it.
+4. Owned target fields: `~/.cline/data/globalState.json` → the keys declared
+   under `globalState` (gated by `api.enabled`); `~/.cline/data/secrets.json`
+   → the keys declared under `secrets` (gated by `api.enabled`). The set of
+   owned keys is tracked in a managed-keys sidecar
+   (`~/.cline/data/.managed_keys.json`) so a key dropped from the config, or
+   all keys on disable, are pruned on the next sync.
+5. Cleanup when `api.enabled=false`: every key the syncer currently owns
+   (per the sidecar) is removed from `globalState.json` and `secrets.json`,
+   and the sidecar record is cleared so re-enabling re-merges cleanly.
+   Existing unrelated keys and user-added keys are left intact.
+6. Unrelated user fields preserved: any other key in `globalState.json`
+   (e.g. telemetry, welcome state), any other key in `secrets.json` (e.g.
+   `anthropicApiKey` for other providers), user-added MCP servers, and user
+   content outside the managed block in the preamble file.
+7. MCP servers are independent of API sync — they still sync when
+   `api.enabled=false`.
+8. Skills / preamble are independent of API sync — they still sync when
+   `api.enabled=false` (preamble is rendered by the Bash writer, not the
+   Python sync).
+9. No login-bypass field like Claude `primaryApiKey=self`; Cline's secret key
+   is a user-provided `openAiApiKey`, never synthesized by the syncer.
+10. Tests live in `tests/test_cline_sync.py` and cover enable-by-default,
+    disable-cleans, idempotent re-sync, user-field preservation,
+    re-enable-restore, and unresolved-placeholder-skip.
+
 ## Cleanup Policy
 
 When removing a previously managed feature, prefer deletion over comments.
