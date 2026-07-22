@@ -272,7 +272,10 @@ Answers to the platform-addition questions:
 
 ## Qwen Reference
 
-Qwen Code is a platform that mirrors CodeBuddy's model-sync approach.
+Qwen Code is a platform that mirrors `~/.qwen/settings.json`. `env/platforms/qwen.json`
+flattens the synced fields to the top level (no `settings` wrapper) so its
+structure matches `~/.qwen/settings.json` exactly; model definitions live in
+`~/.qwen/models.json`, which Qwen owns and this syncer does **not** manage.
 
 `env/platforms/qwen.json` should stay close to:
 
@@ -281,49 +284,55 @@ Qwen Code is a platform that mirrors CodeBuddy's model-sync approach.
   "api": {
     "enabled": true
   },
+  "security": {
+    "auth": {
+      "selectedType": "openai"
+    }
+  },
   "env": {
     "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}"
   },
-  "models": [
-    {
-      "id": "qwen3-coder-plus",
-      "name": "Qwen3 Coder Plus",
-      "vendor": "qwen",
-      "url": "${qwen.url}",
-      "apiKey": "${qwen.dashscopeApiKey}",
-      "maxInputTokens": 262144,
-      "maxOutputTokens": 8192,
-      "supportsToolCall": true,
-      "supportsImages": false
-    },
-    {
-      "id": "qwen3-coder",
-      "name": "Qwen3 Coder",
-      "vendor": "qwen",
-      "url": "${qwen.url}",
-      "apiKey": "${qwen.dashscopeApiKey}",
-      "maxInputTokens": 262144,
-      "maxOutputTokens": 8192,
-      "supportsToolCall": true,
-      "supportsImages": false
-    },
-    {
-      "id": "qwen-max",
-      "name": "Qwen Max",
-      "vendor": "qwen",
-      "url": "${qwen.url}",
-      "apiKey": "${qwen.dashscopeApiKey}",
-      "maxInputTokens": 131072,
-      "maxOutputTokens": 8192,
-      "supportsToolCall": true,
-      "supportsImages": true
-    }
-  ],
-  "availableModels": [
-    "qwen3-coder-plus",
-    "qwen3-coder",
-    "qwen-max"
-  ],
+  "modelProviders": {
+    "openai": [
+      {
+        "id": "qwen3-coder-plus",
+        "name": "Qwen3 Coder Plus",
+        "baseUrl": "${qwen.url}",
+        "envKey": "DASHSCOPE_API_KEY",
+        "generationConfig": {
+          "extra_body": {
+            "enable_thinking": true
+          }
+        }
+      },
+      {
+        "id": "qwen3-coder",
+        "name": "Qwen3 Coder",
+        "baseUrl": "${qwen.url}",
+        "envKey": "DASHSCOPE_API_KEY",
+        "generationConfig": {
+          "extra_body": {
+            "enable_thinking": true
+          }
+        }
+      },
+      {
+        "id": "qwen-max",
+        "name": "Qwen Max",
+        "baseUrl": "${qwen.url}",
+        "envKey": "DASHSCOPE_API_KEY",
+        "generationConfig": {
+          "extra_body": {
+            "enable_thinking": true
+          }
+        }
+      }
+    ]
+  },
+  "model": {
+    "name": "qwen3-coder-plus",
+    "baseUrl": "${qwen.url}"
+  },
   "preamble": {
     "target": "QWEN.md",
     "mode": "recall",
@@ -334,37 +343,42 @@ Qwen Code is a platform that mirrors CodeBuddy's model-sync approach.
 
 Answers to the platform-addition questions:
 
-1. Target files: `~/.qwen/models.json` (`models` + `availableModels`),
-   `~/.qwen/settings.json` (API `env` keys declared in `env/platforms/qwen.json`),
-   `~/.qwen/skills/` (skills copied from Claude),
-   `~/.qwen/QWEN.md` (recall preamble — declared under `preamble`, rendered by
-   the same managed-block mechanism as the other recall platforms).
-2. API sync fields: `env` (e.g. `DASHSCOPE_API_KEY`) inside `~/.qwen/settings.json`,
-   and `models` + `availableModels` inside `~/.qwen/models.json`.
+1. Target files: `~/.qwen/settings.json` (`env` keys + the top-level managed
+   fields `security`, `modelProviders`, `model`), `~/.qwen/skills/` (skills
+   copied from Claude), `~/.qwen/QWEN.md` (recall preamble — declared under
+   `preamble`, rendered by the same managed-block mechanism as the other
+   recall platforms). `~/.qwen/models.json` is **not** a sync target — Qwen
+   owns it directly.
+2. API sync fields: `env` (e.g. `DASHSCOPE_API_KEY`) and the owned top-level
+   fields `security` / `modelProviders` / `model` inside `~/.qwen/settings.json`.
 3. Default for `api.enabled`: `true`. Qwen historically always synced its API
    fields, so a missing `api` block or missing `api.enabled` keeps the old
    always-sync behavior. Only an explicit `false` disables it.
-4. Owned target fields: `~/.qwen/settings.json` → `env` (gated by `api.enabled`);
-   `~/.qwen/models.json` → `models`, `availableModels` (both gated by
-   `api.enabled`); synced skill directories.
-5. Cleanup when `api.enabled=false`: set `availableModels` to an empty list `[]`
-   (CodeBuddy special handling — provider model definitions stay so they can be
-   re-enabled, but nothing is shown in the model picker); remove only the
-   syncer-managed `env` keys from `~/.qwen/settings.json`; config-managed
-   `models` are NOT merged while disabled (existing model definitions are
-   neither synced nor deleted).
-6. Unrelated user fields preserved: any top-level key other than
-   `models`/`availableModels` in `models.json` (e.g. `meta`, `uiPreference`),
-   user-added model entries, user `env` keys in `settings.json`, and user
-   content outside the managed block in `QWEN.md`.
+4. Owned target fields: `~/.qwen/settings.json` → `env` (gated by `api.enabled`),
+   `security`, `modelProviders`, `model` (the last three gated by `api.enabled`);
+   synced skill directories.
+5. Cleanup when `api.enabled=false`: remove only the syncer-managed `env` keys
+   from `~/.qwen/settings.json`; remove the managed top-level fields
+   (`security`, `modelProviders` entries by `id`, and `model`)
+   ownership-aware. Model definitions are not touched (this syncer never writes
+   `models.json`).
+6. Unrelated user fields preserved: `~/.qwen/settings.json` → `$version` and any
+   other top-level key (e.g. user `modelProviders` entries not in config, user
+   `env` keys, user `security` keys outside the managed block); user content
+   outside the managed block in `QWEN.md`. `~/.qwen/models.json` is left fully
+   intact since it is not a sync target.
 7. MCP servers: `sync/platforms/qwen.py` currently ignores `mcp_servers` (Qwen
    Code's MCP wiring is not yet driven by `env/mcp/*.json`).
 8. Skills / preamble are independent of API sync — they still sync when
    `api.enabled=false`.
 9. No login-bypass field like Claude `primaryApiKey=self`.
-10. Tests live in `tests/test_qwen_sync.py` and cover enable-by-default,
-    disable-empty, user-model preservation, idempotent re-sync, and
-    re-enable-restore.
+10. `$version` is a Qwen-internal marker (`"$version": 4` in the real
+    `~/.qwen/settings.json`) and is **never** written or overwritten by the
+    syncer — every write reads the existing file and merges only owned keys, so
+    `$version` (and any other user key) survives untouched.
+11. Tests live in `tests/test_qwen_sync.py` and cover enable-by-default,
+    settings-fields merge/cleanup, `$version` preservation, models.json not
+    managed, idempotent re-sync, and re-enable-restore.
 
 ## Cleanup Policy
 

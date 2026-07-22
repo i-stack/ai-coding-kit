@@ -121,6 +121,8 @@ PLATFORM_FIELDS = {
     },
     # CodeBuddy-specific
     "codebuddy": {"models", "availableModels"},
+    # Qwen-specific
+    "qwen": {"security", "modelProviders", "model"},
     # Continue-specific
     "continue": {"models", "path", "recall"},
     # Gemini-specific

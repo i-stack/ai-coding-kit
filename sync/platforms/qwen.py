@@ -1,14 +1,21 @@
 """Sync engine for Qwen Code platform.
 
-Writes DASHSCOPE_API_KEY into ~/.qwen/settings.json env, syncs model
-definitions (``models`` + ``availableModels``) into ~/.qwen/models.json, and
-copies skills from ~/.claude/skills/ to ~/.qwen/skills/.
+Mirrors ``~/.qwen/settings.json``: writes the managed top-level fields
+``security`` / ``modelProviders`` / ``model`` and ``env`` into
+``~/.qwen/settings.json``, and copies skills from ``~/.claude/skills/`` to
+``~/.qwen/skills/``.
 
-Model sync mirrors CodeBuddy: API model fields are gated by ``api.enabled``
-(missing ``api`` block defaults to enabled). When ``api.enabled=false``, the
-managed ``availableModels`` list is set to ``[]`` (CodeBuddy special handling —
-provider model definitions stay so they can be re-enabled, but nothing is shown
-in the model picker) while ``models`` is not merged.
+Model definitions (``~/.qwen/models.json``) are **not** managed by this syncer
+— Qwen owns that file directly.
+
+API fields are gated by ``api.enabled`` (missing ``api`` block defaults to
+enabled). When ``api.enabled=false``:
+- the managed ``env`` key is removed;
+- the managed ``security`` / ``modelProviders`` / ``model`` fields are removed
+  (ownership-aware — ``modelProviders`` entries are merged/cleaned per ``id``).
+
+``$version`` is a Qwen-internal marker and is **never** written or overwritten
+by the syncer — every write reads the existing file and merges only owned keys.
 """
 import shutil
 from typing import Any
@@ -16,11 +23,13 @@ from typing import Any
 from core.common import read_json_object, write_json
 from core.paths import (
     claude_skills_base,
-    qwen_models_path,
     qwen_root_dir,
     qwen_settings_json_path,
     qwen_skills_base,
 )
+
+# Top-level qwen.json keys that map into ~/.qwen/settings.json.
+SETTINGS_KEYS = ("security", "modelProviders", "model")
 
 
 def _api_enabled(cfg: dict[str, Any]) -> bool:
@@ -29,7 +38,7 @@ def _api_enabled(cfg: dict[str, Any]) -> bool:
     Like Claude and CodeBuddy, a missing ``api`` block or missing
     ``api.enabled`` defaults to enabled so the historical always-sync behavior
     is preserved. Only an explicit ``false`` disables synced API fields
-    (``env`` and model definitions).
+    (``env`` and the ``security`` / ``modelProviders`` / ``model`` fields).
     """
     api = cfg.get("api")
     if not isinstance(api, dict):
@@ -37,35 +46,10 @@ def _api_enabled(cfg: dict[str, Any]) -> bool:
     return api.get("enabled", True) is True
 
 
-def _validate_model_entries(value: Any) -> list[dict[str, Any]]:
-    if not isinstance(value, list):
-        raise ValueError("platforms.qwen.models must be a list.")
-
-    for index, entry in enumerate(value):
-        if not isinstance(entry, dict):
-            raise ValueError(f"platforms.qwen.models[{index}] must be an object.")
-        model_id = entry.get("id")
-        if not isinstance(model_id, str) or not model_id:
-            raise ValueError(f"platforms.qwen.models[{index}].id must be a non-empty string.")
-    return value
-
-
-def _validate_available_models(value: Any) -> list[str]:
-    if not isinstance(value, list):
-        raise ValueError("platforms.qwen.availableModels must be a list.")
-
-    for index, model_id in enumerate(value):
-        if not isinstance(model_id, str) or not model_id:
-            raise ValueError(
-                f"platforms.qwen.availableModels[{index}] must be a non-empty string."
-            )
-    return value
-
-
 def _merge_model_entries(
     existing_entries: list[Any], config_entries: list[dict[str, Any]]
 ) -> list[Any]:
-    """Merge config-managed model entries into existing entries by id.
+    """Merge config-managed model-provider entries into existing entries by id.
 
     - Config-managed entries (identified by ``id``) appear first in config order.
     - Existing entries with the same id are silently updated (config wins).
@@ -95,7 +79,7 @@ def _merge_model_entries(
         if mid not in config_by_id:
             result.append(m)
 
-    # Trailing non-standard entries
+    # Trailing nonstandard entries
     for m in existing_entries:
         if not isinstance(m, dict) or "id" not in m:
             result.append(m)
@@ -103,28 +87,90 @@ def _merge_model_entries(
     return result
 
 
-def _merge_available_models(
-    existing_available: list[Any], config_available: list[Any]
-) -> list[Any]:
-    """Merge config-managed availableModels with user-added entries.
+def _merge_settings_block(existing: dict[str, Any], config_block: dict[str, Any]) -> dict[str, Any]:
+    """Deep-merge the managed settings fields into existing settings.json.
 
-    - Config-managed IDs appear first and replace any existing duplicates.
-    - User-added IDs not in the config are preserved after config entries.
+    - ``modelProviders`` is merged per-provider-type by entry ``id`` (config
+      wins; user entries preserved).
+    - ``security`` and ``model`` are owned by the config (replaced wholesale).
+    - ``$version`` and any other existing top-level key are preserved.
     """
-    if not config_available:
-        return existing_available
+    result = dict(existing)
 
-    config_ids = set(config_available)
-    # User-added IDs not managed by our config
-    user_ids = [m for m in existing_available if m not in config_ids]
-    return list(config_available) + user_ids
+    for key, value in config_block.items():
+        if key == "$version":
+            # Qwen-internal marker — never managed by the syncer.
+            continue
+        if key == "modelProviders" and isinstance(value, dict):
+            existing_mp = existing.get("modelProviders")
+            if not isinstance(existing_mp, dict):
+                existing_mp = {}
+            new_mp = dict(existing_mp)
+            for provider, entries in value.items():
+                if not isinstance(entries, list):
+                    continue
+                existing_entries = existing_mp.get(provider)
+                if not isinstance(existing_entries, list):
+                    existing_entries = []
+                new_mp[provider] = _merge_model_entries(existing_entries, entries)
+            result["modelProviders"] = new_mp
+        else:
+            result[key] = value
+
+    return result
+
+
+def _clean_settings_block(existing: dict[str, Any], config_block: dict[str, Any]) -> bool:
+    """Ownership-aware removal of managed settings fields.
+
+    Returns True when any managed field was actually removed. ``$version`` and
+    unrelated user keys are never touched.
+    """
+    removed = False
+
+    mp = existing.get("modelProviders")
+    config_mp = config_block.get("modelProviders")
+    if isinstance(mp, dict) and isinstance(config_mp, dict):
+        new_mp: dict[str, Any] = {}
+        for provider, entries in mp.items():
+            if not isinstance(entries, list):
+                new_mp[provider] = entries
+                continue
+            config_ids = {
+                e["id"]
+                for e in config_mp.get(provider, [])
+                if isinstance(e, dict) and "id" in e
+            }
+            kept = [
+                e
+                for e in entries
+                if not (isinstance(e, dict) and e.get("id") in config_ids)
+            ]
+            if kept:
+                new_mp[provider] = kept
+            else:
+                removed = True  # provider fully removed
+        if new_mp != mp:
+            removed = True
+        if new_mp:
+            existing["modelProviders"] = new_mp
+        else:
+            existing.pop("modelProviders", None)
+
+    for key in ("model", "security"):
+        if key in config_block and key in existing:
+            del existing[key]
+            removed = True
+
+    return removed
 
 
 def _sync_env(env: dict[str, Any], api_enabled: bool) -> None:
     """Merge or clean managed env vars in ~/.qwen/settings.json.
 
     When ``api_enabled`` is true, the env keys declared in the platform config
-    are merged into the settings ``env`` object; other keys are preserved.
+    are merged into the settings ``env`` object; other keys (including
+    ``$version``) are preserved.
 
     When ``api_enabled`` is false, only the env keys the syncer manages are
     removed (ownership-aware cleanup) — never unrelated user keys.
@@ -167,56 +213,36 @@ def _sync_env(env: dict[str, Any], api_enabled: bool) -> None:
         print("[qwen] API sync disabled — no managed env keys to clean.")
 
 
-def _sync_models(cfg: dict[str, Any]) -> None:
-    api_enabled = _api_enabled(cfg)
-    models = cfg.get("models")
-    available_models = cfg.get("availableModels")
-    models_path = qwen_models_path()
+def _sync_settings_block(cfg: dict[str, Any], api_enabled: bool) -> None:
+    """Merge or clean the managed settings fields in ~/.qwen/settings.json.
 
-    # No model config at all: clean up any previously synced managed keys.
-    if models is None and available_models is None:
-        existing = read_json_object(models_path)
-        removed = False
-        for key in ("models", "availableModels"):
-            if key in existing:
-                existing.pop(key, None)
-                removed = True
-        if removed:
-            write_json(models_path, existing)
-            print(f"[qwen] Removed managed models config from {models_path} (model config absent).")
-        else:
-            print("[qwen] No models config found — skipping model sync.")
+    The fields (``security`` / ``modelProviders`` / ``model``) are owned by the
+    config and gated by ``api.enabled``. ``$version`` is always preserved.
+
+    When ``api_enabled`` is false, the managed fields are removed (ownership-
+    aware) so the provider config no longer drives Qwen; re-enabling restores
+    them.
+    """
+    settings_block = {k: cfg[k] for k in SETTINGS_KEYS if k in cfg}
+    if not settings_block:
+        # No managed settings fields: nothing to merge or clean.
         return
 
-    existing = read_json_object(models_path)
+    path = qwen_settings_json_path()
+    existing = read_json_object(path)
 
-    # API sync disabled: do not sync API fields. CodeBuddy special handling —
-    # empty availableModels (key preserved) rather than removing it, so synced
-    # models are disabled from selection without dropping provider definitions.
-    # Config-managed model definitions are left untouched (not synced, not
-    # removed); "do not sync" means we skip merging, not that we delete.
-    if not api_enabled:
-        existing["availableModels"] = []
-        write_json(models_path, existing)
-        print(f"[qwen] API sync disabled — availableModels cleared in {models_path}.")
+    if api_enabled:
+        merged = _merge_settings_block(existing, settings_block)
+        write_json(path, merged)
+        print(f"[qwen] Synced settings to {path} (security/modelProviders/model).")
         return
 
-    if models is not None:
-        models = _validate_model_entries(models)
-        existing_entries = existing.get("models")
-        if not isinstance(existing_entries, list):
-            existing_entries = []
-        existing["models"] = _merge_model_entries(existing_entries, models)
-
-    if available_models is not None:
-        available_models = _validate_available_models(available_models)
-        existing_avail = existing.get("availableModels")
-        if not isinstance(existing_avail, list):
-            existing_avail = []
-        existing["availableModels"] = _merge_available_models(existing_avail, available_models)
-
-    write_json(models_path, existing)
-    print(f"Merged models into {models_path}.")
+    # API sync disabled: remove only the managed settings fields.
+    if _clean_settings_block(existing, settings_block):
+        write_json(path, existing)
+        print(f"[qwen] API sync disabled — removed managed settings fields from {path}.")
+    else:
+        print("[qwen] API sync disabled — no managed settings fields to clean.")
 
 
 def _sync_skills() -> None:
@@ -243,10 +269,12 @@ def _sync_skills() -> None:
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
-    """Sync env vars, model definitions, and skills to Qwen Code.
+    """Sync env vars, settings fields, and skills to Qwen Code.
 
     Qwen Code does not use MCP servers in the same way as other
-    platforms — the mcp_servers parameter is accepted but ignored.
+    platforms — the mcp_servers parameter is accepted but ignored. Model
+    definitions (``~/.qwen/models.json``) are owned by Qwen itself and are not
+    synced by this engine.
     """
     root = qwen_root_dir()
     if not root.exists():
@@ -255,5 +283,5 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
 
     api_enabled = _api_enabled(cfg)
     _sync_env(cfg.get("env", {}), api_enabled)
-    _sync_models(cfg)
+    _sync_settings_block(cfg, api_enabled)
     _sync_skills()

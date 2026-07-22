@@ -5,7 +5,6 @@ import os
 import sys
 import tempfile
 import unittest
-from collections.abc import Mapping
 from pathlib import Path
 
 
@@ -19,51 +18,67 @@ from platforms import qwen as qwen_mod  # noqa: E402
 from core import common  # noqa: E402
 
 
-DEFAULT_QWEN_CFG = {
-    "env": {
-        "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}",
+SECURITY = {
+    "auth": {
+        "selectedType": "openai",
     },
-    "models": [
+}
+MODEL_PROVIDERS = {
+    "openai": [
         {
             "id": "qwen3-coder-plus",
             "name": "Qwen3 Coder Plus",
-            "vendor": "qwen",
-            "url": "${qwen.url}",
-            "apiKey": "${qwen.dashscopeApiKey}",
-            "maxInputTokens": 262144,
-            "maxOutputTokens": 8192,
-            "supportsToolCall": True,
-            "supportsImages": False,
+            "baseUrl": "${qwen.url}",
+            "envKey": "DASHSCOPE_API_KEY",
+            "generationConfig": {"extra_body": {"enable_thinking": True}},
         },
         {
             "id": "qwen3-coder",
             "name": "Qwen3 Coder",
-            "vendor": "qwen",
-            "url": "${qwen.url}",
-            "apiKey": "${qwen.dashscopeApiKey}",
-            "maxInputTokens": 262144,
-            "maxOutputTokens": 8192,
-            "supportsToolCall": True,
-            "supportsImages": False,
+            "baseUrl": "${qwen.url}",
+            "envKey": "DASHSCOPE_API_KEY",
+            "generationConfig": {"extra_body": {"enable_thinking": True}},
         },
         {
             "id": "qwen-max",
             "name": "Qwen Max",
-            "vendor": "qwen",
-            "url": "${qwen.url}",
-            "apiKey": "${qwen.dashscopeApiKey}",
-            "maxInputTokens": 131072,
-            "maxOutputTokens": 8192,
-            "supportsToolCall": True,
-            "supportsImages": True,
+            "baseUrl": "${qwen.url}",
+            "envKey": "DASHSCOPE_API_KEY",
+            "generationConfig": {"extra_body": {"enable_thinking": True}},
         },
     ],
-    "availableModels": [
-        "qwen3-coder-plus",
-        "qwen3-coder",
-        "qwen-max",
-    ],
 }
+MODEL = {
+    "name": "qwen3-coder-plus",
+    "baseUrl": "${qwen.url}",
+}
+
+DEFAULT_QWEN_CFG = {
+    "api": {"enabled": True},
+    "security": SECURITY,
+    "env": {
+        "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}",
+    },
+    "modelProviders": MODEL_PROVIDERS,
+    "model": MODEL,
+    "preamble": {
+        "target": "QWEN.md",
+        "mode": "recall",
+        "tool": "qwen",
+    },
+}
+
+# Top-level keys that map into ~/.qwen/settings.json.
+SETTINGS_KEYS = ("security", "modelProviders", "model")
+
+
+def _disabled_cfg(base: dict | None = None) -> dict:
+    """Build a config with managed fields but api.enabled=false."""
+    base = base if base is not None else DEFAULT_QWEN_CFG
+    cfg = {k: base[k] for k in SETTINGS_KEYS}
+    cfg["env"] = base["env"]
+    cfg["api"] = {"enabled": False}
+    return cfg
 
 
 @contextlib.contextmanager
@@ -140,17 +155,6 @@ class QwenSyncTests(unittest.TestCase):
             "models": self._read_json(self.root / "home" / ".qwen" / "models.json"),
         }
 
-    def assert_nested_equal(self, data: Mapping, expected: Mapping, path: str) -> None:
-        for key, expected_value in expected.items():
-            current_path = f"{path}.{key}"
-            self.assertIn(key, data, current_path)
-            actual_value = data[key]
-            if isinstance(expected_value, Mapping):
-                self.assertIsInstance(actual_value, Mapping, current_path)
-                self.assert_nested_equal(actual_value, expected_value, current_path)
-            else:
-                self.assertEqual(actual_value, expected_value, current_path)
-
     # ── Env sync ──────────────────────────────────────────────────────────────
 
     def test_env_synced_to_settings_json(self) -> None:
@@ -176,125 +180,228 @@ class QwenSyncTests(unittest.TestCase):
         self.assertEqual(result["settings"]["env"]["DASHSCOPE_API_KEY"], "sk-test-qwen")
         self.assertEqual(result["settings"]["env"]["USER_VAR"], "should-stay")
 
-    # ── Models sync ───────────────────────────────────────────────────────────
+    # ── Settings fields sync ─────────────────────────────────────────────────
 
-    def test_models_synced_to_models_json(self) -> None:
+    def test_settings_fields_synced_to_settings_json(self) -> None:
+        """The managed top-level fields (security/modelProviders/model) are written."""
         result = self._run_qwen_sync()
 
-        self.assertIn("models", result["models"])
-        self.assertEqual(len(result["models"]["models"]), 3)
-        self.assertEqual(result["models"]["models"][0]["id"], "qwen3-coder-plus")
-        self.assertEqual(result["models"]["models"][0]["name"], "Qwen3 Coder Plus")
-        self.assertEqual(result["models"]["models"][0]["vendor"], "qwen")
+        settings = result["settings"]
+        self.assertEqual(settings["security"]["auth"]["selectedType"], "openai")
+        providers = settings["modelProviders"]["openai"]
+        self.assertEqual(len(providers), 3)
+        self.assertEqual(providers[0]["id"], "qwen3-coder-plus")
         self.assertEqual(
-            result["models"]["models"][0]["url"],
+            providers[0]["baseUrl"],
             "https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
+        self.assertEqual(providers[0]["envKey"], "DASHSCOPE_API_KEY")
+        self.assertEqual(providers[0]["generationConfig"]["extra_body"]["enable_thinking"], True)
+        self.assertEqual(settings["model"]["name"], "qwen3-coder-plus")
         self.assertEqual(
-            result["models"]["models"][0]["apiKey"], "sk-test-qwen"
-        )
-        self.assertEqual(result["models"]["models"][0]["maxInputTokens"], 262144)
-        self.assertEqual(result["models"]["models"][0]["maxOutputTokens"], 8192)
-        self.assertTrue(result["models"]["models"][0]["supportsToolCall"])
-        self.assertFalse(result["models"]["models"][0]["supportsImages"])
-        # qwen-max supports images
-        self.assertEqual(result["models"]["models"][2]["id"], "qwen-max")
-        self.assertTrue(result["models"]["models"][2]["supportsImages"])
-
-    def test_available_models_synced(self) -> None:
-        result = self._run_qwen_sync()
-
-        self.assertIn("availableModels", result["models"])
-        self.assertEqual(
-            result["models"]["availableModels"],
-            ["qwen3-coder-plus", "qwen3-coder", "qwen-max"],
+            settings["model"]["baseUrl"],
+            "https://dashscope.aliyuncs.com/compatible-mode/v1",
         )
 
-    def test_models_json_preserves_existing_user_keys(self) -> None:
-        """User-added top-level keys outside models/availableModels survive sync."""
-        models_path = self.root / "home" / ".qwen" / "models.json"
+    def test_settings_fields_preserves_other_providers(self) -> None:
+        """User-added modelProviders entries not in config are preserved."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
         self._write_json(
-            models_path,
+            settings_path,
             {
-                "meta": {"version": 2, "description": "Custom config"},
-                "uiPreference": "compact",
+                "modelProviders": {
+                    "openai": [
+                        {
+                            "id": "deepseek-v4-pro",
+                            "name": "deepseek-v4-pro",
+                            "baseUrl": "https://cloud.dataeyes.ai/v1",
+                            "envKey": "QWEN_CUSTOM_API_KEY_OPENAI_X",
+                        }
+                    ]
+                }
             },
         )
 
         result = self._run_qwen_sync()
 
-        self.assertEqual(result["models"]["meta"]["version"], 2)
-        self.assertEqual(result["models"]["uiPreference"], "compact")
+        providers = result["settings"]["modelProviders"]["openai"]
+        provider_ids = [p["id"] for p in providers]
+        self.assertIn("deepseek-v4-pro", provider_ids)
+        self.assertIn("qwen3-coder-plus", provider_ids)
+        self.assertEqual(len(providers), 4)
 
-    def test_user_added_models_preserved_during_sync(self) -> None:
-        """User-added model entries not in config are preserved alongside managed ones."""
+    def test_no_settings_fields_skips_merge(self) -> None:
+        """When config has none of the managed settings keys, nothing is merged."""
+        cfg: dict = {"env": self.platform_cfg["env"]}
+        result = self._run_qwen_sync(cfg)
+
+        self.assertIn("env", result["settings"])
+        self.assertNotIn("modelProviders", result["settings"])
+        self.assertNotIn("model", result["settings"])
+        self.assertNotIn("security", result["settings"])
+
+    # ── $version preservation ───────────────────────────────────────────────
+
+    def test_version_field_is_preserved(self) -> None:
+        """Qwen-internal '$version' is never overwritten or removed by sync."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {"$version": 4, "userPref": "keep-me", "env": {"USER_VAR": "stay"}},
+        )
+
+        result = self._run_qwen_sync()
+
+        self.assertEqual(result["settings"]["$version"], 4)
+        self.assertEqual(result["settings"]["userPref"], "keep-me")
+        # Managed fields still synced alongside the preserved marker.
+        self.assertEqual(result["settings"]["env"]["DASHSCOPE_API_KEY"], "sk-test-qwen")
+        self.assertEqual(result["settings"]["security"]["auth"]["selectedType"], "openai")
+
+    def test_version_field_preserved_when_disabled(self) -> None:
+        """Even when API sync is disabled, '$version' survives cleanup."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {
+                "$version": 4,
+                "env": {"DASHSCOPE_API_KEY": "old"},
+                "modelProviders": {
+                    "openai": [
+                        {"id": "qwen3-coder-plus", "name": "x", "baseUrl": "y", "envKey": "z"}
+                    ]
+                },
+                "model": {"name": "qwen3-coder-plus", "baseUrl": "y"},
+                "security": {"auth": {"selectedType": "openai"}},
+            },
+        )
+
+        result = self._run_qwen_sync(_disabled_cfg())
+
+        self.assertEqual(result["settings"]["$version"], 4)
+        # Managed fields cleaned, but $version untouched.
+        self.assertNotIn("DASHSCOPE_API_KEY", result["settings"].get("env", {}))
+        self.assertNotIn("modelProviders", result["settings"])
+        self.assertNotIn("model", result["settings"])
+        self.assertNotIn("security", result["settings"])
+
+    # ── API toggle (api.enabled) ────────────────────────────────────────────
+
+    def test_api_enabled_by_default(self) -> None:
+        """Missing api block defaults to enabled — settings fields sync."""
+        cfg = {
+            "security": SECURITY,
+            "env": self.platform_cfg["env"],
+            "modelProviders": MODEL_PROVIDERS,
+            "model": MODEL,
+        }
+        result = self._run_qwen_sync(cfg)
+
+        self.assertEqual(result["settings"]["model"]["name"], "qwen3-coder-plus")
+        self.assertEqual(len(result["settings"]["modelProviders"]["openai"]), 3)
+        self.assertEqual(result["settings"]["env"]["DASHSCOPE_API_KEY"], "sk-test-qwen")
+
+    def test_api_disabled_cleans_settings_block(self) -> None:
+        """When api.enabled=false, managed settings fields are removed."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {
+                "userPref": "keep-me",
+                "env": {"DASHSCOPE_API_KEY": "old", "USER_VAR": "keep"},
+                "modelProviders": {
+                    "openai": [
+                        {"id": "qwen3-coder-plus", "name": "x", "baseUrl": "y", "envKey": "z"},
+                        {"id": "user-only", "name": "u", "baseUrl": "b", "envKey": "e"},
+                    ]
+                },
+                "model": {"name": "qwen3-coder-plus", "baseUrl": "y"},
+                "security": {"auth": {"selectedType": "openai"}},
+            },
+        )
+
+        result = self._run_qwen_sync(_disabled_cfg())
+
+        # Managed provider entry removed; user-only provider preserved.
+        providers = result["settings"]["modelProviders"]["openai"]
+        self.assertEqual([p["id"] for p in providers], ["user-only"])
+        # model / security removed; userPref preserved.
+        self.assertNotIn("model", result["settings"])
+        self.assertNotIn("security", result["settings"])
+        self.assertEqual(result["settings"]["userPref"], "keep-me")
+        # env key removed; unrelated user env key preserved.
+        self.assertNotIn("DASHSCOPE_API_KEY", result["settings"]["env"])
+        self.assertEqual(result["settings"]["env"]["USER_VAR"], "keep")
+
+    def test_api_disabled_cleans_env_keys(self) -> None:
+        """When api.enabled=false, managed env keys are removed from settings.json."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {"env": {"DASHSCOPE_API_KEY": "old", "USER_VAR": "keep"}},
+        )
+
+        result = self._run_qwen_sync(_disabled_cfg())
+
+        # Managed key removed; unrelated user key preserved.
+        self.assertNotIn("DASHSCOPE_API_KEY", result["settings"]["env"])
+        self.assertEqual(result["settings"]["env"]["USER_VAR"], "keep")
+
+    def test_api_enabled_after_disabled_restores_settings_block(self) -> None:
+        """Re-enabling API sync restores the managed settings fields."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {
+                "modelProviders": {
+                    "openai": [
+                        {"id": "qwen3-coder-plus", "name": "OLD", "baseUrl": "old", "envKey": "old"}
+                    ]
+                },
+                "model": {"name": "qwen3-coder-plus", "baseUrl": "old"},
+                "security": {"auth": {"selectedType": "openai"}},
+            },
+        )
+
+        self._run_qwen_sync(_disabled_cfg())
+        self.assertNotIn("modelProviders", self._read_json(settings_path))
+
+        result = self._run_qwen_sync(DEFAULT_QWEN_CFG)
+        self.assertEqual(
+            result["settings"]["modelProviders"]["openai"][0]["name"], "Qwen3 Coder Plus"
+        )
+        self.assertEqual(result["settings"]["model"]["baseUrl"],
+                         "https://dashscope.aliyuncs.com/compatible-mode/v1")
+
+    # ── Models.json is owned by Qwen (not synced) ───────────────────────────
+
+    def test_models_json_not_managed_by_qwen(self) -> None:
+        """Qwen sync never writes ~/.qwen/models.json."""
+        self._run_qwen_sync()
+
+        models_path = self.root / "home" / ".qwen" / "models.json"
+        self.assertFalse(models_path.exists(), "qwen engine must not write models.json")
+
+    def test_models_json_existing_preserved(self) -> None:
+        """An existing user models.json is left untouched by sync."""
         models_path = self.root / "home" / ".qwen" / "models.json"
         self._write_json(
             models_path,
             {
                 "models": [
-                    {
-                        "id": "custom-model",
-                        "name": "Custom Model",
-                        "vendor": "custom",
-                    }
+                    {"id": "custom-model", "name": "Custom Model", "vendor": "custom"}
                 ],
                 "availableModels": ["custom-model"],
             },
         )
 
-        result = self._run_qwen_sync()
+        self._run_qwen_sync()
 
-        # 3 config-managed + 1 user-added = 4
-        self.assertEqual(len(result["models"]["models"]), 4)
-        model_ids = [m["id"] for m in result["models"]["models"]]
-        self.assertIn("custom-model", model_ids)
-        self.assertIn("qwen3-coder-plus", model_ids)
-        self.assertIn("qwen3-coder", model_ids)
-        self.assertIn("qwen-max", model_ids)
-        # Config-managed entries appear first (in config order)
-        self.assertEqual(model_ids[0], "qwen3-coder-plus")
-        self.assertEqual(model_ids[1], "qwen3-coder")
-        self.assertEqual(model_ids[2], "qwen-max")
-        self.assertEqual(model_ids[3], "custom-model")
-        # User's availableModels entry is preserved
-        self.assertIn("custom-model", result["models"]["availableModels"])
+        result = self._read_json(models_path)
+        self.assertEqual(result["availableModels"], ["custom-model"])
+        self.assertEqual(result["models"][0]["id"], "custom-model")
 
-    def test_config_models_update_existing_by_id(self) -> None:
-        """Config-managed models update existing entries with the same id instead of duplicating."""
-        models_path = self.root / "home" / ".qwen" / "models.json"
-        self._write_json(
-            models_path,
-            {
-                "models": [
-                    {
-                        "id": "qwen3-coder-plus",
-                        "name": "OLD Qwen3 Coder Plus",
-                        "vendor": "old-vendor",
-                        "url": "https://old.example/v1",
-                        "apiKey": "sk-old-key",
-                    }
-                ],
-                "availableModels": [],
-            },
-        )
-
-        result = self._run_qwen_sync()
-
-        # qwen3-coder-plus is UPDATED (not duplicated); the other two are ADDED
-        self.assertEqual(len(result["models"]["models"]), 3)
-        model_ids = [m["id"] for m in result["models"]["models"]]
-        self.assertEqual(
-            model_ids, ["qwen3-coder-plus", "qwen3-coder", "qwen-max"]
-        )
-        pro = result["models"]["models"][0]
-        self.assertEqual(pro["name"], "Qwen3 Coder Plus")
-        self.assertEqual(
-            pro["url"], "https://dashscope.aliyuncs.com/compatible-mode/v1"
-        )
-        self.assertEqual(pro["apiKey"], "sk-test-qwen")
-
-    # ── Skills sync ───────────────────────────────────────────────────────────
+    # ── Skills sync ─────────────────────────────────────────────────────────
 
     def test_skills_synced_from_claude_to_qwen(self) -> None:
         claude_skills = self.root / "home" / ".claude" / "skills"
@@ -319,204 +426,11 @@ class QwenSyncTests(unittest.TestCase):
 
         skills_dir = self.root / "home" / ".qwen" / "skills"
         self.assertFalse(skills_dir.exists(), "skills dir should not be created when claude skills missing")
-        # Env and models should still sync fine
+        # Env and settings should still sync fine
         self.assertIn("env", result["settings"])
-        self.assertIn("models", result["models"])
+        self.assertIn("modelProviders", result["settings"])
 
-    # ── Edge cases ────────────────────────────────────────────────────────────
-
-    def test_no_models_config_skips_model_sync(self) -> None:
-        """When config has no 'models' or 'availableModels', model sync is skipped."""
-        cfg: dict = {"env": self.platform_cfg["env"]}
-        result = self._run_qwen_sync(cfg)
-
-        # Env still works
-        self.assertIn("env", result["settings"])
-        # Models target should be empty (not created with stale data)
-        models_path = self.root / "home" / ".qwen" / "models.json"
-        self.assertFalse(models_path.exists(), "models.json should not be created without model config")
-
-    def test_no_models_config_removes_existing_managed_model_keys(self) -> None:
-        """When model config is absent, previously synced model keys are removed."""
-        models_path = self.root / "home" / ".qwen" / "models.json"
-        self._write_json(
-            models_path,
-            {
-                "meta": {"version": 2},
-                "models": [
-                    {
-                        "id": "qwen3-coder-plus",
-                        "name": "Stale Qwen3 Coder Plus",
-                        "vendor": "old",
-                    }
-                ],
-                "availableModels": ["qwen3-coder-plus"],
-            },
-        )
-
-        result = self._run_qwen_sync({"env": self.platform_cfg["env"]})
-
-        self.assertEqual(result["models"], {"meta": {"version": 2}})
-
-    def test_models_only_sync(self) -> None:
-        """When config has only 'models' but no 'availableModels', only models are synced."""
-        cfg: dict = {"models": self.platform_cfg["models"]}
-        self._write_json(self.root / "env" / "platforms" / "qwen.json", cfg)
-
-        result = self._run_qwen_sync(cfg)
-
-        self.assertIn("models", result["models"])
-        self.assertEqual(len(result["models"]["models"]), 3)
-        self.assertNotIn("availableModels", result["models"])
-
-    def test_available_models_only_sync(self) -> None:
-        """When config has only 'availableModels' but no 'models', only availableModels synced."""
-        cfg: dict = {"availableModels": self.platform_cfg["availableModels"]}
-        self._write_json(self.root / "env" / "platforms" / "qwen.json", cfg)
-
-        result = self._run_qwen_sync(cfg)
-
-        self.assertEqual(
-            result["models"]["availableModels"],
-            ["qwen3-coder-plus", "qwen3-coder", "qwen-max"],
-        )
-        self.assertNotIn("models", result["models"])
-
-    # ── API toggle (api.enabled) ──────────────────────────────────────────────
-
-    def test_api_enabled_by_default(self) -> None:
-        """Missing api block defaults to enabled — normal model sync runs."""
-        cfg = {
-            "env": self.platform_cfg["env"],
-            "models": self.platform_cfg["models"],
-            "availableModels": self.platform_cfg["availableModels"],
-        }
-        result = self._run_qwen_sync(cfg)
-
-        self.assertEqual(len(result["models"]["models"]), 3)
-        self.assertEqual(
-            result["models"]["availableModels"],
-            ["qwen3-coder-plus", "qwen3-coder", "qwen-max"],
-        )
-
-    def test_api_disabled_empties_available_models(self) -> None:
-        """When api.enabled=false, availableModels is set to [] (CodeBuddy special handling)."""
-        cfg = {
-            "api": {"enabled": False},
-            "env": self.platform_cfg["env"],
-            "models": self.platform_cfg["models"],
-            "availableModels": self.platform_cfg["availableModels"],
-        }
-        result = self._run_qwen_sync(cfg)
-
-        self.assertEqual(result["models"]["availableModels"], [])
-        # Model definitions are NOT synced while disabled, so the key is absent.
-        self.assertNotIn("models", result["models"])
-
-    def test_api_disabled_cleans_env_keys(self) -> None:
-        """When api.enabled=false, managed env keys are removed from settings.json."""
-        settings_path = self.root / "home" / ".qwen" / "settings.json"
-        self._write_json(
-            settings_path,
-            {"env": {"DASHSCOPE_API_KEY": "old", "USER_VAR": "keep"}},
-        )
-
-        cfg = {
-            "api": {"enabled": False},
-            "env": self.platform_cfg["env"],
-            "models": self.platform_cfg["models"],
-            "availableModels": self.platform_cfg["availableModels"],
-        }
-        result = self._run_qwen_sync(cfg)
-
-        # Managed key removed; unrelated user key preserved.
-        self.assertNotIn("DASHSCOPE_API_KEY", result["settings"]["env"])
-        self.assertEqual(result["settings"]["env"]["USER_VAR"], "keep")
-
-    def test_api_disabled_preserves_user_models(self) -> None:
-        """User-added model definitions survive a disabled API sync."""
-        models_path = self.root / "home" / ".qwen" / "models.json"
-        self._write_json(
-            models_path,
-            {
-                "models": [
-                    {
-                        "id": "custom-model",
-                        "name": "Custom Model",
-                        "vendor": "custom",
-                    }
-                ],
-                "availableModels": ["custom-model"],
-            },
-        )
-
-        cfg = {
-            "api": {"enabled": False},
-            "env": self.platform_cfg["env"],
-            "models": self.platform_cfg["models"],
-            "availableModels": self.platform_cfg["availableModels"],
-        }
-        result = self._run_qwen_sync(cfg)
-
-        # User model kept; availableModels emptied by the disabled sync.
-        model_ids = [m["id"] for m in result["models"]["models"]]
-        self.assertIn("custom-model", model_ids)
-        self.assertEqual(result["models"]["availableModels"], [])
-
-    def test_api_disabled_is_idempotent(self) -> None:
-        """Re-running a disabled sync keeps availableModels empty and models intact."""
-        cfg = {
-            "api": {"enabled": False},
-            "env": self.platform_cfg["env"],
-            "models": self.platform_cfg["models"],
-            "availableModels": self.platform_cfg["availableModels"],
-        }
-        self._run_qwen_sync(cfg)
-        result = self._run_qwen_sync(cfg)
-
-        self.assertEqual(result["models"]["availableModels"], [])
-        # Disabled sync never writes the models key, so it stays absent.
-        self.assertNotIn("models", result["models"])
-
-    def test_api_enabled_after_disabled_restores_models(self) -> None:
-        """Re-enabling API sync restores availableModels from config."""
-        models_path = self.root / "home" / ".qwen" / "models.json"
-        self._write_json(
-            models_path,
-            {
-                "models": [
-                    {
-                        "id": "qwen3-coder-plus",
-                        "name": "Stale Qwen3 Coder Plus",
-                        "vendor": "old",
-                    }
-                ],
-                "availableModels": ["qwen3-coder-plus"],
-            },
-        )
-
-        disabled = {
-            "api": {"enabled": False},
-            "env": self.platform_cfg["env"],
-            "models": self.platform_cfg["models"],
-            "availableModels": self.platform_cfg["availableModels"],
-        }
-        self._run_qwen_sync(disabled)
-        self.assertEqual(self._read_json(models_path)["availableModels"], [])
-
-        enabled = {
-            "env": self.platform_cfg["env"],
-            "models": self.platform_cfg["models"],
-            "availableModels": self.platform_cfg["availableModels"],
-        }
-        result = self._run_qwen_sync(enabled)
-        self.assertEqual(
-            result["models"]["availableModels"],
-            ["qwen3-coder-plus", "qwen3-coder", "qwen-max"],
-        )
-        self.assertEqual(len(result["models"]["models"]), 3)
-
-    # ── MCP handling ──────────────────────────────────────────────────────────
+    # ── MCP handling ────────────────────────────────────────────────────────
 
     def test_mcp_servers_are_ignored(self) -> None:
         """Qwen sync does not write a managed mcpServers file."""
@@ -525,16 +439,15 @@ class QwenSyncTests(unittest.TestCase):
         mcp_path = self.root / "home" / ".qwen" / "mcp.json"
         self.assertFalse(mcp_path.exists(), "Qwen sync should not write mcp.json")
 
-    # ── Internal key exclusion ───────────────────────────────────────────────
+    # ── Internal key exclusion ──────────────────────────────────────────────
 
     def test_internal_keys_excluded_from_output(self) -> None:
-        """_comment and platform-internal keys do not leak into output files."""
+        """_comment does not leak into the synced settings.json."""
         result = self._run_qwen_sync()
 
         self.assertNotIn("_comment", result["settings"])
-        self.assertNotIn("_comment", result["models"])
 
-    # ── Recall preamble ──────────────────────────────────────────────────────
+    # ── Recall preamble ─────────────────────────────────────────────────────
 
     def test_recall_preamble_not_rendered_by_qwen_engine(self) -> None:
         """qwen.py does not render the recall managed block (engine gap, not error)."""
@@ -543,7 +456,7 @@ class QwenSyncTests(unittest.TestCase):
         md = self.root / "home" / ".qwen" / "QWEN.md"
         self.assertFalse(md.exists(), "Qwen engine does not render recall preamble yet")
 
-    # ── Missing root ─────────────────────────────────────────────────────────
+    # ── Missing root ────────────────────────────────────────────────────────
 
     def test_missing_qwen_root_skips_sync(self) -> None:
         """When ~/.qwen does not exist, sync should not create Qwen files."""
@@ -555,30 +468,17 @@ class QwenSyncTests(unittest.TestCase):
         self.assertEqual(result["settings"], {})
         self.assertEqual(result["models"], {})
 
-    # ── Secret resolution ────────────────────────────────────────────────────
+    # ── Idempotency ─────────────────────────────────────────────────────────
 
-    def test_secret_resolution_in_models(self) -> None:
-        """Secrets ${qwen.url} and ${qwen.dashscopeApiKey} are resolved in model fields."""
+    def test_resync_is_idempotent(self) -> None:
+        """Re-running sync with the same config does not duplicate provider entries."""
+        self._run_qwen_sync()
         result = self._run_qwen_sync()
 
-        model = result["models"]["models"][0]
-        self.assertEqual(
-            model["url"], "https://dashscope.aliyuncs.com/compatible-mode/v1"
-        )
-        self.assertEqual(model["apiKey"], "sk-test-qwen")
-
-    def test_invalid_models_config_fails_fast(self) -> None:
-        """Invalid models config is rejected before writing models.json."""
-        with self.assertRaisesRegex(ValueError, "platforms.qwen.models must be a list"):
-            self._run_qwen_sync({"models": {"id": "bad"}})
-
-    def test_invalid_available_models_config_fails_fast(self) -> None:
-        """Invalid availableModels config is rejected before writing models.json."""
-        with self.assertRaisesRegex(
-            ValueError,
-            r"platforms\.qwen\.availableModels\[0\] must be a non-empty string",
-        ):
-            self._run_qwen_sync({"availableModels": [123]})
+        providers = result["settings"]["modelProviders"]["openai"]
+        self.assertEqual([p["id"] for p in providers], [
+            "qwen3-coder-plus", "qwen3-coder", "qwen-max"
+        ])
 
 
 if __name__ == "__main__":
