@@ -3,7 +3,8 @@
     "type": "stdio",
     "command": "/bin/bash",
     "args": [
-        "~/Desktop/github/lanhu-mcp/run-stdio.sh"
+        "-c",
+        "exec \"$HOME/Desktop/github/lanhu-mcp/run-stdio.sh\""
     ],
     "env": {
         "LANHU_USER_NAME": "寒江孤影",
@@ -12,6 +13,7 @@
     "platforms": [
         "claude",
         "codex",
-        "cline"
+        "cline",
+        "codebuddy"
     ]
 }
