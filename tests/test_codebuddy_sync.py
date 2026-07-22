@@ -476,6 +476,116 @@ class CodeBuddySyncTests(unittest.TestCase):
         )
         self.assertNotIn("models", result["models"])
 
+    # ── API toggle (api.enabled) ───────────────────────────────────────────────
+
+    def test_api_enabled_by_default(self) -> None:
+        """Missing api block defaults to enabled — normal model sync runs."""
+        result = self._run_codebuddy_sync({"models": self.platform_cfg["models"],
+                                           "availableModels": self.platform_cfg["availableModels"]})
+
+        self.assertEqual(len(result["models"]["models"]), 2)
+        self.assertEqual(
+            result["models"]["availableModels"],
+            ["deepseek-v4-pro", "deepseek-v4-flash"],
+        )
+
+    def test_api_disabled_empties_available_models(self) -> None:
+        """When api.enabled=false, availableModels is set to [] (CodeBuddy special handling)."""
+        cfg = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        result = self._run_codebuddy_sync(cfg)
+
+        self.assertEqual(result["models"]["availableModels"], [])
+        # Model definitions are NOT synced while disabled, so the key is absent.
+        self.assertNotIn("models", result["models"])
+
+    def test_api_disabled_preserves_user_models(self) -> None:
+        """User-added model definitions survive a disabled API sync."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        models_path.parent.mkdir(parents=True, exist_ok=True)
+        models_path.write_text(
+            json.dumps(
+                {
+                    "models": [
+                        {
+                            "id": "custom-model",
+                            "name": "Custom Model",
+                            "vendor": "custom",
+                        }
+                    ],
+                    "availableModels": ["custom-model"],
+                },
+                indent=4,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        cfg = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        result = self._run_codebuddy_sync(cfg)
+
+        # User model kept; availableModels emptied by the disabled sync.
+        model_ids = [m["id"] for m in result["models"]["models"]]
+        self.assertIn("custom-model", model_ids)
+        self.assertEqual(result["models"]["availableModels"], [])
+
+    def test_api_disabled_is_idempotent(self) -> None:
+        """Re-running a disabled sync keeps availableModels empty and models intact."""
+        cfg = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        self._run_codebuddy_sync(cfg)
+        result = self._run_codebuddy_sync(cfg)
+
+        self.assertEqual(result["models"]["availableModels"], [])
+        # Disabled sync never writes the models key, so it stays absent.
+        self.assertNotIn("models", result["models"])
+
+    def test_api_enabled_after_disabled_restores_models(self) -> None:
+        """Re-enabling API sync restores availableModels from config."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    {
+                        "id": "deepseek-v4-pro",
+                        "name": "Stale DeepSeek V4 Pro",
+                        "vendor": "old",
+                    }
+                ],
+                "availableModels": ["deepseek-v4-pro"],
+            },
+        )
+
+        disabled = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        self._run_codebuddy_sync(disabled)
+        self.assertEqual(self._read_json(models_path)["availableModels"], [])
+
+        enabled = {
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        result = self._run_codebuddy_sync(enabled)
+        self.assertEqual(
+            result["models"]["availableModels"],
+            ["deepseek-v4-pro", "deepseek-v4-flash"],
+        )
+        self.assertEqual(len(result["models"]["models"]), 2)
+
     def test_empty_mcp_servers_does_not_break(self) -> None:
         """Sync with no MCP servers still runs CodeBuddy models sync."""
         mcp_dir = self.root / "env" / "mcp"

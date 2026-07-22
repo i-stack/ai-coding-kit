@@ -182,4 +182,9 @@ bash sync/scripts/optional_mcps.sh disable puppeteer
 - `templates/mcp.template.json` — 新增 MCP 服务器时复制并填写
 - `templates/platform.template.json` — 新增平台时复制并填写
 
+新增或调整平台 API 同步前，先阅读
+[Platform Sync Contract](../docs/platform-sync-contract.md)。Claude 的当前配置是后续平台的参考样例：
+只同步 API / MCP / preamble 所属字段，保留目标配置中的其它用户字段，并用
+`api.enabled` 控制 API 字段写入与清理。
+
 详见 [sync/README.md](../sync/README.md)。

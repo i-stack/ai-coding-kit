@@ -54,6 +54,19 @@ def _merge_recall_block(target: Path, block: str) -> None:
     recall.merge_recall_block_markdown(target, block)
 
 
+def _api_enabled(cfg: dict[str, Any]) -> bool:
+    """CodeBuddy third-party API sync toggle.
+
+    Like Claude, a missing ``api`` block or missing ``api.enabled`` defaults to
+    enabled so the historical always-sync behavior is preserved. Only an explicit
+    ``false`` disables synced API model fields.
+    """
+    api = cfg.get("api")
+    if not isinstance(api, dict):
+        return True
+    return api.get("enabled", True) is True
+
+
 def _validate_model_entries(value: Any) -> list[dict[str, Any]]:
     if not isinstance(value, list):
         raise ValueError("platforms.codebuddy.models must be a list.")
@@ -138,10 +151,12 @@ def _merge_available_models(
 
 
 def _sync_models(cfg: dict[str, Any]) -> None:
+    api_enabled = _api_enabled(cfg)
     models = cfg.get("models")
     available_models = cfg.get("availableModels")
     models_path = codebuddy_models_path()
 
+    # No model config at all: clean up any previously synced managed keys.
     if models is None and available_models is None:
         existing = read_json_object(models_path)
         removed = False
@@ -157,6 +172,17 @@ def _sync_models(cfg: dict[str, Any]) -> None:
         return
 
     existing = read_json_object(models_path)
+
+    # API sync disabled: do not sync API fields. CodeBuddy special handling —
+    # empty availableModels (key preserved) rather than removing it, so synced
+    # models are disabled from selection without dropping provider definitions.
+    # Config-managed model definitions are left untouched (not synced, not
+    # removed); "do not sync" means we skip merging, not that we delete.
+    if not api_enabled:
+        existing["availableModels"] = []
+        write_json(models_path, existing)
+        print(f"[codebuddy] API sync disabled — availableModels cleared in {models_path}.")
+        return
 
     if models is not None:
         models = _validate_model_entries(models)

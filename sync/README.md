@@ -104,6 +104,13 @@ with a small number of sync-engine metadata fields such as `api.enabled`.
 Engine metadata is consumed by the sync layer and is not written into the target tool config.
 For Claude, `api.enabled` defaults to `true`; setting it to `false` skips API env sync and
 removes sync-managed API fields, while MCP servers and preamble/agents still sync.
+For CodeBuddy, `api.enabled` also defaults to `true`; setting it to `false` skips model
+definition sync and clears the managed `availableModels` list in `~/.codebuddy/models.json`
+(set to `[]`, not removed) so synced models drop out of the picker without losing provider
+definitions. MCP servers, skills, and the preamble still sync.
+
+Use the Claude cleanup as the reference contract before adding another
+platform's API toggle: [Platform Sync Contract](../docs/platform-sync-contract.md).
 
 ## Targets
 
@@ -159,9 +166,10 @@ key falls back to the default. For Codex, the standard `CODEX_HOME` /
 
 1. Copy template: `cp env/templates/platform.template.json env/platforms/my-platform.json`
 2. Fill in config following the platform's official spec
-3. If the platform only needs `mcpServers` in a JSON file, add `"mcp_target": "~/.my-platform/mcp.json"` to the config
-4. If custom rendering is needed, create `sync/platforms/my_platform.py` with a `sync(mcp_servers, cfg)` function. The sync engine discovers it from `env/platforms/my-platform.json`; no `sync_config.py` registration is needed.
-5. Put shared path helpers in `sync/core/paths.py` only when the platform has a well-known default install root. Otherwise prefer the JSON `install_root` / `mcp_target` fields.
+3. Read [Platform Sync Contract](../docs/platform-sync-contract.md) and decide field ownership, cleanup, and `api.enabled` semantics before writing the renderer.
+4. If the platform only needs `mcpServers` in a JSON file, add `"mcp_target": "~/.my-platform/mcp.json"` to the config
+5. If custom rendering is needed, create `sync/platforms/my_platform.py` with a `sync(mcp_servers, cfg)` function. The sync engine discovers it from `env/platforms/my-platform.json`; no `sync_config.py` registration is needed.
+6. Put shared path helpers in `sync/core/paths.py` only when the platform has a well-known default install root. Otherwise prefer the JSON `install_root` / `mcp_target` fields.
 
 ## Adding an MCP Server
 
