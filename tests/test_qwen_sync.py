@@ -17,6 +17,8 @@ from cli import sync_config  # noqa: E402
 from platforms import qwen as qwen_mod  # noqa: E402
 from core import common  # noqa: E402
 
+from platforms.qwen import _derive_qwen_custom_env_key  # noqa: E402
+
 
 SECURITY = {
     "auth": {
@@ -57,7 +59,7 @@ DEFAULT_QWEN_CFG = {
     "api": {"enabled": True},
     "security": SECURITY,
     "env": {
-        "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}",
+        "DASHSCOPE_API_KEY": "${qwen.key}",
     },
     "modelProviders": MODEL_PROVIDERS,
     "model": MODEL,
@@ -125,7 +127,7 @@ class QwenSyncTests(unittest.TestCase):
             {
                 "qwen": {
                     "url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-                    "dashscopeApiKey": "sk-test-qwen",
+                    "key": "sk-test-qwen",
                 }
             },
         )
@@ -479,6 +481,72 @@ class QwenSyncTests(unittest.TestCase):
         self.assertEqual([p["id"] for p in providers], [
             "qwen3-coder-plus", "qwen3-coder", "qwen-max"
         ])
+
+    # ── Auto-derived custom env key (baseUrl -> QWEN_CUSTOM_API_KEY_*) ───────
+
+    def test_auto_env_key_derivation(self) -> None:
+        """``__AUTO__`` envKey is derived from baseUrl and the token remapped onto it.
+
+        Qwen Code rejects DASHSCOPE_API_KEY for custom OpenAI-compatible
+        providers (reserved key, 401s), so the syncer must write a baseUrl-
+        derived key such as QWEN_CUSTOM_API_KEY_OPENAI_HTTPS_CLOUD_DATAEYES_AI_*.
+        """
+        auto_cfg = {
+            "api": {"enabled": True},
+            "security": SECURITY,
+            "env": {"__AUTO__": "${qwen.key}"},
+            "modelProviders": {
+                "openai": [
+                    {
+                        "id": "deepseek-v4-flash",
+                        "name": "deepseek-v4-flash",
+                        "baseUrl": "${qwen.url}",
+                        "envKey": "__AUTO__",
+                        "generationConfig": {"extra_body": {"enable_thinking": True}},
+                    },
+                    {
+                        "id": "deepseek-v4-pro",
+                        "name": "deepseek-v4-pro",
+                        "baseUrl": "${qwen.url}",
+                        "envKey": "__AUTO__",
+                        "generationConfig": {"extra_body": {"enable_thinking": True}},
+                    },
+                ]
+            },
+            "model": {"name": "deepseek-v4-flash", "baseUrl": "${qwen.url}"},
+        }
+        self._write_json(
+            self.root / "env" / "secrets.json",
+            {
+                "qwen": {"url": "https://cloud.dataeyes.ai/v1", "key": "sk-dataeyes-test"},
+            },
+        )
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {"$version": 4, "env": {"DASHSCOPE_API_KEY": "stale", "USER_VAR": "keep"}},
+        )
+
+        result = self._run_qwen_sync(auto_cfg)
+
+        expected = _derive_qwen_custom_env_key("openai", "https://cloud.dataeyes.ai/v1")
+        env = result["settings"]["env"]
+        # Sentinel and legacy reserved key are gone; token landed on derived key.
+        self.assertNotIn("__AUTO__", env)
+        self.assertNotIn("DASHSCOPE_API_KEY", env)
+        self.assertEqual(env[expected], "sk-dataeyes-test")
+        self.assertEqual(env["USER_VAR"], "keep")
+        providers = result["settings"]["modelProviders"]["openai"]
+        for p in providers:
+            self.assertEqual(p["envKey"], expected)
+        self.assertEqual(result["settings"]["$version"], 4)
+
+    def test_auto_env_key_derivation_matches_real_settings(self) -> None:
+        """Derivation reproduces the real working key for cloud.dataeyes.ai."""
+        key = _derive_qwen_custom_env_key("openai", "https://cloud.dataeyes.ai/v1")
+        self.assertEqual(
+            key, "QWEN_CUSTOM_API_KEY_OPENAI_HTTPS_CLOUD_DATAEYES_AI_C2DF01B23F5B"
+        )
 
 
 if __name__ == "__main__":

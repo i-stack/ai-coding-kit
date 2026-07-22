@@ -290,7 +290,7 @@ structure matches `~/.qwen/settings.json` exactly; model definitions live in
     }
   },
   "env": {
-    "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}"
+    "__AUTO__": "${qwen.key}"
   },
   "modelProviders": {
     "openai": [
@@ -298,7 +298,7 @@ structure matches `~/.qwen/settings.json` exactly; model definitions live in
         "id": "qwen3-coder-plus",
         "name": "Qwen3 Coder Plus",
         "baseUrl": "${qwen.url}",
-        "envKey": "DASHSCOPE_API_KEY",
+        "envKey": "__AUTO__",
         "generationConfig": {
           "extra_body": {
             "enable_thinking": true
@@ -309,7 +309,7 @@ structure matches `~/.qwen/settings.json` exactly; model definitions live in
         "id": "qwen3-coder",
         "name": "Qwen3 Coder",
         "baseUrl": "${qwen.url}",
-        "envKey": "DASHSCOPE_API_KEY",
+        "envKey": "__AUTO__",
         "generationConfig": {
           "extra_body": {
             "enable_thinking": true
@@ -320,7 +320,7 @@ structure matches `~/.qwen/settings.json` exactly; model definitions live in
         "id": "qwen-max",
         "name": "Qwen Max",
         "baseUrl": "${qwen.url}",
-        "envKey": "DASHSCOPE_API_KEY",
+        "envKey": "__AUTO__",
         "generationConfig": {
           "extra_body": {
             "enable_thinking": true
@@ -349,8 +349,18 @@ Answers to the platform-addition questions:
    `preamble`, rendered by the same managed-block mechanism as the other
    recall platforms). `~/.qwen/models.json` is **not** a sync target — Qwen
    owns it directly.
-2. API sync fields: `env` (e.g. `DASHSCOPE_API_KEY`) and the owned top-level
-   fields `security` / `modelProviders` / `model` inside `~/.qwen/settings.json`.
+2. API sync fields: `env` and the owned top-level fields `security` /
+   `modelProviders` / `model` inside `~/.qwen/settings.json`. For custom
+   OpenAI-compatible providers, `modelProviders.*[].envKey` must use the
+   sentinel `"__AUTO__"` rather than a literal `DASHSCOPE_API_KEY` — Qwen Code
+   reserves `DASHSCOPE_API_KEY` for its internal DashScope routing and 401s on
+   custom endpoints. The syncer derives the real env var name
+   (`QWEN_CUSTOM_API_KEY_<PROTO>_<normalize(baseUrl)>_<sha256(proto\0origin)[:12]>`,
+   where `origin` is `scheme://host`) from each provider's `baseUrl`, rewrites
+   the sentinel in both `modelProviders.*[].envKey` and the `env` block, and
+   remaps the declared token onto the derived name. The legacy `DASHSCOPE_API_KEY`
+   is dropped from `settings.env` on every sync unless the config still declares
+   it explicitly.
 3. Default for `api.enabled`: `true`. Qwen historically always synced its API
    fields, so a missing `api` block or missing `api.enabled` keeps the old
    always-sync behavior. Only an explicit `false` disables it.

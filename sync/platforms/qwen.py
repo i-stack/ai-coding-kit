@@ -17,8 +17,10 @@ enabled). When ``api.enabled=false``:
 ``$version`` is a Qwen-internal marker and is **never** written or overwritten
 by the syncer — every write reads the existing file and merges only owned keys.
 """
+import hashlib
 import shutil
 from typing import Any
+from urllib.parse import urlparse
 
 from core.common import read_json_object, write_json
 from core.paths import (
@@ -30,6 +32,110 @@ from core.paths import (
 
 # Top-level qwen.json keys that map into ~/.qwen/settings.json.
 SETTINGS_KEYS = ("security", "modelProviders", "model")
+
+# Sentinel used in qwen.json to mark an envKey (or an env block key) that the
+# syncer must derive from the provider baseUrl instead of writing verbatim.
+# Qwen Code rejects DASHSCOPE_API_KEY for custom OpenAI-compatible providers
+# (it is a reserved key routed to Qwen's internal DashScope logic and 401s),
+# so custom providers need a baseUrl-derived key — see _derive_qwen_env_keys.
+_AUTO_ENV_KEY = "__AUTO__"
+
+# Legacy env var this syncer used to write for qwen. No longer managed; it is
+# removed from settings.env on every sync to avoid a lingering 401 key.
+_LEGACY_ENV_KEYS = ("DASHSCOPE_API_KEY",)
+
+
+def _normalize_env_segment(value: str) -> str:
+    """Mirror Qwen Code's env-key segment normalizer.
+
+    Uppercase, keep ``[A-Z0-9]``, collapse every other run into a single
+    ``_``, strip leading/trailing underscores. ``https://cloud.dataeyes.ai``
+    -> ``HTTPS_CLOUD_DATAEYES_AI``.
+    """
+    out: list[str] = []
+    prev_underscore = False
+    for ch in value.upper():
+        if ch.isascii() and ch.isalnum():
+            out.append(ch)
+            prev_underscore = False
+        elif not prev_underscore:
+            out.append("_")
+            prev_underscore = True
+    return "".join(out).strip("_")
+
+
+def _derive_qwen_custom_env_key(protocol: str, base_url: str) -> str:
+    """Reproduce Qwen Code's ``generateCustomEnvKey`` for a custom provider.
+
+    Algorithm (packages/core/src/providers/presets/custom-provider.ts):
+
+        canonicalBaseUrl = origin (scheme://host, path stripped)
+        suffix = SHA256(f"{protocol}\\0{canonicalBaseUrl}").hexdigest()[:12].upper()
+        envKey = f"QWEN_CUSTOM_API_KEY_{norm(protocol)}_{norm(canonicalBaseUrl)}_{suffix}"
+
+    Stripping the path reproduces the key Qwen generated when the custom
+    provider was first added (``..._HTTPS_CLOUD_DATAEYES_AI_C2DF01B23F5B``),
+    verified against the user's installed settings.json.
+    """
+    parsed = urlparse(base_url)
+    origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.netloc else base_url.rstrip("/")
+    canonical = origin.rstrip("/")
+    suffix = hashlib.sha256(f"{protocol}\0{canonical}".encode("utf-8")).hexdigest()[:12].upper()
+    return (
+        f"QWEN_CUSTOM_API_KEY_"
+        f"{_normalize_env_segment(protocol)}_"
+        f"{_normalize_env_segment(canonical)}_"
+        f"{suffix}"
+    )
+
+
+def _derive_qwen_env_keys(cfg: dict[str, Any]) -> None:
+    """Replace ``__AUTO__`` envKey placeholders with Qwen-derived custom keys.
+
+    Mutates ``cfg`` in place so the rest of the sync engine can treat the
+    derived key as any other literal key. Token values declared under the
+    ``__AUTO__`` env key are remapped onto each derived key name.
+    """
+    auth = cfg.get("security") if isinstance(cfg.get("security"), dict) else {}
+    selected = (
+        auth.get("auth", {}).get("selectedType")  # type: ignore[union-attr]
+        if isinstance(auth.get("auth"), dict)  # type: ignore[union-attr]
+        else None
+    )
+    protocol = selected or "openai"
+
+    derived_keys: set[str] = set()
+
+    providers = cfg.get("modelProviders")
+    if isinstance(providers, dict):
+        for entries in providers.values():
+            if not isinstance(entries, list):
+                continue
+            for entry in entries:
+                if isinstance(entry, dict) and entry.get("envKey") == _AUTO_ENV_KEY:
+                    base_url = entry.get("baseUrl")
+                    if isinstance(base_url, str):
+                        key = _derive_qwen_custom_env_key(protocol, base_url)
+                        entry["envKey"] = key
+                        derived_keys.add(key)
+
+    model = cfg.get("model")
+    if isinstance(model, dict) and model.get("envKey") == _AUTO_ENV_KEY:
+        base_url = model.get("baseUrl")
+        if isinstance(base_url, str):
+            key = _derive_qwen_custom_env_key(protocol, base_url)
+            model["envKey"] = key
+            derived_keys.add(key)
+
+    env = cfg.get("env")
+    if isinstance(env, dict) and derived_keys:
+        auto_values = {k: v for k, v in env.items() if k == _AUTO_ENV_KEY}
+        if auto_values:
+            for k in auto_values:
+                env.pop(k)
+            auto_val = next(iter(auto_values.values()))
+            for key in derived_keys:
+                env[key] = auto_val
 
 
 def _api_enabled(cfg: dict[str, Any]) -> bool:
@@ -186,6 +292,12 @@ def _sync_env(env: dict[str, Any], api_enabled: bool) -> None:
     if api_enabled:
         merged_env = dict(existing_env)
         merged_env.update(env)
+        # Drop the legacy reserved key only when this config no longer manages
+        # it — it 401s for custom providers. Kept if the user's config still
+        # declares it explicitly.
+        for legacy in _LEGACY_ENV_KEYS:
+            if legacy not in env and legacy in merged_env:
+                del merged_env[legacy]
         existing["env"] = merged_env
         write_json(path, existing)
         keys = ", ".join(env.keys())
@@ -198,6 +310,10 @@ def _sync_env(env: dict[str, Any], api_enabled: bool) -> None:
     for key in env:
         if key in new_env:
             del new_env[key]
+            removed = True
+    for legacy in _LEGACY_ENV_KEYS:
+        if legacy not in env and legacy in new_env:
+            del new_env[legacy]
             removed = True
     if removed:
         if new_env:
@@ -282,6 +398,7 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
         return
 
     api_enabled = _api_enabled(cfg)
+    _derive_qwen_env_keys(cfg)
     _sync_env(cfg.get("env", {}), api_enabled)
     _sync_settings_block(cfg, api_enabled)
     _sync_skills()

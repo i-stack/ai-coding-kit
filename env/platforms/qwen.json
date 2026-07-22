@@ -9,7 +9,7 @@
         }
     },
     "env": {
-        "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}"
+        "__AUTO__": "${qwen.key}"
     },
     "modelProviders": {
         "openai": [
@@ -17,7 +17,7 @@
                 "id": "deepseek-v4-flash",
                 "name": "deepseek-v4-flash",
                 "baseUrl": "${qwen.url}",
-                "envKey": "DASHSCOPE_API_KEY",
+                "envKey": "__AUTO__",
                 "generationConfig": {
                     "extra_body": {
                         "enable_thinking": true
@@ -28,7 +28,7 @@
                 "id": "deepseek-v4-pro",
                 "name": "deepseek-v4-pro",
                 "baseUrl": "${qwen.url}",
-                "envKey": "DASHSCOPE_API_KEY",
+                "envKey": "__AUTO__",
                 "generationConfig": {
                     "extra_body": {
                         "enable_thinking": true
