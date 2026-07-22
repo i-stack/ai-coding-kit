@@ -284,9 +284,15 @@ def discover_platforms() -> list[str]:
 # ── JSON I/O utilities ───────────────────────────────────────────────────────
 
 def sync_json_mcp(path: Path, servers: dict[str, Any]) -> None:
-    if path.is_symlink():
-        path.unlink()
+    # Read existing content BEFORE unlinking. When `path` is a symlink,
+    # read_json_object() follows it and returns the target's full content, so
+    # non-mcpServers top-level keys are preserved. Unlinking first would make
+    # read_json_object() return {} and silently drop every other key.
     existing = read_json_object(path)
+    if path.is_symlink():
+        # Replace the symlink with a regular file so we don't write through it
+        # into the (possibly shared) link target.
+        path.unlink()
     existing["mcpServers"] = servers
     write_json(path, existing)
     print(f"Replaced MCP servers in {path}.")

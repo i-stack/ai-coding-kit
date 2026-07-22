@@ -97,8 +97,14 @@ def generate_shared_toml(cfg: dict[str, Any]) -> str:
     # so it can be re-enabled later by simply flipping `enabled` back to true
     # (no other config is touched). An absent `enabled` is treated as enabled.
     model_provider = cfg.get("model_provider")
-    if cfg.get("enabled", True) is False:
-        lines.append("# model_provider (disabled via enabled=false)")
+    disabled = cfg.get("enabled", True) is False
+    # A usable provider is a non-empty, non-blank string. None / "" / "   "
+    # must be emitted as a comment (not `model_provider = "None"`), otherwise
+    # Codex would try to resolve a bogus provider id.
+    has_provider = isinstance(model_provider, str) and model_provider.strip() != ""
+    if disabled or not has_provider:
+        reason = "disabled via enabled=false" if disabled else "unset in env/platforms/codex.json"
+        lines.append(f"# model_provider ({reason})")
         lines.append('# preferred_auth_method = "apikey"')
     else:
         lines.append(f"model_provider = {toml_quote(str(model_provider))}")

@@ -382,6 +382,40 @@ class GeminiSyncTests(unittest.TestCase):
         self.assertNotIn("export_env_to_zshrc", settings)
         self.assertNotIn("preamble", settings)
 
+    # ── Disabled-state handling ──────────────────────────────────────────────
+
+    def test_disabled_platform_syncs_mcp_but_skips_managed_settings(self) -> None:
+        """enabled=false: MCP servers still sync, managed settings are not pushed."""
+        cfg = dict(self.platform_cfg)
+        cfg["enabled"] = False
+
+        settings = self._run_gemini_sync(cfg)
+
+        # Universal payload (MCP) still synced
+        self.assertIn("mcpServers", settings)
+        self.assertIn("sample", settings["mcpServers"])
+        # Managed team-shared settings are NOT pushed
+        self.assertNotIn("model", settings)
+        self.assertNotIn("context", settings)
+        self.assertNotIn("tools", settings)
+
+    def test_disabled_platform_preserves_existing_user_settings(self) -> None:
+        """enabled=false must not clobber the user's own settings.json keys."""
+        settings_path = self.root / "home" / ".gemini" / "settings.json"
+        settings_path.parent.mkdir(parents=True, exist_ok=True)
+        settings_path.write_text(
+            json.dumps({"ui": {"theme": "dark"}}, indent=4) + "\n",
+            encoding="utf-8",
+        )
+
+        cfg = dict(self.platform_cfg)
+        cfg["enabled"] = False
+        settings = self._run_gemini_sync(cfg)
+
+        self.assertEqual(settings["ui"]["theme"], "dark")
+        self.assertIn("mcpServers", settings)
+        self.assertNotIn("model", settings)
+
     # ── Edge cases ───────────────────────────────────────────────────────────
 
     def test_empty_mcp_servers_does_not_break(self) -> None:

@@ -1,0 +1,4 @@
+{
+    "_comment": "Cursor sync. No platform-specific config is required — the renderer (sync/platforms/cursor.py) only writes MCP servers to ~/.cursor/mcp.json via the shared JSON-MCP writer. Skills for Cursor are handled by the registry-based skills surface. Set enabled=false to stop syncing MCP to Cursor.",
+    "enabled": true
+}

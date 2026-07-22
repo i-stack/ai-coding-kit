@@ -385,7 +385,12 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     yaml_text = update_yaml_root_key(yaml_text, "mcpServers", new_mcp_yaml)
 
     # 2. Sync models (only if present in configuration)
-    models = cfg.get("models")
+    # Disabled-state handling (consistent with codex/cline/codebuddy): when the
+    # platform is disabled, MCP servers and historical-recall still sync, but the
+    # team-shared managed models are NOT pushed into config.yaml.
+    models = None if cfg.get("enabled") is False else cfg.get("models")
+    if cfg.get("enabled") is False:
+        print("[continue] Platform disabled via enabled=false — syncing MCP + recall only, skipping managed models.")
     if models is not None:
         if not isinstance(models, list):
             print("[warn] platforms.continue.models must be a list. Skipping model sync.")

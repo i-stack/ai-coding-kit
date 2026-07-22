@@ -246,7 +246,14 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     _sync_claude_config()
 
     # ── 4. settings.json — merge team-shared settings, env, and hooks ──
-    managed = generate_managed_settings(cfg)
+    # Disabled-state handling (consistent with codex/cline/codebuddy): when the
+    # platform is disabled, universal payloads (MCP servers) and per-developer
+    # env/hooks still sync, but the team-shared managed settings are NOT pushed.
+    if cfg.get("enabled") is False:
+        print("[claude] Platform disabled via enabled=false — skipping team-shared managed settings.")
+        managed = {}
+    else:
+        managed = generate_managed_settings(cfg)
     _remove_obsolete_generated_settings(claude_settings_generated_json_path())
     if managed:
         print(f"Prepared Claude settings ({len(managed)} team-shared keys).")

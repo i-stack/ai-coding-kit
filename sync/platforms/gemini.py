@@ -65,7 +65,14 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
         print(f"[gemini] Gemini root not found: {root} — skipping (tool not installed).")
         return
 
-    managed = _extract_settings(cfg)
+    # Disabled-state handling (consistent with codex/cline/codebuddy): when the
+    # platform is disabled, universal payloads (MCP servers) still sync, but the
+    # team-shared managed settings are NOT pushed into settings.json.
+    if cfg.get("enabled") is False:
+        print("[gemini] Platform disabled via enabled=false — syncing MCP only, skipping managed settings.")
+        managed = {}
+    else:
+        managed = _extract_settings(cfg)
 
     # ── Native Gemini CLI target ──
     _sync_settings(gemini_settings_path(), managed, mcp_servers)
