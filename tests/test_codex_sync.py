@@ -92,6 +92,7 @@ class CodexSyncTests(unittest.TestCase):
 
     def test_model_provider_value_syncs_selector_and_provider_table(self) -> None:
         cfg = dict(self.platform_cfg)
+        cfg["enabled"] = True
         cfg["model_provider"] = "dataeyes"
 
         config_text, parsed = self._run_codex_sync(cfg)
@@ -241,6 +242,7 @@ class CodexSyncTests(unittest.TestCase):
             "features",
             "projects",
             "export_env_to_zshrc",
+            "preamble",
         }
         self.assertEqual(set(self.platform_cfg), covered_keys)
 

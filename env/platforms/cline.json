@@ -8,5 +8,10 @@
     },
     "secrets": {
         "openAiApiKey": "${cline.openaiKey}"
+    },
+    "preamble": {
+        "target": "rules/ai-coding-kit-recall.md",
+        "mode": "recall",
+        "tool": "cline"
     }
 }

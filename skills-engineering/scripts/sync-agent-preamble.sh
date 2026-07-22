@@ -10,31 +10,25 @@ if [[ -f "${LOCAL_CONFIG}" ]]; then
   source "${LOCAL_CONFIG}"
 fi
 
-# Resolve a platform's install root, honoring the top-level `paths` override in
-# env/secrets.json — the SAME source as the Python sync engine (sync/platforms/paths.py).
-# Falls back to `default` when no override is configured or secrets is absent/malformed.
+# Resolve a platform's install root via the SAME source as the Python sync engine
+# (sync/platforms/paths.py -> platform_install_root). Honors the top-level `paths`
+# override in env/secrets.json AND platform-specific defaults (e.g. CODEX_HOME for
+# Codex) so the Bash preamble/skills writers never drift from the Python engine.
+# Falls back to `default` when the platform is unknown or resolution fails.
 resolve_install_root() {
   local platform="$1"
-  local default="$2"
-  local secrets="${SCRIPT_DIR}/../../env/secrets.json"
-  if [[ ! -f "${secrets}" ]]; then
-    printf '%s' "${default}"
-    return
-  fi
-  python3 - "$platform" "$default" "$secrets" <<'PY'
-import json, sys
-plat, default, secrets = sys.argv[1], sys.argv[2], sys.argv[3]
+  local default="${2:-}"
+  python3 - "$platform" "${default}" "${REPO_ROOT}/sync" <<'PY'
+import sys
+plat, default, sync_dir = sys.argv[1], sys.argv[2], sys.argv[3]
+if sync_dir not in sys.path:
+    sys.path.insert(0, sync_dir)
 try:
-    with open(secrets, encoding="utf-8") as f:
-        data = json.load(f)
-    paths = data.get("paths") or {}
-    val = paths.get(plat)
-    if isinstance(val, str) and val.strip():
-        print(val)
-    else:
-        print(default)
+    from platforms.paths import platform_install_root
+    root = platform_install_root(plat)
+    print(str(root) if root else (default or ""))
 except Exception:
-    print(default)
+    print(default or "")
 PY
 }
 
@@ -48,20 +42,10 @@ GEMINI_TARGET="${GEMINI_TARGET:-${HOME}/.gemini/GEMINI.md}"
 XCODE_CODEX_TARGET="${XCODE_CODEX_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md}"
 XCODE_CLAUDE_TARGET="${XCODE_CLAUDE_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md}"
 CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
-# Recall-only preamble targets for platforms whose global always-on context
-# file is NOT one of the ios-engineer preamble targets above. These receive
-# only the # global historical recall managed block (no ios-engineer audit).
-# Install roots honor the `paths` override in env/secrets.json (same as the
-# Python sync engine) so a custom install location is reflected here too.
-CLINE_ROOT="$(resolve_install_root cline "${HOME}/.cline")"
-CLINE_ROOT="${CLINE_ROOT/#\~/$HOME}"
-CODEBUDDY_ROOT="$(resolve_install_root codebuddy "${HOME}/.codebuddy")"
-CODEBUDDY_ROOT="${CODEBUDDY_ROOT/#\~/$HOME}"
-QWEN_ROOT="$(resolve_install_root qwen "${HOME}/.qwen")"
-QWEN_ROOT="${QWEN_ROOT/#\~/$HOME}"
-CLINE_TARGET="${CLINE_TARGET:-${CLINE_ROOT}/rules/ai-coding-kit-recall.md}"
-CODEBUDDY_TARGET="${CODEBUDDY_TARGET:-${CODEBUDDY_ROOT}/CODEBUDDY.md}"
-QWEN_TARGET="${QWEN_TARGET:-${QWEN_ROOT}/QWEN.md}"
+# Recall-only preamble targets (cline / codebuddy / qwen) and full preamble
+# targets (claude / codex / gemini / xcode) are now discovered from each
+# platform's `preamble` declaration in env/platforms/<platform>.json — see the
+# data-driven loop below. No per-platform hardcoding remains here.
 
 BEGIN_MARKER="<!-- managed-block:ios-engineer:begin"
 END_MARKER="<!-- managed-block:ios-engineer:end"
@@ -591,29 +575,86 @@ sync_manifest_skill_cursor_rules() {
   done < <(parse_sync_manifest)
 }
 
-if sync_enabled "${SYNC_CLAUDE:-}" "${HOME}/.claude"; then
-  sync_target "${CLAUDE_TARGET}" "claude-code" "~/.claude/skills/ios-engineer/"
-  sync_claude_router_block "${CLAUDE_TARGET}"
-  sync_claude_agents "${CLAUDE_AGENTS_DIR}"
-elif [[ -n "${SYNC_CLAUDE:-}" ]]; then
-  echo "Skip Claude preamble: disabled via SYNC_CLAUDE=${SYNC_CLAUDE}."
-else
-  echo "Skip Claude preamble: ${HOME}/.claude not found (set SYNC_CLAUDE=1 to force)."
-fi
-if sync_enabled "${SYNC_CODEX:-}" "${HOME}/.codex"; then
-  sync_target "${CODEX_TARGET}" "codex" "~/.codex/skills/ios-engineer/"
-elif [[ -n "${SYNC_CODEX:-}" ]]; then
-  echo "Skip Codex preamble: disabled via SYNC_CODEX=${SYNC_CODEX}."
-else
-  echo "Skip Codex preamble: ${HOME}/.codex not found (set SYNC_CODEX=1 to force)."
-fi
-if sync_enabled "${SYNC_GEMINI:-}" "${HOME}/.gemini"; then
-  sync_target "${GEMINI_TARGET}" "gemini" "~/.gemini/skills/ios-engineer/"
-elif [[ -n "${SYNC_GEMINI:-}" ]]; then
-  echo "Skip Gemini preamble: disabled via SYNC_GEMINI=${SYNC_GEMINI}."
-else
-  echo "Skip Gemini preamble: ${HOME}/.gemini not found (set SYNC_GEMINI=1 to force)."
-fi
+# ── Data-driven preamble sync ───────────────────────────────────────────────
+# Iterate env/platforms/*.json (the single source of truth). Each platform's
+# `preamble` declaration specifies its target file (relative to the install
+# root), mode (full | recall), and tool name. Adding a platform = add one JSON
+# declaration — no script edits. Xcode (two sub-roots, no single JSON) and
+# Cursor (manifest-driven .mdc generation below) remain explicit.
+
+read_preamble() {
+  # Emit preamble fields as TAB-separated values for a platform, or nothing.
+  local name="$1"
+  python3 - "$name" "${REPO_ROOT}/env/platforms" <<'PY'
+import json, os, sys
+name, pdir = sys.argv[1], sys.argv[2]
+path = os.path.join(pdir, name + ".json")
+try:
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+except Exception:
+    sys.exit(0)
+pre = data.get("preamble")
+if not isinstance(pre, dict):
+    sys.exit(0)
+target = pre.get("target", "")
+mode = pre.get("mode", "")
+tool = pre.get("tool", name)
+fmt = pre.get("format", "markdown")
+router = "1" if pre.get("router") else "0"
+agents = "1" if pre.get("agents") else "0"
+print("\t".join([name, target, mode, tool, fmt, router, agents]))
+PY
+}
+
+shopt -s nullglob
+for cfg_file in "${REPO_ROOT}/env/platforms"/*.json; do
+  name="$(basename "$cfg_file" .json)"
+  IFS=$'\t' read -r p_name p_target p_mode p_tool p_fmt p_router p_agents \
+    < <(read_preamble "$name") || true
+  [[ -z "$p_name" || -z "$p_mode" ]] && continue
+
+  root="$(resolve_install_root "$name")"
+  [[ -z "$root" ]] && continue
+
+  skills_dir="$root/skills/ios-engineer/"
+  flag_var="SYNC_$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]')"
+  flag="${!flag_var:-}"
+
+  if [[ "$p_fmt" == "yaml" ]]; then
+    echo "Skip ${name} preamble in bash: format=yaml (recall written by sync/platforms/continue.py)."
+    continue
+  fi
+
+  if [[ "$p_mode" == "full" ]]; then
+    if sync_enabled "$flag" "$root"; then
+      sync_target "$root/$p_target" "$p_tool" "$skills_dir"
+      if [[ "$name" == "claude" && "$p_router" == "1" ]]; then
+        sync_claude_router_block "$root/$p_target"
+      fi
+      if [[ "$name" == "claude" && "$p_agents" == "1" ]]; then
+        sync_claude_agents "$root/agents"
+      fi
+    elif [[ -n "$flag" ]]; then
+      echo "Skip ${name} preamble: disabled via ${flag_var}=${flag}."
+    else
+      echo "Skip ${name} preamble: ${root} not found (set ${flag_var}=1 to force)."
+    fi
+  elif [[ "$p_mode" == "recall" ]]; then
+    if sync_enabled "$flag" "$root"; then
+      sync_target "$root/$p_target" "$p_tool" "$skills_dir" "" "${RECALL_BEGIN_MARKER}" "${RECALL_END_MARKER}"
+    elif [[ -n "$flag" ]]; then
+      echo "Skip ${name} recall preamble: disabled via ${flag_var}=${flag}."
+    else
+      echo "Skip ${name} recall preamble: ${root} not found (set ${flag_var}=1 to force)."
+    fi
+  else
+    echo "Skip ${name} preamble: unknown mode '${p_mode}'."
+  fi
+done
+shopt -u nullglob
+
+# ── Xcode CodingAssistant (two sub-roots, no single platform JSON) ──
 if sync_enabled "${SYNC_XCODE_CODEX:-}" "${HOME}/Library/Developer/Xcode/CodingAssistant/codex"; then
   sync_target "${XCODE_CODEX_TARGET}" "codex" "~/Library/Developer/Xcode/CodingAssistant/codex/skills/ios-engineer/"
 elif [[ -n "${SYNC_XCODE_CODEX:-}" ]]; then
@@ -627,32 +668,6 @@ elif [[ -n "${SYNC_XCODE_CLAUDE:-}" ]]; then
   echo "Skip Xcode Claude preamble: disabled via SYNC_XCODE_CLAUDE=${SYNC_XCODE_CLAUDE}."
 else
   echo "Skip Xcode Claude preamble: ${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig not found (set SYNC_XCODE_CLAUDE=1 to force)."
-fi
-
-# ── Recall-only preamble for platforms whose global always-on context file is
-#    not one of the ios-engineer preamble targets above. These receive only the
-#    # global historical recall managed block (no ios-engineer audit block), so
-#    general-purpose tools are not polluted with iOS-specific instructions. ──
-if sync_enabled "${SYNC_CLINE:-}" "${CLINE_ROOT}"; then
-  sync_target "${CLINE_TARGET}" "cline" "${CLINE_ROOT}/skills/ios-engineer/" "" "${RECALL_BEGIN_MARKER}" "${RECALL_END_MARKER}"
-elif [[ -n "${SYNC_CLINE:-}" ]]; then
-  echo "Skip Cline recall preamble: disabled via SYNC_CLINE=${SYNC_CLINE}."
-else
-  echo "Skip Cline recall preamble: ${CLINE_ROOT} not found (set SYNC_CLINE=1 to force)."
-fi
-if sync_enabled "${SYNC_CODEBUDDY:-}" "${CODEBUDDY_ROOT}"; then
-  sync_target "${CODEBUDDY_TARGET}" "codebuddy" "${CODEBUDDY_ROOT}/skills/ios-engineer/" "" "${RECALL_BEGIN_MARKER}" "${RECALL_END_MARKER}"
-elif [[ -n "${SYNC_CODEBUDDY:-}" ]]; then
-  echo "Skip CodeBuddy recall preamble: disabled via SYNC_CODEBUDDY=${SYNC_CODEBUDDY}."
-else
-  echo "Skip CodeBuddy recall preamble: ${CODEBUDDY_ROOT} not found (set SYNC_CODEBUDDY=1 to force)."
-fi
-if sync_enabled "${SYNC_QWEN:-}" "${QWEN_ROOT}"; then
-  sync_target "${QWEN_TARGET}" "qwen" "${QWEN_ROOT}/skills/ios-engineer/" "" "${RECALL_BEGIN_MARKER}" "${RECALL_END_MARKER}"
-elif [[ -n "${SYNC_QWEN:-}" ]]; then
-  echo "Skip Qwen recall preamble: disabled via SYNC_QWEN=${SYNC_QWEN}."
-else
-  echo "Skip Qwen recall preamble: ${QWEN_ROOT} not found (set SYNC_QWEN=1 to force)."
 fi
 
 sync_manifest_skill_cursor_rules "${REPO_ROOT}"

@@ -83,5 +83,10 @@
     },
     "export_env_to_zshrc": {
         "DATAEYES_API_KEY": "${codex.key}"
+    },
+    "preamble": {
+        "target": "AGENTS.md",
+        "mode": "full",
+        "tool": "codex"
     }
 }

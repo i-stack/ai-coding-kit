@@ -11,5 +11,10 @@
                 "maxTokens": 128000
             }
         }
-    ]
+    ],
+    "preamble": {
+        "mode": "recall",
+        "tool": "continue",
+        "format": "yaml"
+    }
 }

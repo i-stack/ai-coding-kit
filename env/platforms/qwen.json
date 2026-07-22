@@ -2,5 +2,10 @@
     "_comment": "Qwen Code platform configuration. Syncs DASHSCOPE_API_KEY to ~/.qwen/settings.json env and skills to ~/.qwen/skills/.",
     "env": {
         "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}"
+    },
+    "preamble": {
+        "target": "QWEN.md",
+        "mode": "recall",
+        "tool": "qwen"
     }
 }

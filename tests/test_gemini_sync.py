@@ -368,17 +368,19 @@ class GeminiSyncTests(unittest.TestCase):
             "contextManagement",
             "export_env_to_zshrc",
             "_comment",
+            "preamble",
         }
         self.assertEqual(set(self.platform_cfg), covered_keys)
 
         # Keys that should appear in settings.json
-        managed_keys = covered_keys - {"export_env_to_zshrc", "_comment"}
+        managed_keys = covered_keys - {"export_env_to_zshrc", "_comment", "preamble"}
         for key in managed_keys:
             self.assertIn(key, settings, f"Managed key '{key}' missing from settings.json")
 
         # Internal keys that should NOT appear
         self.assertNotIn("_comment", settings)
         self.assertNotIn("export_env_to_zshrc", settings)
+        self.assertNotIn("preamble", settings)
 
     # ── Edge cases ───────────────────────────────────────────────────────────
 

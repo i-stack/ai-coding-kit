@@ -572,6 +572,56 @@ class CodeBuddySyncTests(unittest.TestCase):
             self.assertNotIn(key, result["mcp"], f"Internal key '{key}' leaked into mcp.json")
             self.assertNotIn(key, result["models"], f"Internal key '{key}' leaked into models.json")
 
+    # ── Recall preamble (CODEBUDDY.md) ──────────────────────────────────────
+
+    def _read_codebuddy_md(self) -> str:
+        path = self.root / "home" / ".codebuddy" / "CODEBUDDY.md"
+        return path.read_text(encoding="utf-8") if path.exists() else ""
+
+    def test_recall_block_synced_to_codebuddy_md(self) -> None:
+        """The historical-recall managed block is rendered into CODEBUDDY.md."""
+        self._run_codebuddy_sync()
+
+        text = self._read_codebuddy_md()
+        self.assertIn("managed-block:historical-recall:begin", text)
+        self.assertIn("managed-block:historical-recall:end", text)
+        # Points at the CodeBuddy skills dir (same as the bash preamble writer).
+        self.assertIn(
+            str(self.root / "home" / ".codebuddy" / "skills" / "historical-recall" / "SKILL.md"),
+            text,
+        )
+        # Recall CLI path points at the repo's dist/cli.js (absolute).
+        self.assertIn("plan-reviews/dist/cli.js", text)
+
+    def test_recall_block_preserves_user_content(self) -> None:
+        """Content outside the managed block is preserved during merge."""
+        cb = self.root / "home" / ".codebuddy" / "CODEBUDDY.md"
+        cb.write_text("# my custom header\n\nkeep me\n", encoding="utf-8")
+
+        self._run_codebuddy_sync()
+
+        text = self._read_codebuddy_md()
+        self.assertIn("keep me", text)
+        self.assertIn("managed-block:historical-recall:begin", text)
+
+    def test_recall_block_idempotent(self) -> None:
+        """Re-running sync does not duplicate the managed block."""
+        self._run_codebuddy_sync()
+        self._run_codebuddy_sync()
+
+        text = self._read_codebuddy_md()
+        self.assertEqual(text.count("managed-block:historical-recall:begin"), 1)
+
+    def test_recall_block_skipped_when_root_missing(self) -> None:
+        """When ~/.codebuddy does not exist, no CODEBUDDY.md is created."""
+        (self.root / "home" / ".codebuddy").rmdir()
+
+        self._run_codebuddy_sync()
+
+        self.assertFalse(
+            (self.root / "home" / ".codebuddy" / "CODEBUDDY.md").exists()
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -112,7 +112,7 @@ def generate_shared_toml(cfg: dict[str, Any]) -> str:
     section = toml_section(
         cfg_for_section,
         ignore=_HOST_SKIP
-        | {"model_provider", "model_providers", "env", "export_env_to_zshrc", "projects", "_comment", "enabled"},
+        | {"model_provider", "model_providers", "env", "export_env_to_zshrc", "projects", "_comment", "enabled", "preamble"},
     )
     if section.strip():
         lines.append(section)

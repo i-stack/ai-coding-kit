@@ -66,5 +66,12 @@
         "autoUpdatesChannel": "stable",
         "feedbackSurveyRate": 0.05,
         "language": "chinese"
+    },
+    "preamble": {
+        "target": "CLAUDE.md",
+        "mode": "full",
+        "tool": "claude-code",
+        "router": true,
+        "agents": true
     }
 }

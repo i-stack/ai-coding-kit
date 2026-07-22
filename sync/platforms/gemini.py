@@ -11,7 +11,7 @@ from .paths import (
 
 # Internal/platform keys that should NOT appear in the managed settings.json.
 # These are consumed by the sync engine/orchestrator, not by Gemini CLI itself.
-_INTERNAL_SKIP = {"export_env_to_zshrc", "_comment", "enabled"}
+_INTERNAL_SKIP = {"export_env_to_zshrc", "_comment", "enabled", "preamble"}
 
 
 def _extract_settings(cfg: dict[str, Any]) -> dict[str, Any]:

@@ -479,6 +479,7 @@ class ClaudeSyncTests(unittest.TestCase):
             "permissions",
             "hooks",
             "_hostSettings",
+            "preamble",
         }
         self.assertEqual(set(self.platform_cfg), covered_keys, "claude.json keys changed — update tests")
 

@@ -30,6 +30,8 @@ def _repo_hooks_dir() -> Path:
 _HOST_SKIP = {
     # Orchestration-only keys
     "enabled",
+    # Sync-engine metadata (declared in env/platforms/<platform>.json, not a tool setting)
+    "preamble",
     # Personal UI/UX preferences
     "apiKeyHelper",
     "theme",

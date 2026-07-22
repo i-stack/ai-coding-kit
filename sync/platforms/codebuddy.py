@@ -1,6 +1,8 @@
 import shutil
+from pathlib import Path
 from typing import Any
 
+from . import recall
 from .common import read_json_object, sync_json_mcp, write_json
 from .paths import (
     claude_skills_base,
@@ -9,6 +11,47 @@ from .paths import (
     codebuddy_root_dir,
     codebuddy_skills_base,
 )
+
+# ── Global historical recall (end-to-end recall, same mechanism as Claude Code) ──
+# Injected into ~/.codebuddy/CODEBUDDY.md — CodeBuddy's global always-on context
+# file — so every CodeBuddy session gets the managed historical-recall block.
+# Rendered from the SAME template the bash sync-agent-preamble.sh uses for the
+# CodeBuddy recall-only target, so both paths produce byte-identical output.
+_RECALL_BEGIN = "<!-- managed-block:historical-recall:begin"
+_RECALL_END = "<!-- managed-block:historical-recall:end"
+
+
+def _repo_root() -> Path:
+    """Repo root: sync/platforms/<this file> -> parents[2]."""
+    return Path(__file__).resolve().parents[2]
+
+
+def _render_recall_block(codebuddy_skills_dir: Path) -> str | None:
+    """Render the historical-recall managed block from the shared template.
+
+    Delegates to sync.platforms.recall (the single source of truth shared with
+    the Bash preamble writer and continue.py) so every path stays byte-consistent.
+    """
+    cli_path = str(
+        (
+            _repo_root()
+            / "skills-engineering"
+            / "plan-reviews"
+            / "dist"
+            / "cli.js"
+        ).resolve()
+    )
+    return recall.render_recall_block(
+        str(codebuddy_skills_dir / "historical-recall") + "/", cli_path
+    )
+
+
+def _merge_recall_block(target: Path, block: str) -> None:
+    """Idempotently merge the historical-recall managed block into CODEBUDDY.md.
+
+    Delegates to sync.platforms.recall (shared with the Bash preamble writer).
+    """
+    recall.merge_recall_block_markdown(target, block)
 
 
 def _validate_model_entries(value: Any) -> list[dict[str, Any]]:
@@ -181,7 +224,7 @@ def _sync_skills() -> None:
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
-    """Sync MCP servers, models, and skills to CodeBuddy."""
+    """Sync MCP servers, models, skills, and the global recall preamble to CodeBuddy."""
     root = codebuddy_root_dir()
     if not root.exists():
         print(f"[codebuddy] CodeBuddy root not found: {root} — skipping (tool not installed).")
@@ -190,3 +233,19 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     sync_json_mcp(codebuddy_mcp_path(), mcp_servers)
     _sync_models(cfg)
     _sync_skills()
+
+    # Sync the global historical-recall managed block into the platform's
+    # preamble file. Driven by the `preamble` declaration in
+    # env/platforms/codebuddy.json (single source of truth); defaults to recall
+    # mode into CODEBUDDY.md for backward compatibility (no preamble yet).
+    preamble = cfg.get("preamble") or {}
+    recall_mode = preamble.get("mode", "recall")
+    if recall_mode != "none":
+        recall_target = codebuddy_root_dir() / preamble.get("target", "CODEBUDDY.md")
+        block = _render_recall_block(codebuddy_skills_base())
+        if block is not None:
+            _merge_recall_block(recall_target, block)
+        else:
+            print("[codebuddy] agent-preamble template not found — skipping CODEBUDDY.md recall sync.")
+    else:
+        print("[codebuddy] historical-recall preamble disabled via preamble.mode=none.")
