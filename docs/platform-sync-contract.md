@@ -200,6 +200,76 @@ Answers to the platform-addition questions:
     disable-empty, user-model preservation, idempotent re-sync, and
     re-enable-restore.
 
+## Gemini Reference
+
+Gemini is the third platform with an explicit `api.enabled` toggle.
+
+`env/platforms/gemini.json` should stay close to:
+
+```json
+{
+  "api": {
+    "enabled": true
+  },
+  "model": {
+    "name": "gemini-3.5-flash",
+    "maxSessionTurns": -1,
+    "compressionThreshold": 0.5,
+    "skipNextSpeakerCheck": true
+  },
+  "context": { "fileName": "GEMINI.md", "includeDirectoryTree": true },
+  "tools": { "sandbox": "sandbox-exec", "sandboxNetworkAccess": true },
+  "skills": { "enabled": true },
+  "hooksConfig": { "enabled": true },
+  "security": { "folderTrust": { "enabled": true } },
+  "experimental": {
+    "directWebFetch": true,
+    "enableAgents": true,
+    "autoMemory": true,
+    "contextManagement": true
+  },
+  "contextManagement": {
+    "historyWindow": { "maxTokens": 200000, "retainedTokens": 10000 }
+  },
+  "export_env_to_zshrc": {
+    "GEMINI_API_KEY": "${gemini.key}",
+    "GOOGLE_GEMINI_BASE_URL": "${gemini.url}",
+    "GEMINI_MODEL": "gemini-3.5-flash"
+  },
+  "preamble": { "target": "GEMINI.md", "mode": "full", "tool": "gemini" }
+}
+```
+
+Answers to the platform-addition questions:
+
+1. Target files: `~/.gemini/settings.json` (`model` + general settings + `mcpServers`),
+   `~/.zshrc` (managed GEMINI env block), `~/.gemini/GEMINI.md` (recall/preamble),
+   and the Xcode CodingAssistant mirror
+   `~/Library/Developer/Xcode/CodingAssistant/gemini/settings.json`.
+2. API sync fields: `model` inside `~/.gemini/settings.json`, and the env vars in
+   `export_env_to_zshrc` (`GEMINI_API_KEY`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_MODEL`)
+   written to `~/.zshrc`.
+3. Default for `api.enabled`: `true`. Gemini historically always synced its model
+   and env vars, so a missing `api` block or missing `api.enabled` keeps the old
+   always-sync behavior. Only an explicit `false` disables it.
+4. Owned target fields: `~/.gemini/settings.json` → `model` (gated by `api.enabled`),
+   `mcpServers` (always synced); `~/.zshrc` → the GEMINI env block (gated); the
+   managed recalL/preamble block in `GEMINI.md`.
+5. Cleanup when `api.enabled=false`: `model` is excluded from the managed settings
+   and pruned from `~/.gemini/settings.json` via the managed-keys sidecar; the
+   managed `~/.zshrc` GEMINI env block is removed by `clear_env_block`.
+6. Unrelated user fields preserved: any top-level key in `settings.json` other than
+   `model` (e.g. user `ui`, `general`, nested custom sub-keys), user-added MCP
+   servers, other platforms' `~/.zshrc` blocks, and user content in `GEMINI.md`.
+7. MCP servers are independent of API sync — they still sync when `api.enabled=false`.
+8. General settings (`context`, `tools`, `skills`, `hooksConfig`, `security`,
+   `experimental`, `contextManagement`) and the preamble are independent of API
+   sync — they still sync when `api.enabled=false`.
+9. No login-bypass field like Claude `primaryApiKey=self`.
+10. Tests live in `tests/test_gemini_sync.py` and cover enable-by-default,
+    disable-removes-model, disable-cleans-zshrc, idempotent re-sync, and
+    re-enable-restore.
+
 ## Cleanup Policy
 
 When removing a previously managed feature, prefer deletion over comments.

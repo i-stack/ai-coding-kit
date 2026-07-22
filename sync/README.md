@@ -108,6 +108,10 @@ For CodeBuddy, `api.enabled` also defaults to `true`; setting it to `false` skip
 definition sync and clears the managed `availableModels` list in `~/.codebuddy/models.json`
 (set to `[]`, not removed) so synced models drop out of the picker without losing provider
 definitions. MCP servers, skills, and the preamble still sync.
+For Gemini, `api.enabled` also defaults to `true`; setting it to `false` skips syncing the
+`model` field into `~/.gemini/settings.json` (pruned via the managed-keys sidecar) and
+removes the managed env block (`GEMINI_API_KEY`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_MODEL`)
+from `~/.zshrc`. MCP servers, general settings, and the preamble still sync.
 
 Use the Claude cleanup as the reference contract before adding another
 platform's API toggle: [Platform Sync Contract](../docs/platform-sync-contract.md).

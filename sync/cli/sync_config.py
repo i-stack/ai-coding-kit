@@ -30,6 +30,7 @@ from core.common import (
     filter_mcp_for_platform,
     load_all_mcp,
     load_platform_config,
+    clear_env_block,
     sync_env_to_zshrc,
     sync_json_mcp,
 )
@@ -128,6 +129,12 @@ def _inject_path_override(name: str, platform_cfg: dict[str, Any]) -> None:
 # ── Per-platform orchestration ────────────────────────────────────────────────
 
 def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> None:
+    # API fields are gated by the local api.enabled toggle: when disabled, do
+    # not sync API env vars and clean any previously-synced managed block.
+    api = platform_cfg.get("api")
+    if isinstance(api, dict) and api.get("enabled", True) is False:
+        clear_env_block(platform)
+        return
     env = platform_cfg.get("export_env_to_zshrc")
     if not isinstance(env, dict) or not env:
         return

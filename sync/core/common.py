@@ -246,6 +246,32 @@ def sync_env_to_zshrc(platform: str, env: dict[str, str]) -> None:
     print(f"[{platform}] Run 'source {zshrc}' in your terminal to apply changes.")
 
 
+def clear_env_block(platform: str) -> bool:
+    """Remove the platform's managed env block from ~/.zshrc, if present.
+
+    Used when a platform's API sync is disabled so previously-synced API env
+    vars are cleaned rather than left lingering. Returns True if a block was
+    removed, False if there was nothing to remove.
+    """
+    zshrc = Path.home() / ".zshrc"
+    if not zshrc.exists():
+        return False
+    text = zshrc.read_text(encoding="utf-8")
+    block_re = re.compile(
+        r"# BEGIN " + platform.upper() + r" ENV SYNC(?: \(from [^)]+\))?"
+        + r".*?"
+        + re.escape(f"# END {platform.upper()} ENV SYNC")
+        + r"\n?",
+        re.DOTALL,
+    )
+    new_text = block_re.sub("", text)
+    if new_text == text:
+        return False
+    zshrc.write_text(new_text, encoding="utf-8")
+    print(f"[{platform}] Removed managed env block from {zshrc} (API sync disabled).")
+    return True
+
+
 def filter_mcp_for_platform(mcp_all: dict[str, Any], platform: str) -> dict[str, Any]:
     """Filter MCP servers to those enabled for the given platform.
 

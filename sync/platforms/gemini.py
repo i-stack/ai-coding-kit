@@ -11,12 +11,37 @@ from core.paths import (
 
 # Internal/platform keys that should NOT appear in the managed settings.json.
 # These are consumed by the sync engine/orchestrator, not by Gemini CLI itself.
-_INTERNAL_SKIP = {"export_env_to_zshrc", "_comment", "preamble"}
+_INTERNAL_SKIP = {"export_env_to_zshrc", "_comment", "preamble", "api"}
+
+# Keys owned by the syncer that are gated by the local api.enabled toggle.
+# When API sync is disabled, these API/model fields are neither written nor
+# merged, and are pruned from the target via the managed-keys sidecar.
+_API_MODEL_FIELDS = {"model"}
 
 
-def _extract_settings(cfg: dict[str, Any]) -> dict[str, Any]:
-    """Extract Gemini CLI settings from platform config, stripping internal keys."""
-    return {k: v for k, v in cfg.items() if k not in _INTERNAL_SKIP}
+def _api_enabled(cfg: dict[str, Any]) -> bool:
+    """Gemini third-party API sync toggle.
+
+    Missing ``api`` or missing ``api.enabled`` defaults to enabled, preserving
+    the historical always-sync behavior. Only an explicit ``false`` disables
+    synced API fields.
+    """
+    api = cfg.get("api")
+    if not isinstance(api, dict):
+        return True
+    return api.get("enabled", True) is True
+
+
+def _extract_settings(cfg: dict[str, Any], api_enabled: bool = True) -> dict[str, Any]:
+    """Extract Gemini CLI settings from platform config, stripping internal keys.
+
+    When ``api_enabled`` is False, API/model-owned fields (e.g. ``model``) are
+    also excluded so they are neither merged nor left lingering in settings.json.
+    """
+    skip = set(_INTERNAL_SKIP)
+    if not api_enabled:
+        skip |= _API_MODEL_FIELDS
+    return {k: v for k, v in cfg.items() if k not in skip}
 
 
 def _deep_merge(existing: dict[str, Any], managed: dict[str, Any]) -> dict[str, Any]:
@@ -73,7 +98,8 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
         print(f"[gemini] Gemini root not found: {root} — skipping (tool not installed).")
         return
 
-    managed = _extract_settings(cfg)
+    api_enabled = _api_enabled(cfg)
+    managed = _extract_settings(cfg, api_enabled)
 
     # ── Native Gemini CLI target ──
     _sync_settings(

@@ -1,5 +1,8 @@
 {
-    "_comment": "Gemini CLI platform configuration. Schema: https://github.com/google-gemini/gemini-cli/blob/main/packages/cli/src/config/settingsSchema.ts",
+    "_comment": "Gemini CLI platform configuration. Schema: https://github.com/google-gemini/gemini-cli/blob/main/packages/cli/src/config/settingsSchema.ts. API fields (model + export_env_to_zshrc) sync by default; set api.enabled=false to disable and clean managed API fields.",
+    "api": {
+        "enabled": true
+    },
     "model": {
         "name": "gemini-3.5-flash",
         "maxSessionTurns": -1,
