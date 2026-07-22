@@ -576,19 +576,23 @@ class ClaudeSyncTests(unittest.TestCase):
     # ── Edge cases ──────────────────────────────────────────────────────────────
 
     def test_claude_json_not_found_graceful(self) -> None:
-        """When claude.json doesn't exist, sync should not crash."""
+        """When claude.json doesn't exist, sync should not crash and platform is skipped.
+
+        In the auto-discovery architecture, platforms are discovered from
+        env/platforms/*.json. A missing JSON means the platform is simply not
+        discovered — sync completes without error, and no output file is written.
+        """
         if (self.root / "env" / "platforms" / "claude.json").exists():
             (self.root / "env" / "platforms" / "claude.json").unlink()
 
-        # sync_config.load_platform_config returns {} for missing file
+        out = io.StringIO()
         with patched_sync_environment(self.root):
-            sys.argv = ["sync_config.py", "--target", "claude"]
-            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            sys.argv = ["sync_config.py", "--target", "all"]
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
                 sync_config.main()
 
-        # No crash; claude.json should still be created with MCP servers
-        data = self._read_json(self.home / ".claude.json")
-        self.assertIn("mcpServers", data)
+        # No crash; claude.json was not created because the platform was not discovered.
+        self.assertFalse((self.home / ".claude.json").exists())
 
     def test_missing_claude_root_skips_sync(self) -> None:
         """When ~/.claude does not exist, sync should treat Claude as not installed."""

@@ -6,83 +6,124 @@ Sources:
   env/mcp/*.json          — MCP server definitions (platform-agnostic)
   env/platforms/*.json    — platform-specific configs (follow each platform's spec)
 
-Platforms are auto-discovered from env/platforms/; adding a new platform only
-requires a config file and (if complex rendering is needed) a renderer module.
+Adding a new platform requires only:
+  1. env/platforms/<name>.json  — platform config and sync metadata
+  2. sync/platforms/<name>.py   — (optional) custom renderer; must export
+                                  sync(mcp_servers, platform_cfg) -> None
+
+If no renderer module exists and the JSON declares an ``mcp_target`` path,
+the platform is synced via the generic JSON-MCP writer. No registration needed.
+
+Path override: add an ``"install_root"`` field to env/platforms/<name>.json to override
+the default Mac install root for that platform. Supports ``~`` expansion.
 """
-import argparse
+import importlib
 import sys
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
-from platforms import claude, cline, codebuddy, codex, cursor, gemini, qwen
-from platforms.common import discover_platforms, filter_mcp_for_platform, load_all_mcp, load_platform_config, sync_env_to_zshrc
-from platforms.paths import platform_install_root, platform_is_installed
+import argparse
 
-# continue.py contains 'continue' keyword which can't be a Python import name.
-import importlib as _importlib
-_continue = _importlib.import_module("platforms.continue")
+from platforms import paths as _paths
+from platforms.common import (
+    discover_platforms,
+    filter_mcp_for_platform,
+    load_all_mcp,
+    load_platform_config,
+    sync_env_to_zshrc,
+    sync_json_mcp,
+)
+from platforms.paths import platform_install_root, platform_is_installed
 
 # sync_fn signature: (mcp_servers: dict, platform_cfg: dict) -> None
 SyncFn = Callable[[dict[str, Any], dict[str, Any]], None]
 
-# Platforms that have custom renderer logic (not pure JSON-MCP).
-# Registered here, discovered from env/platforms/ for pure JSON-MCP platforms.
-RENDERERS: dict[str, SyncFn] = {
-    "cursor": cursor.sync,
-    "codebuddy": codebuddy.sync,
-    "codex": codex.sync,
-    "claude": claude.sync,
-    "gemini": gemini.sync,
-    "cline": cline.sync,
-    "continue": _continue.sync,
-    "qwen": qwen.sync,
-}
+
+# ── Renderer auto-discovery ───────────────────────────────────────────────────
+
+def _load_renderer(name: str) -> SyncFn | None:
+    """Dynamically load sync/platforms/<name>.py and return its sync() function.
+
+    Module name uses underscores (``continue_`` is not needed because importlib
+    does not parse module names as Python keywords). Returns None when no module
+    exists or the module lacks a ``sync`` callable.
+    """
+    module_name = f"platforms.{name.replace('-', '_')}"
+    try:
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError:
+        return None
+    fn = getattr(module, "sync", None)
+    return fn if callable(fn) else None
+
+
+def _make_json_mcp_renderer(target_path: Path, platform_name: str) -> SyncFn:
+    def _sync(mcp_servers: dict[str, Any], _platform_cfg: dict[str, Any]) -> None:
+        sync_json_mcp(target_path, mcp_servers)
+    return _sync
 
 
 def _auto_discover_targets() -> dict[str, SyncFn]:
-    """Build the full target map: registered renderers + auto-discovered JSON-MCP platforms."""
-    all_targets: dict[str, SyncFn] = dict(RENDERERS)
-    discovered = discover_platforms()
+    """Build the full target map from env/platforms/*.json.
 
-    for name in discovered:
-        if name in all_targets:
-            continue  # already has a custom renderer
-        cfg = load_platform_config(name)
-        mcp_target = cfg.get("mcp_target")
-        if not mcp_target:
-            print(f"[warn] platform '{name}' has no custom renderer and no 'mcp_target' — skipped.")
+    For each platform:
+      1. If sync/platforms/<name>.py exists and exports sync() → use it.
+      2. Elif JSON declares mcp_target → use generic JSON-MCP writer.
+      3. Else → warn and skip.
+    """
+    all_targets: dict[str, SyncFn] = {}
+    for name in discover_platforms():
+        renderer = _load_renderer(name)
+        if renderer is not None:
+            all_targets[name] = renderer
             continue
 
-        from pathlib import Path as _Path
-        from platforms.common import sync_json_mcp as _sync_json_mcp
-
-        target_path = _Path(mcp_target).expanduser()
-
-        def _make_sync(p: _Path, pname: str) -> SyncFn:
-            def _s(mcp_servers: dict[str, Any], _platform_cfg: dict[str, Any]) -> None:
-                _sync_json_mcp(p, mcp_servers)
-            return _s
-
-        all_targets[name] = _make_sync(target_path, name)
-        print(f"[sync] Auto-discovered JSON-MCP platform: {name} -> {target_path}")
-
+        cfg = load_platform_config(name)
+        mcp_target = cfg.get("mcp_target")
+        if mcp_target:
+            target_path = Path(mcp_target).expanduser()
+            all_targets[name] = _make_json_mcp_renderer(target_path, name)
+            print(f"[sync] Auto-discovered JSON-MCP platform: {name} -> {target_path}")
+        else:
+            print(
+                f"[warn] platform '{name}' has no renderer module "
+                f"(sync/platforms/{name}.py) and no 'mcp_target' — skipped."
+            )
     return all_targets
 
 
-def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> None:
-    """Automatically write env vars to ~/.zshrc if platform config declares
-    an export_env_to_zshrc block.
+# ── Path injection ────────────────────────────────────────────────────────────
 
-    Convention: env/platforms/<platform>.json may contain:
+def _inject_path_override(name: str, platform_cfg: dict[str, Any]) -> None:
+    """If platform JSON declares an ``install_root`` field, inject it into paths._PATH_OVERRIDES.
 
-        "export_env_to_zshrc": {
-            "VAR_NAME": "value"
-        }
+    This must be called BEFORE any path resolution so that all derived helpers
+    (codex_root_dir, claude_root_dir, etc.) transparently use the custom root.
+    Existing renderer modules require no changes.
 
-    Each key in the object is treated as an env var to export.
-    When present, the orchestrator calls sync_env_to_zshrc() so that each
-    platform's sync() doesn't need to handle zshrc manually.
+    ``install_root`` in the platform JSON takes effect only when the platform is
+    not already present in _PATH_OVERRIDES (secrets.json has higher priority).
     """
+    json_path = platform_cfg.get("install_root")
+    if not (json_path and isinstance(json_path, str) and json_path.strip()):
+        return
+    try:
+        resolved = Path(json_path).expanduser()
+    except (KeyError, RuntimeError):
+        return
+
+    if _paths._PATH_OVERRIDES is None:
+        _paths._PATH_OVERRIDES = {}
+    # Only inject when not already overridden (secrets.json has higher priority
+    # than the platform JSON's path field for explicit per-machine overrides).
+    if name not in _paths._PATH_OVERRIDES:
+        _paths._PATH_OVERRIDES[name] = resolved
+
+
+# ── Per-platform orchestration ────────────────────────────────────────────────
+
+def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> None:
     env = platform_cfg.get("export_env_to_zshrc")
     if not isinstance(env, dict) or not env:
         return
@@ -90,36 +131,57 @@ def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> No
 
 
 def _effective_platform_config(platform: str) -> dict[str, Any]:
-    """Load platform config and pass orchestration-only keys to the renderer.
-
-    ``enabled`` is owned by the sync orchestrator and is forwarded to the
-    renderer (not stripped) so each platform can decide what a disabled state
-    means via its renderer-owned cleanup path:
-      - Cline removes every key it manages from globalState.json and secrets.json.
-      - Codex comments out its managed ``model_provider`` while keeping the rest
-        of the config intact.
-    Other platforms ignore ``enabled`` and sync normally. An absent ``enabled``
-    key is treated as enabled.
-    """
     cfg = load_platform_config(platform)
     if cfg.get("enabled") is False:
-        print(f"[sync] Platform '{platform}' disabled via enabled=false — renderer applies its disabled-state handling.")
+        print(
+            f"[sync] Platform '{platform}' disabled via enabled=false "
+            "— renderer applies its disabled-state handling."
+        )
     return dict(cfg)
+
+
+def _resolve_install_root_for_sync(name: str, platform_cfg: dict[str, Any]) -> Path | None:
+    """Return the effective install root, falling back to ~/.{name} for new platforms."""
+    root = platform_install_root(name)
+    if root is not None:
+        return root
+    json_path = platform_cfg.get("install_root")
+    if json_path and isinstance(json_path, str) and json_path.strip():
+        try:
+            return Path(json_path).expanduser()
+        except (KeyError, RuntimeError):
+            pass
+    # New platform without a paths.py entry and no JSON path: use ~/.{name}
+    return Path.home() / f".{name}"
 
 
 def _sync_one_platform(
     name: str, fn: SyncFn, mcp_all: dict[str, Any]
 ) -> None:
-    root = platform_install_root(name)
-    if root is not None and not platform_is_installed(name):
-        print(f"[sync] Platform '{name}' root not found: {root} — skipping (tool not installed).")
-        return
+    platform_cfg = _effective_platform_config(name)
+
+    # Inject JSON path override BEFORE any path resolution so all derived helpers
+    # in the renderer transparently use the custom root.
+    _inject_path_override(name, platform_cfg)
+
+    root = _resolve_install_root_for_sync(name, platform_cfg)
+    if root is not None and not root.exists():
+        # platform_is_installed() checks root.exists(); replicate that logic here
+        # so new platforms (not in _INSTALL_ROOTS) are also skipped when absent.
+        known = platform_install_root(name) is not None
+        if known and not platform_is_installed(name):
+            print(f"[sync] Platform '{name}' root not found: {root} — skipping (tool not installed).")
+            return
+        if not known and not root.exists():
+            print(f"[sync] Platform '{name}' path not found: {root} — skipping.")
+            return
 
     mcp_servers = filter_mcp_for_platform(mcp_all, name)
-    platform_cfg = _effective_platform_config(name)
     fn(mcp_servers, platform_cfg)
     _auto_export_env_to_zshrc(name, platform_cfg)
 
+
+# ── Entry point ───────────────────────────────────────────────────────────────
 
 def main() -> None:
     mcp_all = load_all_mcp()
@@ -132,7 +194,10 @@ def main() -> None:
         return
 
     valid = sorted(all_targets.keys())
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
     parser.add_argument(
         "--target",
         default="all",
@@ -147,7 +212,10 @@ def main() -> None:
     elif args.target in all_targets:
         _sync_one_platform(args.target, all_targets[args.target], mcp_all)
     else:
-        print(f"[error] Unknown target '{args.target}'. Valid: all, {', '.join(valid)}", file=sys.stderr)
+        print(
+            f"[error] Unknown target '{args.target}'. Valid: all, {', '.join(valid)}",
+            file=sys.stderr,
+        )
         raise SystemExit(1)
 
 
