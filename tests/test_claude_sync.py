@@ -49,7 +49,6 @@ def _run_claude_sync(root: Path, cfg: dict) -> None:
     (root / "env" / "platforms" / "claude.json").write_text(
         json.dumps(cfg, indent=4) + "\n", encoding="utf-8"
     )
-
     with patched_sync_environment(root):
         sys.argv = ["sync_config.py", "--target", "claude"]
         with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -124,7 +123,9 @@ class ClaudeSyncTests(unittest.TestCase):
 
     def test_mcp_servers_synced_to_claude_json(self) -> None:
         """~/.claude.json should contain the filtered MCP servers."""
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
 
         data = self._read_json(self.home / ".claude.json")
         self.assertIn("mcpServers", data)
@@ -140,7 +141,9 @@ class ClaudeSyncTests(unittest.TestCase):
             {"mcpServers": {}, "autoConnectIde": True, "customKey": "keep-me"},
         )
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
 
         data = self._read_json(self.home / ".claude.json")
         self.assertTrue(data.get("autoConnectIde"))
@@ -148,69 +151,77 @@ class ClaudeSyncTests(unittest.TestCase):
         self.assertIn("sample", data["mcpServers"])
 
     def test_claude_config_json_created_with_primary_api_key_self(self) -> None:
-        """~/.claude/config.json should be created with primaryApiKey=self."""
-        _run_claude_sync(self.root, self.platform_cfg)
+        """~/.claude/config.json should be created with primaryApiKey=self when API is enabled."""
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": True}
+        _run_claude_sync(self.root, cfg)
 
         config = self._read_json(self.home / ".claude" / "config.json")
         self.assertEqual(config["primaryApiKey"], "self")
 
     def test_claude_config_json_preserves_existing_keys(self) -> None:
-        """Existing ~/.claude/config.json keys should survive the sync."""
+        """Existing ~/.claude/config.json keys should survive API-enabled sync."""
         self._write_json(
             self.home / ".claude" / "config.json",
             {"primaryApiKey": "login", "custom": {"keep": True}},
         )
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": True}
+        _run_claude_sync(self.root, cfg)
 
         config = self._read_json(self.home / ".claude" / "config.json")
         self.assertEqual(config["primaryApiKey"], "self")
         self.assertEqual(config["custom"], {"keep": True})
 
+    def test_api_disabled_cleans_primary_api_key_self(self) -> None:
+        """api.enabled=false means API sync is disabled and old primaryApiKey=self is cleaned."""
+        self._write_json(
+            self.home / ".claude" / "config.json",
+            {"primaryApiKey": "self", "custom": {"keep": True}},
+        )
+
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
+
+        config = self._read_json(self.home / ".claude" / "config.json")
+        self.assertNotIn("primaryApiKey", config)
+        self.assertEqual(config["custom"], {"keep": True})
+
+    def test_api_disabled_preserves_non_self_primary_api_key(self) -> None:
+        """api.enabled=false must not remove a primaryApiKey value not owned by this syncer."""
+        self._write_json(
+            self.home / ".claude" / "config.json",
+            {"primaryApiKey": "login", "custom": {"keep": True}},
+        )
+
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
+
+        config = self._read_json(self.home / ".claude" / "config.json")
+        self.assertEqual(config["primaryApiKey"], "login")
+        self.assertEqual(config["custom"], {"keep": True})
+
     # ── settings.json team-shared settings ───────────────────────────────────────
 
-    def test_settings_json_contains_team_shared_keys(self) -> None:
-        """settings.json must contain every team-shared key from claude.json."""
-        _run_claude_sync(self.root, self.platform_cfg)
+    def test_settings_json_does_not_receive_platform_preferences_by_default(self) -> None:
+        """claude.json no longer pushes team-shared platform preferences by default."""
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
 
-        # All non-internal, non-env, non-hooks, non-host keys must be present
-        team_shared_expected = {
-            "model": "claude-sonnet-4-6",
-            "effortLevel": "medium",
-            "alwaysThinkingEnabled": True,
-            "outputStyle": "Explanatory",
-            "includeGitInstructions": True,
-            "respectGitignore": True,
-            "fileCheckpointingEnabled": True,
-            "autoCompactEnabled": True,
-            "autoMemoryEnabled": True,
-            "respondToBashCommands": True,
-        }
-        for key, value in team_shared_expected.items():
-            self.assertEqual(settings[key], value, f"key={key}")
-
-        self.assert_nested_equal(
-            settings,
-            {
-                "permissions": {
-                    "allow": [
-                        "Bash(git diff *)",
-                        "Bash(git log *)",
-                        "Bash(git status *)",
-                        "Bash(git branch *)",
-                    ],
-                    "deny": ["Bash(curl *)", "Bash(wget *)"],
-                    "defaultMode": "default",
-                },
-            },
-            "settings",
-        )
+        for key in ("model", "effortLevel", "alwaysThinkingEnabled", "permissions"):
+            self.assertNotIn(key, settings)
 
     def test_settings_json_excludes_host_specific_keys(self) -> None:
         """settings.json must not receive host-specific keys from claude.json."""
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
 
@@ -224,7 +235,9 @@ class ClaudeSyncTests(unittest.TestCase):
 
     def test_settings_json_excludes_internal_keys(self) -> None:
         """Internal-only keys must not appear in settings.json."""
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
 
@@ -259,12 +272,14 @@ class ClaudeSyncTests(unittest.TestCase):
         generated_path = self.home / ".claude" / "settings.generated.json"
         self._write_json(generated_path, {"model": "stale"})
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
 
         self.assertFalse(generated_path.exists())
 
-    def test_settings_json_has_no_team_shared_keys_when_cfg_only_has_env_hooks(self) -> None:
-        """When claude.json contains only env/hooks, settings.json only receives env/hooks."""
+    def test_settings_json_syncs_api_env_when_api_enabled_missing(self) -> None:
+        """When api.enabled is missing, Claude API sync defaults to enabled."""
         minimal_cfg = {
             "env": {"FOO": "bar"},
             "hooks": {
@@ -283,15 +298,19 @@ class ClaudeSyncTests(unittest.TestCase):
     # ── Env merge ──────────────────────────────────────────────────────────────
 
     def test_env_merged_into_settings_json(self) -> None:
-        """env vars from claude.json must be merged into ~/.claude/settings.json."""
-        _run_claude_sync(self.root, self.platform_cfg)
+        """env vars from claude.json must be merged when local API is enabled."""
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": True}
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
         self.assertIn("env", settings)
         # Secrets should have been resolved
         self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
         self.assertEqual(settings["env"]["ANTHROPIC_BASE_URL"], "https://claude.example/v1")
-        self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_SONNET_MODEL"], "claude-sonnet-4-6")
+        self.assertNotIn("ANTHROPIC_DEFAULT_OPUS_MODEL", settings["env"])
+        self.assertNotIn("ANTHROPIC_DEFAULT_SONNET_MODEL", settings["env"])
+        self.assertNotIn("ANTHROPIC_DEFAULT_HAIKU_MODEL", settings["env"])
         self.assertEqual(settings["env"]["CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"], "1")
 
     def test_env_merge_preserves_existing_settings(self) -> None:
@@ -306,7 +325,9 @@ class ClaudeSyncTests(unittest.TestCase):
             },
         )
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": True}
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
         self.assertEqual(settings["theme"], "light")
@@ -314,6 +335,26 @@ class ClaudeSyncTests(unittest.TestCase):
         # Existing env should be preserved alongside new ones
         self.assertEqual(settings["env"]["EXISTING_VAR"], "existing-value")
         self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
+
+    def test_api_disabled_cleans_managed_env_and_preserves_other_env(self) -> None:
+        """API-disabled sync cleans Claude API env keys while preserving unrelated env vars."""
+        self._write_json(
+            self.home / ".claude" / "settings.json",
+            {
+                "env": {
+                    "EXISTING_VAR": "existing-value",
+                    "ANTHROPIC_AUTH_TOKEN": "old-token",
+                    "ANTHROPIC_BASE_URL": "https://old.example/v1",
+                }
+            },
+        )
+
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
+
+        settings = self._read_json(self.home / ".claude" / "settings.json")
+        self.assertEqual(settings["env"], {"EXISTING_VAR": "existing-value"})
 
     def test_env_merge_skips_when_no_env_in_cfg(self) -> None:
         """When platform cfg has no env, settings.json env should be untouched."""
@@ -335,7 +376,22 @@ class ClaudeSyncTests(unittest.TestCase):
 
     def test_hooks_expanded_and_merged(self) -> None:
         """Hook paths should be expanded and merged into settings.json."""
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = {
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "~/.claude/hooks/xmcp-init.sh",
+                                "timeout": 10,
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
         self.assertIn("hooks", settings)
@@ -361,7 +417,22 @@ class ClaudeSyncTests(unittest.TestCase):
             },
         )
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = {
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "~/.claude/hooks/xmcp-init.sh",
+                                "timeout": 10,
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
         self.assertIn("PostToolUse", settings["hooks"])
@@ -376,7 +447,22 @@ class ClaudeSyncTests(unittest.TestCase):
         hook_src.write_text("#!/bin/bash\necho 'hello'\n", encoding="utf-8")
         hook_src.chmod(0o755)
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = {
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "~/.claude/hooks/xmcp-init.sh",
+                                "timeout": 10,
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        _run_claude_sync(self.root, cfg)
 
         dest = self.home / ".claude" / "hooks" / "xmcp-init.sh"
         self.assertTrue(dest.exists(), f"Hook script not installed at {dest}")
@@ -423,8 +509,8 @@ class ClaudeSyncTests(unittest.TestCase):
 
     # ── Xcode Claude Agent settings ────────────────────────────────────────────
 
-    def test_xcode_claude_settings_receive_team_shared_keys(self) -> None:
-        """Team-shared keys must be merged into Xcode Claude Agent settings.json."""
+    def test_xcode_claude_settings_do_not_receive_platform_preferences_by_default(self) -> None:
+        """Xcode Claude settings should not receive old team-shared preferences by default."""
         xc_dir = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
         self._write_json(xc_dir / "settings.generated.json", {"model": "stale"})
 
@@ -434,9 +520,8 @@ class ClaudeSyncTests(unittest.TestCase):
         self.assertTrue(xc_settings.exists(), f"Missing {xc_settings}")
         settings = self._read_json(xc_settings)
 
-        self.assertEqual(settings["model"], "claude-sonnet-4-6")
-        self.assertTrue(settings["alwaysThinkingEnabled"])
-        self.assertEqual(settings["permissions"]["defaultMode"], "default")
+        for key in ("model", "alwaysThinkingEnabled", "permissions"):
+            self.assertNotIn(key, settings)
         self.assertFalse((xc_settings.parent / "settings.generated.json").exists())
 
         # Should NOT leak host-specific keys
@@ -444,7 +529,7 @@ class ClaudeSyncTests(unittest.TestCase):
             self.assertNotIn(host_key, settings, f"Host key '{host_key}' leaked into Xcode settings")
 
     def test_xcode_claude_settings_env_merged(self) -> None:
-        """env vars must be merged into the Xcode Claude Agent settings.json."""
+        """env vars must be merged into Xcode settings when local API is enabled."""
         # Pre-seed Xcode settings.json with some existing content
         xc_settings_dir = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
         xc_settings_dir.mkdir(parents=True, exist_ok=True)
@@ -453,19 +538,58 @@ class ClaudeSyncTests(unittest.TestCase):
             {"env": {"XC_LEGACY": "keep-me"}},
         )
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": True}
+        _run_claude_sync(self.root, cfg)
 
         settings = self._read_json(xc_settings_dir / "settings.json")
         self.assertEqual(settings["env"]["XC_LEGACY"], "keep-me")
         self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
         self.assertEqual(settings["env"]["ANTHROPIC_BASE_URL"], "https://claude.example/v1")
 
+    def test_xcode_claude_settings_api_disabled_cleans_env(self) -> None:
+        """API-disabled sync cleans Xcode Claude API env while preserving unrelated env."""
+        xc_settings_dir = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
+        xc_settings_dir.mkdir(parents=True, exist_ok=True)
+        self._write_json(
+            xc_settings_dir / "settings.json",
+            {
+                "env": {
+                    "XC_LEGACY": "keep-me",
+                    "ANTHROPIC_AUTH_TOKEN": "old-token",
+                    "ANTHROPIC_BASE_URL": "https://old.example/v1",
+                }
+            },
+        )
+
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        _run_claude_sync(self.root, cfg)
+
+        settings = self._read_json(xc_settings_dir / "settings.json")
+        self.assertEqual(settings["env"], {"XC_LEGACY": "keep-me"})
+
     def test_xcode_claude_settings_hooks_merged(self) -> None:
         """hooks must be merged into the Xcode Claude Agent settings.json."""
         xc_settings_dir = self.home / "Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/.claude"
         xc_settings_dir.mkdir(parents=True, exist_ok=True)
 
-        _run_claude_sync(self.root, self.platform_cfg)
+        cfg = {
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "~/.claude/hooks/xmcp-init.sh",
+                                "timeout": 10,
+                            }
+                        ]
+                    }
+                ]
+            }
+        }
+        _run_claude_sync(self.root, cfg)
 
         xc_settings = xc_settings_dir / "settings.json"
         self.assertTrue(xc_settings.exists(), f"Missing {xc_settings}")
@@ -486,20 +610,8 @@ class ClaudeSyncTests(unittest.TestCase):
         # Define the expected complete key set from claude.json
         covered_keys = {
             "_comment",
-            "model",
-            "effortLevel",
-            "alwaysThinkingEnabled",
-            "outputStyle",
-            "includeGitInstructions",
-            "respectGitignore",
-            "fileCheckpointingEnabled",
-            "autoCompactEnabled",
-            "autoMemoryEnabled",
-            "respondToBashCommands",
+            "api",
             "env",
-            "permissions",
-            "hooks",
-            "_hostSettings",
             "preamble",
         }
         self.assertEqual(set(self.platform_cfg), covered_keys, "claude.json keys changed — update tests")
@@ -508,26 +620,13 @@ class ClaudeSyncTests(unittest.TestCase):
 
         settings = self._read_json(self.home / ".claude" / "settings.json")
 
-        # ── Team-shared keys expected in settings.json ──
-        self.assertEqual(settings["model"], "claude-sonnet-4-6")
-        self.assertEqual(settings["effortLevel"], "medium")
-        self.assertTrue(settings["alwaysThinkingEnabled"])
-        self.assertEqual(settings["outputStyle"], "Explanatory")
-        self.assertTrue(settings["includeGitInstructions"])
-        self.assertTrue(settings["respectGitignore"])
-        self.assertTrue(settings["fileCheckpointingEnabled"])
-        self.assertTrue(settings["autoCompactEnabled"])
-        self.assertTrue(settings["autoMemoryEnabled"])
-        self.assertTrue(settings["respondToBashCommands"])
-        self.assertEqual(settings["permissions"]["defaultMode"], "default")
-
         # ── Internal-only keys excluded from settings.json ──
-        for excluded_key in ("_comment", "_hostSettings", "export_env_to_zshrc"):
+        for excluded_key in ("_comment", "preamble", "export_env_to_zshrc"):
             self.assertNotIn(excluded_key, settings)
 
-        # ── Verify settings.json has env and hooks ──
-        self.assertIn("env", settings)
-        self.assertIn("hooks", settings)
+        # ── Engine-only API toggle is excluded; API env is written by default ──
+        self.assertNotIn("api", settings)
+        self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
 
     def test_missing_xcode_path_skips_xcode_claude_target_only(self) -> None:
         """When Xcode CodingAssistant is absent, native Claude sync still runs."""
@@ -536,7 +635,8 @@ class ClaudeSyncTests(unittest.TestCase):
         data = self._read_json(self.home / ".claude.json")
         settings = self._read_json(self.home / ".claude" / "settings.json")
         self.assertIn("sample", data["mcpServers"])
-        self.assertEqual(settings["model"], "claude-sonnet-4-6")
+        self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
+        self.assertNotIn("model", settings)
         self.assertFalse(
             (
                 self.home
@@ -552,7 +652,7 @@ class ClaudeSyncTests(unittest.TestCase):
     def test_generate_managed_settings_filters_correctly(self) -> None:
         """Unit test for generate_managed_settings() filtering logic."""
         cfg = {
-            "model": "claude-opus-4-8",
+            "model": "custom-shared-model",
             "effortLevel": "high",
             "env": {"FOO": "bar"},
             "hooks": {"SessionStart": []},
@@ -566,7 +666,7 @@ class ClaudeSyncTests(unittest.TestCase):
         managed = claude_module.generate_managed_settings(cfg)
 
         # Included
-        self.assertEqual(managed["model"], "claude-opus-4-8")
+        self.assertEqual(managed["model"], "custom-shared-model")
         self.assertEqual(managed["effortLevel"], "high")
 
         # Excluded

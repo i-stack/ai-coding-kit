@@ -29,6 +29,16 @@ def claude_settings_generated_json_path() -> Path:
 def _repo_hooks_dir() -> Path:
     return Path(__file__).resolve().parents[2] / "hooks"
 
+
+_API_SIDECAR = ".managed_api_fields.json"
+
+
+def _api_enabled(cfg: dict[str, Any]) -> bool:
+    api = cfg.get("api")
+    if not isinstance(api, dict):
+        return True
+    return api.get("enabled", True) is True
+
 # ── Host-specific keys ──
 # These keys are kept in env/platforms/claude.json as reference but excluded
 # from managed (team-shared) settings — each developer sets them individually.
@@ -144,6 +154,8 @@ def generate_managed_settings(cfg: dict[str, Any]) -> dict[str, Any]:
             continue  # Internal / reference keys (_comment, _hostSettings, etc.)
         if key == "env":
             continue  # Merged separately into settings.json
+        if key == "api":
+            continue  # Engine-handled third-party API toggle
         if key == "hooks":
             continue  # Handled via _expand_hooks + merge
         if key == "export_env_to_zshrc":
@@ -170,7 +182,10 @@ def _sync_xcode_claude_json(servers: dict[str, Any]) -> None:
 
 
 def _sync_xcode_claude_settings(
-    managed: dict[str, Any], env: dict[str, Any], hooks: dict[str, Any]
+    managed: dict[str, Any],
+    env: dict[str, Any],
+    hooks: dict[str, Any],
+    api_enabled: bool,
 ) -> None:
     """Sync team-shared settings, env, and hooks to Xcode Claude Agent dir."""
     xc_dir = xcode_claude_dir()
@@ -187,9 +202,13 @@ def _sync_xcode_claude_settings(
     if managed:
         settings = merge_object(settings, managed)
 
-    if isinstance(env, dict) and env:
-        settings["env"] = merge_object(settings.get("env"), env)
-        print(f"Merged env into Xcode {settings_path} ({len(env)} vars).")
+    _apply_api_env(
+        settings,
+        env,
+        xc_dir / _API_SIDECAR,
+        api_enabled,
+        f"Xcode {settings_path}",
+    )
 
     if hooks:
         existing = settings.get("hooks", {})
@@ -213,13 +232,93 @@ def _remove_obsolete_generated_settings(path: Path) -> None:
         print(f"Removed obsolete generated settings file: {path}")
 
 
-def _sync_claude_config() -> None:
-    """Force Claude Code to use the self-managed primary API key path."""
+def _read_api_record(sidecar_path: Path) -> dict[str, set[str]]:
+    raw = read_json_object(sidecar_path)
+    return {
+        "settingsEnvKeys": set(raw.get("settingsEnvKeys", [])),
+        "configKeys": set(raw.get("configKeys", [])),
+    }
+
+
+def _write_api_record(sidecar_path: Path, record: dict[str, set[str]]) -> None:
+    write_json(
+        sidecar_path,
+        {
+            "settingsEnvKeys": sorted(record.get("settingsEnvKeys", set())),
+            "configKeys": sorted(record.get("configKeys", set())),
+        },
+    )
+
+
+def _prune_env_keys(settings: dict[str, Any], keys: set[str]) -> None:
+    env = settings.get("env")
+    if not isinstance(env, dict):
+        return
+    for key in keys:
+        env.pop(key, None)
+    if env:
+        settings["env"] = env
+    else:
+        settings.pop("env", None)
+
+
+def _apply_api_env(
+    settings: dict[str, Any],
+    env: dict[str, Any],
+    sidecar_path: Path,
+    api_enabled: bool,
+    label: str,
+) -> None:
+    """Apply or clean Claude third-party API env vars in a settings dict."""
+    api_env = env if isinstance(env, dict) else {}
+    current_keys = set(api_env)
+    record = _read_api_record(sidecar_path)
+    previous_keys = record["settingsEnvKeys"]
+
+    if api_enabled and api_env:
+        stale = previous_keys - current_keys
+        if stale:
+            _prune_env_keys(settings, stale)
+        settings["env"] = merge_object(settings.get("env"), api_env)
+        record["settingsEnvKeys"] = current_keys
+        _write_api_record(sidecar_path, record)
+        print(f"Merged API env into {label} ({len(api_env)} vars).")
+        return
+
+    stale = previous_keys | current_keys
+    if stale:
+        _prune_env_keys(settings, stale)
+    if previous_keys or sidecar_path.exists():
+        record["settingsEnvKeys"] = set()
+        _write_api_record(sidecar_path, record)
+    if api_enabled:
+        print(f"[claude] No API env configured for {label} — cleaned stale managed API env vars.")
+    else:
+        print(f"[claude] API env disabled for {label} — cleaned managed API env vars.")
+
+
+def _sync_claude_config(api_enabled: bool) -> None:
+    """Set or clean Claude Code's self-managed primary API key path."""
     path = claude_config_json_path()
     config = read_json_object(path)
-    config["primaryApiKey"] = "self"
-    write_json(path, config)
-    print(f"Set primaryApiKey in {path}.")
+    sidecar_path = claude_root_dir() / _API_SIDECAR
+    record = _read_api_record(sidecar_path)
+
+    if api_enabled:
+        config["primaryApiKey"] = "self"
+        record["configKeys"].add("primaryApiKey")
+        write_json(path, config)
+        _write_api_record(sidecar_path, record)
+        print(f"Set primaryApiKey in {path}.")
+        return
+
+    if config.get("primaryApiKey") == "self":
+        config.pop("primaryApiKey", None)
+        write_json(path, config)
+        print(f"Removed managed primaryApiKey from {path}.")
+    if record["configKeys"] or sidecar_path.exists():
+        record["configKeys"].discard("primaryApiKey")
+        _write_api_record(sidecar_path, record)
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
@@ -237,6 +336,7 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     if not root.exists():
         print(f"[claude] Claude root not found: {root} — skipping (tool not installed).")
         return
+    api_enabled = _api_enabled(cfg)
 
     # ── 1. ~/.claude.json — MCP servers ──
     cj_path = claude_json_path()
@@ -252,8 +352,8 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     else:
         print("[claude] Xcode CodingAssistant path not found — skipping Xcode Claude sync.")
 
-    # ── 3. config.json — avoid Claude Code login prompt with third-party API ──
-    _sync_claude_config()
+    # ── 3. config.json — third-party API path, gated by local api.enabled ──
+    _sync_claude_config(api_enabled)
 
     # ── 4. settings.json — merge team-shared settings, env, and hooks ──
     managed = generate_managed_settings(cfg)
@@ -269,20 +369,20 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     if managed:
         settings = merge_object(settings, managed)
 
-    # 4a. Merge env
+    # 4a. Merge or clean API env
     env = cfg.get("env", {})
-    if isinstance(env, dict) and env:
-        settings["env"] = merge_object(settings.get("env"), env)
-        print(f"Merged env into {settings_path} ({len(env)} vars; other keys preserved).")
-    else:
-        print("[claude] No env vars in platform config — skipping env merge.")
+    _apply_api_env(
+        settings,
+        env,
+        claude_root_dir() / _API_SIDECAR,
+        api_enabled,
+        str(settings_path),
+    )
 
-    # 4b. Install hook scripts
-    _install_hook_scripts()
-
-    # 4c. Merge hooks
+    # 4b. Merge hooks
     config_hooks = _expand_hooks(cfg)
     if config_hooks:
+        _install_hook_scripts()
         existing_hooks: dict[str, Any] = settings.get("hooks", {})
         existing_hooks.update(config_hooks)
         settings["hooks"] = existing_hooks
@@ -304,4 +404,4 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
 
     if xcode_available:
         # ── 5. Xcode Claude Agent — settings ──
-        _sync_xcode_claude_settings(managed, env, config_hooks)
+        _sync_xcode_claude_settings(managed, env, config_hooks, api_enabled)

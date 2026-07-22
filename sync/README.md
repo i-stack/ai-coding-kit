@@ -87,12 +87,13 @@ Each `env/mcp/<name>.json`:
 
 ## Platform Config Files
 
-Each `env/platforms/<name>.json` follows that platform's **official configuration spec**:
+Each `env/platforms/<name>.json` mostly follows that platform's native configuration shape,
+with a small number of sync-engine metadata fields such as `api.enabled`.
 
 | Platform | File | Follows |
 |----------|------|---------|
 | Codex | `codex.json` | [Codex config.toml schema](https://developers.openai.com/codex/config-reference) |
-| Claude | `claude.json` | Claude Code settings.json `env` + `hooks` |
+| Claude | `claude.json` | Claude Code `env` API sync + preamble/agents metadata |
 | CodeBuddy | `codebuddy.json` | CodeBuddy `models.json` schema |
 | Gemini | `gemini.json` | Gemini CLI env vars |
 | Continue | `continue.json` | Continue `config.yaml` models |
@@ -100,7 +101,9 @@ Each `env/platforms/<name>.json` follows that platform's **official configuratio
 | Cline | `cline.json` | Merge `globalState` + `secrets` into `~/.cline/data/` |
 | Qwen Code | `qwen.json` | Merge `env` into `~/.qwen/settings.json`, sync skills |
 
-The JSON keys map directly to the platform's native format — no field name translation needed.
+Engine metadata is consumed by the sync layer and is not written into the target tool config.
+For Claude, `api.enabled` defaults to `true`; setting it to `false` skips API env sync and
+removes sync-managed API fields, while MCP servers and preamble/agents still sync.
 
 ## Targets
 
@@ -138,7 +141,7 @@ key falls back to the default. For Codex, the standard `CODEX_HOME` /
 | Codex CLI | Managed MCP + shared blocks in `~/.codex/config.toml` |
 | Xcode Codex | `~/Library/.../CodingAssistant/codex/` |
 | Claude Code | Replace `mcpServers` in `~/.claude.json` + Xcode Claude |
-| Claude settings | Merge `env` + `hooks` into `~/.claude/settings.json`, set `~/.claude/config.json` `primaryApiKey` to `self` |
+| Claude settings | If `api.enabled=true`, merge API `env` into `~/.claude/settings.json` and set `~/.claude/config.json` `primaryApiKey` to `self`; if `false`, clean sync-managed API fields |
 | Cline | Replace `mcpServers` in VSCode extension settings + skills sync + merge `globalState`/`secrets` into `~/.cline/data/` |
 | Gemini CLI | Replace `mcpServers` in `~/.gemini/settings.json` + `~/.zshrc` env |
 | Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml`, creating it when `~/.continue` exists |

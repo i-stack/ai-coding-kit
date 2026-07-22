@@ -78,6 +78,7 @@ def validate_mcp_file(path: Path) -> list[str]:
 
 COMMON_PLATFORM_FIELDS = {
     "_comment",
+    "api",
     "env",
     "export_env_to_zshrc",
     "install_root",
@@ -158,6 +159,44 @@ def validate_platform_file(path: Path) -> list[str]:
     export_env = data.get("export_env_to_zshrc")
     if export_env is not None and not isinstance(export_env, dict):
         errors.append(f"{path.name}: 'export_env_to_zshrc' must be a JSON object")
+
+    # Check api.enabled is a boolean if present
+    api = data.get("api")
+    if api is not None:
+        if not isinstance(api, dict):
+            errors.append(f"{path.name}: 'api' must be a JSON object")
+        else:
+            api_unknown = set(api.keys()) - {"enabled"}
+            if api_unknown:
+                errors.append(
+                    f"{path.name}: unknown api fields: {', '.join(sorted(api_unknown))}"
+                )
+            enabled = api.get("enabled")
+            if enabled is not None and not isinstance(enabled, bool):
+                errors.append(f"{path.name}: 'api.enabled' must be a boolean")
+
+    # Check preamble sync metadata if present
+    preamble = data.get("preamble")
+    if preamble is not None:
+        if not isinstance(preamble, dict):
+            errors.append(f"{path.name}: 'preamble' must be a JSON object")
+        else:
+            preamble_unknown = set(preamble.keys()) - {"target", "mode", "tool", "format", "agents"}
+            if preamble_unknown:
+                errors.append(
+                    f"{path.name}: unknown preamble fields: {', '.join(sorted(preamble_unknown))}"
+                )
+            mode = preamble.get("mode")
+            if mode is not None and mode not in {"full", "recall", "none"}:
+                errors.append(f"{path.name}: 'preamble.mode' must be one of: full, none, recall")
+            fmt = preamble.get("format")
+            if fmt is not None and fmt not in {"markdown", "yaml", "cursor-mdc"}:
+                errors.append(
+                    f"{path.name}: 'preamble.format' must be one of: cursor-mdc, markdown, yaml"
+                )
+            agents = preamble.get("agents")
+            if agents is not None and not isinstance(agents, bool):
+                errors.append(f"{path.name}: 'preamble.agents' must be a boolean")
 
     # Check for unknown (typo / uncategorized) top-level fields
     unknown = set(data.keys()) - known_fields_for_platform(path.stem)

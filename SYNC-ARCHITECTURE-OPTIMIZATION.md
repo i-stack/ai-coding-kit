@@ -122,7 +122,7 @@ Strengths:
 Weaknesses:
 
 - Markdown block merge exists in Bash, while recall/YAML merge exists in Python.
-- Claude router and agent generation are embedded in the Bash preamble script.
+- Legacy Claude router cleanup is embedded in the Bash preamble script.
 - Cursor project rules remain an external root list rather than a first-class
   target type.
 
@@ -175,7 +175,6 @@ class PreambleSpec:
     mode: Literal["full", "recall", "none"]
     format: Literal["markdown", "yaml", "cursor-mdc"]
     tool: str
-    router: bool = False
     agents: bool = False
 
 @dataclass
@@ -271,8 +270,8 @@ Actions:
 - Reuse a shared managed-block merge helper for markdown files.
 - Keep Continue YAML recall merge in its renderer, but feed it from the same
   registry and shared recall renderer.
-- Move Claude router/agent generation out of Bash into a renderer or template
-  module.
+- Keep legacy Claude router cleanup explicit and temporary; do not reintroduce
+  model-routing generation into the registry.
 - Keep `rsync` optional. For portability, Python can copy the whitelisted
   payload and delete excluded stale directories directly.
 

@@ -40,7 +40,6 @@ class PreambleSpec:
     mode: Literal["full", "recall", "none"]
     format: Literal["markdown", "yaml", "cursor-mdc"] = "markdown"
     tool: str = ""
-    router: bool = False
     agents: bool = False
 
 
@@ -110,7 +109,6 @@ def _parse_preamble(raw: dict, install_root: Path) -> PreambleSpec:
         mode=mode,
         format=fmt,
         tool=tool,
-        router=bool(raw.get("router", False)),
         agents=bool(raw.get("agents", False)),
     )
 
