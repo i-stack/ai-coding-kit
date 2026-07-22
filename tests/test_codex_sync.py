@@ -172,6 +172,65 @@ class CodexSyncTests(unittest.TestCase):
         self.assertTrue(zshrc_text.startswith("before\n"))
         self.assertTrue(zshrc_text.endswith("after\n"))
 
+    def test_api_disabled_omits_managed_api_fields(self) -> None:
+        # Per platform-sync-contract cleanup policy, disabling API sync must
+        # DELETE (not comment out) model_provider / preferred_auth_method /
+        # model_providers so re-sync is deterministic.
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+
+        config_text, parsed = self._run_codex_sync(cfg)
+
+        self.assertNotIn("model_provider", config_text)
+        self.assertNotIn("preferred_auth_method", config_text)
+        self.assertNotIn("[model_providers", config_text)
+        self.assertNotIn("model_providers", parsed)
+        # Non-API fields and MCP still sync.
+        self.assertEqual(parsed["model"], "gpt-5.5")
+        self.assertIn("mcp_servers", parsed)
+
+    def test_api_disabled_clears_env_block(self) -> None:
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        zshrc = self.root / "home" / ".zshrc"
+        zshrc.parent.mkdir(parents=True, exist_ok=True)
+        zshrc.write_text(
+            "before\n"
+            "# BEGIN CODEX ENV SYNC (from env/platforms/codex.json)\n"
+            "export DATAEYES_API_KEY=old-value\n"
+            "# END CODEX ENV SYNC\n"
+            "after\n",
+            encoding="utf-8",
+        )
+
+        self._run_codex_sync(cfg)
+
+        zshrc_text = zshrc.read_text(encoding="utf-8")
+        self.assertNotIn("DATAEYES_API_KEY", zshrc_text)
+        self.assertTrue(zshrc_text.startswith("before\n"))
+        self.assertTrue(zshrc_text.endswith("after\n"))
+
+    def test_api_re_enable_restores_api_fields(self) -> None:
+        disabled = dict(self.platform_cfg)
+        disabled["api"] = {"enabled": False}
+        self._run_codex_sync(disabled)
+
+        # Re-enable (self.platform_cfg carries api.enabled=true).
+        config_text, parsed = self._run_codex_sync(self.platform_cfg)
+
+        self.assertIn('model_provider = "dataeyes"', config_text)
+        self.assertIn('preferred_auth_method = "apikey"', config_text)
+        self.assertEqual(parsed["model_providers"]["dataeyes"]["base_url"], "https://codex.example/v1")
+
+    def test_api_default_enabled_when_block_missing(self) -> None:
+        cfg = dict(self.platform_cfg)
+        cfg.pop("api", None)
+
+        config_text, parsed = self._run_codex_sync(cfg)
+
+        self.assertIn('model_provider = "dataeyes"', config_text)
+        self.assertEqual(parsed["model_providers"]["dataeyes"]["name"], "dataeyes")
+
     def test_missing_codex_root_skips_sync_and_env_export(self) -> None:
         cfg = dict(self.platform_cfg)
         zshrc = self.root / "home" / ".zshrc"
@@ -223,34 +282,16 @@ class CodexSyncTests(unittest.TestCase):
         config_text, parsed = self._run_codex_sync(self.platform_cfg)
 
         covered_keys = {
+            "_comment",
+            "api",
             "model",
-            "personality",
-            "model_provider",
-            "model_reasoning_effort",
-            "model_verbosity",
-            "model_reasoning_summary",
-            "plan_mode_reasoning_effort",
-            "hide_agent_reasoning",
             "sandbox_mode",
             "approval_policy",
             "allow_login_shell",
             "default_permissions",
-            "web_search",
-            "file_opener",
-            "project_doc_max_bytes",
-            "project_doc_fallback_filenames",
-            "model_providers",
-            "history",
             "sandbox_workspace_write",
-            "tools",
-            "shell_environment_policy",
-            "tui",
-            "agents",
-            "memories",
-            "analytics",
-            "feedback",
-            "features",
-            "projects",
+            "model_provider",
+            "model_providers",
             "export_env_to_zshrc",
             "preamble",
         }
@@ -258,17 +299,10 @@ class CodexSyncTests(unittest.TestCase):
 
         expected_root = {
             "model": "gpt-5.5",
-            "personality": "pragmatic",
-            "model_reasoning_effort": "medium",
-            "model_verbosity": "medium",
-            "model_reasoning_summary": "auto",
-            "plan_mode_reasoning_effort": "medium",
             "sandbox_mode": "workspace-write",
             "approval_policy": "on-request",
             "allow_login_shell": True,
             "default_permissions": ":workspace",
-            "project_doc_max_bytes": 32768,
-            "project_doc_fallback_filenames": ["CODEBUDDY.md", "CLAUDE.md"],
         }
         for key, expected in expected_root.items():
             self.assertEqual(parsed[key], expected, key)
@@ -281,19 +315,6 @@ class CodexSyncTests(unittest.TestCase):
                     "writable_roots": [],
                     "exclude_tmpdir_env_var": False,
                     "exclude_slash_tmp": False,
-                },
-                "features": {
-                    "skills": True,
-                    "multi_agent": True,
-                    "hooks": True,
-                    "shell_snapshot": True,
-                    "unified_exec": True,
-                    "shell_tool": True,
-                    "memories": True,
-                    "personality": True,
-                    "fast_mode": True,
-                    "enable_request_compression": True,
-                    "skill_mcp_dependency_install": True,
                 },
             },
             "parsed",

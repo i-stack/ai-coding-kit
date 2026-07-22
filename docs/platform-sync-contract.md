@@ -516,6 +516,96 @@ Answers to the platform-addition questions:
     disable-cleans, idempotent re-sync, user-field preservation,
     re-enable-restore, and unresolved-placeholder-skip.
 
+## Codex Reference
+
+Codex is a platform with an explicit `api.enabled` toggle.
+
+`env/platforms/codex.json` is intentionally **lean** — it carries only the
+team-shared core + security/sandbox fields. Per-developer preference knobs
+(reasoning effort, verbosity, personality, `features`, `history`, `tui`,
+`analytics`, etc.) are deliberately NOT synced and are not present in the file.
+It should stay close to:
+
+```json
+{
+  "api": {
+    "enabled": true
+  },
+  "model": "gpt-5.5",
+  "sandbox_mode": "workspace-write",
+  "approval_policy": "on-request",
+  "allow_login_shell": true,
+  "default_permissions": ":workspace",
+  "sandbox_workspace_write": {
+    "network_access": true,
+    "writable_roots": [],
+    "exclude_tmpdir_env_var": false,
+    "exclude_slash_tmp": false
+  },
+  "model_provider": "dataeyes",
+  "model_providers": {
+    "dataeyes": {
+      "base_url": "${codex.url}",
+      "env_key": "DATAEYES_API_KEY",
+      "wire_api": "responses"
+    }
+  },
+  "export_env_to_zshrc": {
+    "DATAEYES_API_KEY": "${codex.key}"
+  },
+  "preamble": { "target": "AGENTS.md", "mode": "full", "tool": "codex" }
+}
+```
+
+Answers to the platform-addition questions:
+
+1. Target files: `~/.codex/config.toml` (the `# BEGIN CODEX SHARED` managed
+   block plus the `# BEGIN MCP SYNC` block — both live inside `config.toml`;
+   Codex does not use a separate generated MCP file), the Xcode mirror
+   `~/Library/Developer/Xcode/CodingAssistant/codex/config.toml`, and
+   `~/.zshrc` for the managed `DATAEYES_API_KEY` env block
+   (`export_env_to_zshrc`).
+2. API sync fields: `model_provider` and `preferred_auth_method` (emitted as
+   root keys), the `[model_providers.*]` tables, and the `DATAEYES_API_KEY`
+   env export.
+3. Default for `api.enabled`: `true`. Codex historically always synced its
+   third-party API config, so a missing `api` block or missing `api.enabled`
+   keeps the old always-sync behavior. Only an explicit `false` disables it.
+4. Owned target fields: `~/.codex/config.toml` → inside the CODEX SHARED
+   managed block: the team-shared core + security/sandbox fields
+   (`model`, `sandbox_mode`, `approval_policy`, `allow_login_shell`,
+   `default_permissions`, `sandbox_workspace_write`), plus `model_provider`,
+   `preferred_auth_method`, and the `model_providers` table (all gated by
+   `api.enabled`); MCP servers (always synced); the managed `DATAEYES_API_KEY`
+   block in `~/.zshrc` (gated). Preference knobs (reasoning effort, verbosity,
+   personality, `features`, `history`, `tui`, `analytics`, etc.) are NOT owned
+   and are never written.
+5. Cleanup when `api.enabled=false`: the renderer omits `model_provider`,
+   `preferred_auth_method`, and `[model_providers.*]` from the generated
+   CODEX SHARED block; because the whole block is replaced on every sync, they
+   are **deleted** (not commented) deterministically from `config.toml` —
+   matching the cleanup policy (prefer deletion over comments). The managed
+   `DATAEYES_API_KEY` block in `~/.zshrc` is removed by `clear_env_block`.
+   An empty/unset `model_provider` while API sync is enabled is still emitted
+   as a commented placeholder (never `model_provider = "None"`), so users can
+   uncomment it; that placeholder is unrelated to the disable-delete path.
+6. Unrelated user fields preserved: any `[table]` or key outside the CODEX
+   SHARED and MCP markers; preference/host-specific settings (`personality`,
+   `model_reasoning_effort`, `features`, `history`, `tui`, `agents`,
+   `memories`, `analytics`, `feedback`, editor/shell/notification prefs) are
+   excluded from the managed block by design (defensive `_HOST_SKIP` in
+   `codex.py`) and never written or touched, even if re-added to
+   `env/platforms/codex.json`.
+7. MCP servers are independent of API sync — they still sync when
+   `api.enabled=false`.
+8. Skills / preamble are independent of API sync — they still sync when
+   `api.enabled=false`. (Codex's `preamble` is declared for the shared
+   preamble mechanism; the renderer currently focuses on config.toml + MCP.)
+9. No login-bypass field like Claude `primaryApiKey=self`.
+10. Tests live in `tests/test_codex_sync.py` and cover enable-by-default,
+    disable-omits-api-fields, disable-clears-env-block, comment-when-provider-
+    unset, re-enable-restore, and idempotent re-sync.
+
 ## Cleanup Policy
 
 When removing a previously managed feature, prefer deletion over comments.
