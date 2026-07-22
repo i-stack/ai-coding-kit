@@ -2,7 +2,12 @@ import copy
 from pathlib import Path
 from typing import Any
 
-from core.common import merge_object, read_json_object, write_json
+from core.common import (
+    merge_object,
+    prune_managed_keys_via_sidecar,
+    read_json_object,
+    write_json,
+)
 from core.paths import (
     claude_config_json_path,
     claude_hooks_dir_path,
@@ -28,8 +33,6 @@ def _repo_hooks_dir() -> Path:
 # These keys are kept in env/platforms/claude.json as reference but excluded
 # from managed (team-shared) settings — each developer sets them individually.
 _HOST_SKIP = {
-    # Orchestration-only keys
-    "enabled",
     # Sync-engine metadata (declared in env/platforms/<platform>.json, not a tool setting)
     "preamble",
     # Personal UI/UX preferences
@@ -196,6 +199,13 @@ def _sync_xcode_claude_settings(
 
     write_json(settings_path, settings)
 
+    # Sidecar recovery for Xcode Claude Agent settings (same mechanism).
+    prune_managed_keys_via_sidecar(
+        settings_path,
+        set(managed.keys()),
+        xc_dir / ".managed_settings_keys.json",
+    )
+
 
 def _remove_obsolete_generated_settings(path: Path) -> None:
     if path.exists():
@@ -246,14 +256,7 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     _sync_claude_config()
 
     # ── 4. settings.json — merge team-shared settings, env, and hooks ──
-    # Disabled-state handling (consistent with codex/cline/codebuddy): when the
-    # platform is disabled, universal payloads (MCP servers) and per-developer
-    # env/hooks still sync, but the team-shared managed settings are NOT pushed.
-    if cfg.get("enabled") is False:
-        print("[claude] Platform disabled via enabled=false — skipping team-shared managed settings.")
-        managed = {}
-    else:
-        managed = generate_managed_settings(cfg)
+    managed = generate_managed_settings(cfg)
     _remove_obsolete_generated_settings(claude_settings_generated_json_path())
     if managed:
         print(f"Prepared Claude settings ({len(managed)} team-shared keys).")
@@ -286,6 +289,18 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
         print(f"Merged hooks into {settings_path} ({len(config_hooks)} event(s)).")
 
     write_json(settings_path, settings)
+
+    # ── 4e. Sidecar recovery: prune managed keys dropped from the config ──
+    # Records which team-shared top-level keys we manage so a key removed from
+    # claude.json is cleaned up on the next sync instead of lingering in the
+    # developer's ~/.claude/settings.json.
+    # Universal payloads (mcpServers/env/hooks) are NOT tracked here, so they
+    # are never pruned.
+    prune_managed_keys_via_sidecar(
+        settings_path,
+        set(managed.keys()),
+        claude_root_dir() / ".managed_settings_keys.json",
+    )
 
     if xcode_available:
         # ── 5. Xcode Claude Agent — settings ──

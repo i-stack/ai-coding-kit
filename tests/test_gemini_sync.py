@@ -382,39 +382,21 @@ class GeminiSyncTests(unittest.TestCase):
         self.assertNotIn("export_env_to_zshrc", settings)
         self.assertNotIn("preamble", settings)
 
-    # ── Disabled-state handling ──────────────────────────────────────────────
+    # ── Sidecar recovery ─────────────────────────────────────────────────────
 
-    def test_disabled_platform_syncs_mcp_but_skips_managed_settings(self) -> None:
-        """enabled=false: MCP servers still sync, managed settings are not pushed."""
-        cfg = dict(self.platform_cfg)
-        cfg["enabled"] = False
+    def test_dropped_managed_key_is_pruned_on_next_sync(self) -> None:
+        """A managed key removed from gemini.json is pruned on the next sync."""
+        cfg_with = dict(self.platform_cfg)
+        cfg_with["extraManagedKey"] = {"foo": "bar"}
+        settings = self._run_gemini_sync(cfg_with)
+        self.assertIn("extraManagedKey", settings)
 
-        settings = self._run_gemini_sync(cfg)
-
-        # Universal payload (MCP) still synced
-        self.assertIn("mcpServers", settings)
-        self.assertIn("sample", settings["mcpServers"])
-        # Managed team-shared settings are NOT pushed
-        self.assertNotIn("model", settings)
-        self.assertNotIn("context", settings)
-        self.assertNotIn("tools", settings)
-
-    def test_disabled_platform_preserves_existing_user_settings(self) -> None:
-        """enabled=false must not clobber the user's own settings.json keys."""
-        settings_path = self.root / "home" / ".gemini" / "settings.json"
-        settings_path.parent.mkdir(parents=True, exist_ok=True)
-        settings_path.write_text(
-            json.dumps({"ui": {"theme": "dark"}}, indent=4) + "\n",
-            encoding="utf-8",
+        settings = self._run_gemini_sync(dict(self.platform_cfg))
+        self.assertNotIn("extraManagedKey", settings)
+        sidecar = self._read_json(
+            self.root / "home" / ".gemini" / ".managed_settings_keys.json"
         )
-
-        cfg = dict(self.platform_cfg)
-        cfg["enabled"] = False
-        settings = self._run_gemini_sync(cfg)
-
-        self.assertEqual(settings["ui"]["theme"], "dark")
-        self.assertIn("mcpServers", settings)
-        self.assertNotIn("model", settings)
+        self.assertNotIn("extraManagedKey", sidecar["managedKeys"])
 
     # ── Edge cases ───────────────────────────────────────────────────────────
 

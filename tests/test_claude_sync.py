@@ -233,6 +233,27 @@ class ClaudeSyncTests(unittest.TestCase):
                 excluded, settings, f"Key '{excluded}' should not be in settings.json"
             )
 
+    # ── Sidecar recovery (prune managed keys on config drop) ───────────────────
+
+    def test_dropped_managed_key_is_pruned_on_next_sync(self) -> None:
+        """A managed key removed from claude.json is pruned on the next sync."""
+        # First sync with an extra team-shared key
+        cfg_with_extra = dict(self.platform_cfg)
+        cfg_with_extra["extraManagedKey"] = "value"
+        _run_claude_sync(self.root, cfg_with_extra)
+
+        settings = self._read_json(self.home / ".claude" / "settings.json")
+        self.assertEqual(settings["extraManagedKey"], "value")
+
+        # Second sync without the extra key -> it must be pruned
+        _run_claude_sync(self.root, dict(self.platform_cfg))
+
+        settings = self._read_json(self.home / ".claude" / "settings.json")
+        self.assertNotIn("extraManagedKey", settings)
+        # Sidecar no longer records the dropped key
+        sidecar = self._read_json(self.home / ".claude" / ".managed_settings_keys.json")
+        self.assertNotIn("extraManagedKey", sidecar["managedKeys"])
+
     def test_obsolete_settings_generated_json_removed(self) -> None:
         """Old settings.generated.json should be removed because Claude Code does not load it."""
         generated_path = self.home / ".claude" / "settings.generated.json"

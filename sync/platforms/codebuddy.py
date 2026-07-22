@@ -142,10 +142,7 @@ def _sync_models(cfg: dict[str, Any]) -> None:
     available_models = cfg.get("availableModels")
     models_path = codebuddy_models_path()
 
-    # A disabled platform (enabled=false) clears the managed model keys while
-    # preserving any developer-added siblings (e.g. "meta"). The orchestrator
-    # forwards `enabled` to the renderer instead of passing an empty config.
-    if cfg.get("enabled") is False or (models is None and available_models is None):
+    if models is None and available_models is None:
         existing = read_json_object(models_path)
         removed = False
         for key in ("models", "availableModels"):
@@ -154,7 +151,7 @@ def _sync_models(cfg: dict[str, Any]) -> None:
                 removed = True
         if removed:
             write_json(models_path, existing)
-            print(f"[codebuddy] Removed managed models config from {models_path} (platform disabled).")
+            print(f"[codebuddy] Removed managed models config from {models_path} (model config absent).")
         else:
             print("[codebuddy] No models config found — skipping model sync.")
         return

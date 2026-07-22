@@ -1,6 +1,5 @@
 {
     "_comment": "Cline global state + secrets sync. Keys in 'globalState' and 'secrets' are merged into ~/.cline/data/globalState.json and ~/.cline/data/secrets.json respectively. Placeholder values (${cline.*}) are skipped by the sync script when unresolved.",
-    "enabled": true,
     "globalState": {
         "openAiBaseUrl": "https://integrate.api.nvidia.com/v1",
         "planModeOpenAiModelId": "deepseek-ai/deepseek-v4-pro",

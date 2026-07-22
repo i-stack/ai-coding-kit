@@ -92,7 +92,6 @@ class CodexSyncTests(unittest.TestCase):
 
     def test_model_provider_value_syncs_selector_and_provider_table(self) -> None:
         cfg = dict(self.platform_cfg)
-        cfg["enabled"] = True
         cfg["model_provider"] = "dataeyes"
 
         config_text, parsed = self._run_codex_sync(cfg)
@@ -114,11 +113,10 @@ class CodexSyncTests(unittest.TestCase):
         self.assertEqual(parsed["model_providers"]["dataeyes"]["name"], "dataeyes")
         self.assertEqual(parsed["model_providers"]["dataeyes"]["base_url"], "https://codex.example/v1")
 
-    def test_model_provider_null_while_enabled_is_commented_not_literal_none(self) -> None:
-        # Regression: with enabled=true and no model_provider, the selector must
-        # be commented out — never written as `model_provider = "None"`.
+    def test_model_provider_null_is_commented_not_literal_none(self) -> None:
+        # Regression: with no model_provider, the selector must be commented out
+        # — never written as `model_provider = "None"`.
         cfg = dict(self.platform_cfg)
-        cfg["enabled"] = True
         cfg["model_provider"] = None
 
         config_text, parsed = self._run_codex_sync(cfg)
@@ -227,7 +225,6 @@ class CodexSyncTests(unittest.TestCase):
         covered_keys = {
             "model",
             "personality",
-            "enabled",
             "model_provider",
             "model_reasoning_effort",
             "model_verbosity",

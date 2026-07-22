@@ -6,7 +6,7 @@ Validates:
 - Continue has no skills_dir.
 - Preamble specs are correctly parsed (mode, format, target path).
 - VerifySpec flags are correctly derived from preamble mode/format.
-- Disabled / missing install roots are skipped by enabled_targets().
+- SYNC_*=0 / missing install roots are skipped by enabled_targets().
 - SYNC_* env flag overrides work correctly.
 - Temporary HOME isolates the tests from real disk state.
 """
@@ -177,11 +177,9 @@ class EnabledTargetsTests(unittest.TestCase):
         finally:
             os.environ.pop("SYNC_CLAUDE")
 
-    def test_disabled_platform_json_does_not_auto_enable(self) -> None:
-        # Platforms with enabled=false in JSON must still NOT auto-enable just
-        # because the install root happens to exist (the JSON enabled flag is an
-        # *intent* signal, not the gating mechanism — the Bash SYNC_* env var is).
-        # This test ensures registry doesn't re-introduce a JSON-enabled gate.
+    def test_install_root_auto_detect_enables_target(self) -> None:
+        # env/platforms/*.json does not carry an enabled/disabled gate. Target
+        # discovery is controlled by install-root existence and SYNC_* flags.
         codex_root = self.home / ".codex"
         codex_root.mkdir()
         # With no SYNC_CODEX flag, auto-detect uses root existence → enabled.

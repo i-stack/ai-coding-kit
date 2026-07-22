@@ -49,41 +49,6 @@ def _save_managed_keys(global_state_keys: set[str], secret_keys: set[str]) -> No
     })
 
 
-def _prune_all_managed_keys() -> None:
-    """Disabled-platform cleanup: remove every key this tool manages.
-
-    Deletes all keys recorded in the sidecar from globalState.json and
-    secrets.json, leaving Cline's own keys (welcome state, auto-approval,
-    etc.) untouched. The sidecar itself is left intact so re-enabling still
-    prunes keys that have since been dropped from the config.
-
-    No-op (beyond a log line) when nothing managed is present — e.g. on a
-    fresh install that never synced, or after a previous cleanup.
-    """
-    record = _load_managed_keys()
-    gs_path = cline_global_state_path()
-    gs = read_json_object(gs_path)
-    removed_gs = [k for k in record["globalState"] if k in gs]
-    for k in removed_gs:
-        del gs[k]
-
-    sec_path = cline_secrets_path()
-    sec = read_json_object(sec_path)
-    removed_sec = [k for k in record["secrets"] if k in sec]
-    for k in removed_sec:
-        del sec[k]
-
-    if removed_gs:
-        write_json(gs_path, gs)
-    if removed_sec:
-        write_json(sec_path, sec)
-
-    if removed_gs or removed_sec:
-        print(f"[cline] Platform disabled — removed {len(removed_gs)} global state key(s) and {len(removed_sec)} secret key(s).")
-    else:
-        print("[cline] Platform disabled — no managed keys to remove.")
-
-
 def _sync_mcp(servers: dict[str, Any]) -> None:
     targets = [p for p in cline_mcp_candidate_paths() if p.parent.exists()]
     if not targets:
@@ -210,11 +175,9 @@ def _sync_secrets(secrets: dict[str, Any]) -> None:
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     """Sync MCP servers, skills, global state, and secrets to Cline (VSCode extension).
 
-    When the platform is disabled (enabled=false), the orchestrator still passes
-    the full cfg but the renderer applies its disabled-state handling: MCP
-    servers and skills are still synced, and every key this tool manages is
-    removed from globalState.json and secrets.json (a thorough cleanup, so no
-    stale values linger). Re-enabling re-applies the managed keys.
+    MCP servers and skills are always synced when Cline is installed. Managed
+    globalState and secrets are controlled by the presence of those keys in the
+    platform config.
     """
     root = cline_root_dir()
     if not root.exists():
@@ -223,8 +186,5 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
 
     _sync_mcp(mcp_servers)
     _sync_skills()
-    if cfg.get("enabled") is False:
-        _prune_all_managed_keys()
-        return
     _sync_global_state(cfg.get("globalState", {}))
     _sync_secrets(cfg.get("secrets", {}))

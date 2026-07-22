@@ -136,11 +136,6 @@ def _auto_export_env_to_zshrc(platform: str, platform_cfg: dict[str, Any]) -> No
 
 def _effective_platform_config(platform: str) -> dict[str, Any]:
     cfg = load_platform_config(platform)
-    if cfg.get("enabled") is False:
-        print(
-            f"[sync] Platform '{platform}' disabled via enabled=false "
-            "— renderer applies its disabled-state handling."
-        )
     return dict(cfg)
 
 

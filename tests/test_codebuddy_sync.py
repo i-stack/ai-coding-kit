@@ -417,29 +417,6 @@ class CodeBuddySyncTests(unittest.TestCase):
 
         self.assertEqual(result["models"], {"meta": {"version": 2}})
 
-    def test_disabled_platform_config_removes_existing_managed_model_keys(self) -> None:
-        """enabled=false keeps config JSON valid while disabling managed model sync."""
-        models_path = self.root / "home" / ".codebuddy" / "models.json"
-        self._write_json(
-            models_path,
-            {
-                "meta": {"version": 2},
-                "models": [
-                    {
-                        "id": "deepseek-v4-pro",
-                        "name": "Stale DeepSeek V4 Pro",
-                        "vendor": "old",
-                    }
-                ],
-                "availableModels": ["deepseek-v4-pro"],
-            },
-        )
-        cfg = {"enabled": False, **self.platform_cfg}
-
-        result = self._run_codebuddy_sync(cfg)
-
-        self.assertEqual(result["models"], {"meta": {"version": 2}})
-
     def test_commented_platform_config_removes_existing_managed_model_keys(self) -> None:
         """A fully commented codebuddy.json parses as absent config and clears managed model keys."""
         models_path = self.root / "home" / ".codebuddy" / "models.json"

@@ -315,6 +315,44 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def prune_managed_keys_via_sidecar(
+    settings_path: Path,
+    managed_keys: set[str],
+    sidecar_path: Path,
+) -> None:
+    """Prune previously-managed settings keys that are no longer managed.
+
+    Platforms that push a set of "team-shared" top-level keys into a tool's
+    settings file keep a sidecar (``sidecar_path``) recording exactly which keys
+    they manage. After the renderer has merged the current ``managed`` dict into
+    ``settings_path`` and written it, call this to:
+
+      * remove any top-level key that was previously managed (recorded in the
+        sidecar) but is absent from ``managed_keys`` — e.g. a key dropped from
+        the platform config between syncs;
+      * persist the new ``managed_keys`` set to the sidecar so the next sync can
+        still prune keys removed in the meantime.
+
+    The sidecar only ever tracks managed (team-shared) keys — never universal
+    payloads such as ``mcpServers`` or per-developer ``env``/``hooks`` — so those
+    are never removed by this routine. The sidecar is a dot-file ignored by the
+    target tool.
+    """
+    record = set(read_json_object(sidecar_path).get("managedKeys", []))
+    if not record and not managed_keys:
+        return
+
+    existing = read_json_object(settings_path)
+    stale = record - managed_keys
+    if stale:
+        for key in stale:
+            existing.pop(key, None)
+        write_json(settings_path, existing)
+
+    if record != managed_keys:
+        write_json(sidecar_path, {"managedKeys": sorted(managed_keys)})
+
+
 def merge_object(existing: Any, updates: dict[str, Any]) -> dict[str, Any]:
     base = existing if isinstance(existing, dict) else {}
     return {**base, **updates}
