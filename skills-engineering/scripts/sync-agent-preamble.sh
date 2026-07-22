@@ -617,7 +617,7 @@ for cfg_file in "${REPO_ROOT}/env/platforms"/*.json; do
   root="$(resolve_install_root "$name")"
   [[ -z "$root" ]] && continue
 
-  skills_dir="$root/skills/ios-engineer/"
+  skills_dir="${root/#$HOME/\~}/skills/ios-engineer/"
   flag_var="SYNC_$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]')"
   flag="${!flag_var:-}"
 
