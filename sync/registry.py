@@ -67,14 +67,21 @@ class SyncTarget:
 def _resolve_install_root(name: str, data: dict) -> Path | None:
     """Resolve install root for a platform.
 
-    Priority:
-    1. ``path`` field in the platform JSON (e.g. ``"path": "~/.custom_codex"``)
-    2. paths.py Mac default (reads secrets.json overrides internally)
-    3. ``~/.{name}`` — fallback for platforms not registered in paths.py
+    Priority (highest → lowest):
+    1. secrets.json ``paths`` override — per-machine, never committed to repo
+    2. ``install_root`` field in the platform JSON — repo-committed default
+    3. paths.py Mac default — pre-registered platforms only
+    4. ``~/.{name}`` — fallback for platforms not yet in paths.py
 
-    Returns None only when the resolved path would be meaningless (shouldn't
-    happen after adding the ~/.{name} fallback, but kept for safety).
+    Calling ``_load_path_overrides()`` here ensures secrets are loaded before
+    the JSON field is consulted, so a local machine override always wins.
     """
+    # 1. secrets.json per-machine override (load once; result is cached)
+    overrides = _paths._load_path_overrides()
+    if name in overrides:
+        return overrides[name]
+
+    # 2. JSON install_root — repo-committed, below local secrets
     json_path = data.get("install_root")
     if json_path and isinstance(json_path, str) and json_path.strip():
         try:
@@ -82,11 +89,13 @@ def _resolve_install_root(name: str, data: dict) -> Path | None:
         except (KeyError, RuntimeError):
             pass
 
+    # 3. paths.py Mac default — name is not in secrets at this point, so
+    #    platform_install_root() will return the getter default (not secrets).
     root = _paths.platform_install_root(name)
     if root is not None:
         return root
 
-    # New platform not yet in paths._INSTALL_ROOTS: fall back to ~/.{name}
+    # 4. New platform not yet in paths._INSTALL_ROOTS: fall back to ~/.{name}
     return Path.home() / f".{name}"
 
 

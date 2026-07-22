@@ -52,7 +52,11 @@ def _load_renderer(name: str) -> SyncFn | None:
     module_name = f"platforms.{name.replace('-', '_')}"
     try:
         module = importlib.import_module(module_name)
-    except ModuleNotFoundError:
+    except ModuleNotFoundError as exc:
+        if exc.name != module_name:
+            # A *dependency* inside the renderer failed to import — propagate so
+            # the error is visible rather than silently degrading to generic sync.
+            raise
         return None
     fn = getattr(module, "sync", None)
     return fn if callable(fn) else None
@@ -113,10 +117,11 @@ def _inject_path_override(name: str, platform_cfg: dict[str, Any]) -> None:
     except (KeyError, RuntimeError):
         return
 
-    if _paths._PATH_OVERRIDES is None:
-        _paths._PATH_OVERRIDES = {}
+    # Ensure secrets.json is loaded first so its entries take priority over
+    # the JSON install_root. _load_path_overrides() is idempotent/cached.
+    _paths._load_path_overrides()
     # Only inject when not already overridden (secrets.json has higher priority
-    # than the platform JSON's path field for explicit per-machine overrides).
+    # than the platform JSON's install_root field for per-machine overrides).
     if name not in _paths._PATH_OVERRIDES:
         _paths._PATH_OVERRIDES[name] = resolved
 

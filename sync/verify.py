@@ -44,6 +44,16 @@ _FULL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
     ("epistemic-integrity reference", "epistemic-integrity/references/epistemic_integrity.md"),
 ]
 
+# Required content patterns for recall-preamble verification (Cline / CodeBuddy / Qwen).
+# These targets get only the historical-recall managed block, not the full ios-engineer
+# preamble.  Checking content rather than just inode existence catches stale or empty files.
+_RECALL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
+    ("managed-block begin marker", "<!-- managed-block:historical-recall:begin"),
+    ("historical-recall SKILL path", "historical-recall/SKILL.md"),
+    ("HR rules reference", "HR-001"),
+    ("recall CLI path", "plan-reviews/dist/cli.js"),
+]
+
 
 # ── Skill checks ─────────────────────────────────────────────────────────────
 
@@ -92,6 +102,11 @@ def _check_full_preamble(path: Path, failures: list[str]) -> None:
 def _check_recall_preamble(path: Path, failures: list[str]) -> None:
     if not path.is_file():
         failures.append(f"{path} missing (recall preamble)")
+        return
+    content = path.read_text(encoding="utf-8")
+    for label, pattern in _RECALL_PREAMBLE_PATTERNS:
+        if pattern not in content:
+            failures.append(f"{path}: missing {label} ({pattern!r})")
 
 
 def _check_yaml_recall(path: Path | None, failures: list[str]) -> None:
