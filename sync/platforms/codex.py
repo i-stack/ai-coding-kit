@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from .common import (
+from core.common import (
     codex_config_path,
     codex_root_dir,
     load_platform_config,

@@ -6,8 +6,8 @@ from ~/.claude/skills/ to ~/.qwen/skills/.
 import shutil
 from typing import Any
 
-from .common import read_json_object, write_json
-from .paths import (
+from core.common import read_json_object, write_json
+from core.paths import (
     claude_skills_base,
     qwen_root_dir,
     qwen_settings_json_path,

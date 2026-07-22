@@ -35,7 +35,7 @@ env/platforms/*.json  （各平台官方格式，自动生成）
 
 ## 当前可用工具
 
-- `sync/list_models.sh`：只读抽取各平台 JSON 中的 model / provider / base_url / api_key 字段，统一成表，便于核对「哪里配了什么」。
+- `sync/scripts/list_models.sh`：只读抽取各平台 JSON 中的 model / provider / base_url / api_key 字段，统一成表，便于核对「哪里配了什么」。
 - `env/templates/platform.template.json`：新增平台时的起点。
 
 > 本文件为设计说明；统一 Provider 层的实际渲染器尚未实现，当前仍由各平台 JSON 直接描述。引入前需评估与现有「零字段映射」原则的兼容性。

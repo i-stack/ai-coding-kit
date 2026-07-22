@@ -1,8 +1,8 @@
 from pathlib import Path
 from typing import Any
 
-from .common import read_json_object, write_json
-from .paths import (
+from core.common import read_json_object, write_json
+from core.paths import (
     gemini_root_dir,
     gemini_settings_path,
     xcode_coding_assistant_exists,

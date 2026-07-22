@@ -433,17 +433,17 @@ bash install-hooks.sh
 1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor`，以及可选的 `~/Library/Developer/Xcode/CodingAssistant/codex` 和 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig` skill 缓存（按 `SYNC_*` 门控与排除规则）。
 2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写各端 preamble 托管块，并按 `sync-manifest` 的 `skill:*` 生成 `.cursor/rules/*.mdc`。
 3. `skills-engineering/scripts/verify-sync.sh` —— 断言各已启用缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
-4. `sync/sync_all.sh` —— 把 MCP / Codex 共享配置同步到 Cursor / Codex / Claude / Xcode（来自 `sync/` subtree，与本守卫并存）。
+4. `sync/scripts/sync_all.sh` —— 把 MCP / Codex 共享配置同步到 Cursor / Codex / Claude / Xcode（来自 `sync/` subtree，与本守卫并存；`sync/sync_all.sh` 作为兼容 wrapper 保留）。
 
 任何一步失败都会 `exit 1` 并阻止 `git push`，保证远端指向的版本与本地 Agent 正在加载的版本一致。  
-例外：若仅缺少本地 `env/secrets.json`，`sync/sync_all.sh` 会按"未配置本地密钥文件"处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
+例外：若仅缺少本地 `env/secrets.json`，`sync/scripts/sync_all.sh` 会按"未配置本地密钥文件"处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
 
 ### 紧急绕过
 
 ```bash
-SKILL_BYPASS=1 git commit ...        # 跳过 pre-commit + pre-push 中的 skill-sync 段（仍会跑 sync/sync_all.sh）
+SKILL_BYPASS=1 git commit ...        # 跳过 pre-commit + pre-push 中的 skill-sync 段（仍会跑 sync/scripts/sync_all.sh）
 SKILL_BYPASS=1 git push ...
-git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all.sh）
+git push --no-verify                 # 跳过整个 pre-push（含 sync/scripts/sync_all.sh）
 ```
 
 绕过只应用于无法走完整流程的紧急修复，并应在 commit message / PR 里说明原因。
@@ -494,9 +494,9 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all
 - **P0-1 Skill 自我改进闭环**：新增 `ios-engineer/scripts/suggest_skill_proposals.sh`，读取 `summarize_usage_ledger.sh --json` 的提案候选信号，**自动生成 draft proposal**（仅 draft，不自动晋升），并用 `evolution/.auto_proposal_registry.json` 去重。对齐 Hermes 学习循环，但落在既有受控演进闸门内（观测 → 建议 → 人工审批）。
 - **P0-2 agentskills.io 兼容打包/导入/校验**：新增 `scripts/skill_bundles.sh`（`export` / `validate` / `import` / `list`），把任一 skill 打包成 agentskills.io 兼容产物（`SKILL.md` + `references/` + `bundle.json` 含 sha256），支持从社区 Skills Hub / Hermes 兼容 bundle 导入。导出产物落在 `skills-engineering/.bundles/`（已 gitignore）。
 - **P1-3 定时同步自动化**：新增 `cron/`（launchd 默认、`--cron` 可选 crontab），`run-sync.sh` 复用 `sync.sh` + 技能同步 + preamble + 校验，日志滚动保留 30 份。
-- **P1-4 可选 MCP 服务器目录**：新增 `env/optional-mcps/`（playwright 改名 `puppeteer` 避免与默认 `env/mcp/playwright.json` 冲突；另含 `filesystem-extra`、`wechat-bridge` 示例）与 `sync/optional_mcps.sh`（`enable` / `disable` / `list` / `sync`）。`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认 `env/mcp/*.json`。
+- **P1-4 可选 MCP 服务器目录**：新增 `env/optional-mcps/`（playwright 改名 `puppeteer` 避免与默认 `env/mcp/playwright.json` 冲突；另含 `filesystem-extra`、`wechat-bridge` 示例）与 `sync/scripts/optional_mcps.sh`（`enable` / `disable` / `list` / `sync`）。`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认 `env/mcp/*.json`。
 - **P1-5 跨会话用户画像**：新增仓库根 `USER.md.example` 与 `scripts/sync-user-profile.sh`，把用户画像同步到 `~/.ai-coding-kit/USER.md` 并注入各端 preamble 的 `user-profile` 托管块（与 ios-engineer 块标记独立、互不干扰）；个人 `USER.md` 已 gitignore。现已接入 `sync-skill-full.sh` / `bootstrap.sh`（含 `SKIP_USER_PROFILE`）/ `cron/run-sync.sh`，使该能力真正通电。
 - **P1-5b 跨会话事件记忆**：新增 `scripts/sync-memory.sh`，落 `~/.ai-coding-kit/MEMORY.md`（仓库外、跨端共享），提供 `remember "..." [--tag]` / `recall [关键词]` 子命令；向各端 preamble 注入独立的 `user-memory` 托管块，并把脚本自复制到 `~/.ai-coding-kit/sync-memory.sh` 作为 Agent 稳定调用入口。补齐 Hermes 持久记忆中「从交互自动累积」的那一层（user-profile 为静态手维护，memory 为事件级累积，二者互补）。同样接入 `sync-skill-full.sh` / `bootstrap.sh`（`SKIP_MEMORY`）/ `cron/run-sync.sh`。
-- **P2-6 多平台模型路由抽象**：新增 `sync/list_models.sh`（跨平台 model/provider 配置总览，密钥打码）与 `sync/model_routing.md`（统一 Provider 层设计说明）。
+- **P2-6 多平台模型路由抽象**：新增 `sync/scripts/list_models.sh`（跨平台 model/provider 配置总览，密钥打码）与 `sync/model_routing.md`（统一 Provider 层设计说明）。
 - **P2-7 子代理并行同步**：`scripts/sync-skills.sh` 支持 `PARALLEL=1`（默认 `MAX_PARALLEL=4`），把 (skill × target) 同步以子代理式后台并行执行。
 - **P2-8 技能校验加固**：新增 `scripts/validate-skill-integrity.sh`（sha256 基线比对，发现 ADDED/MODIFIED/REMOVED；`--verify-bundle` 校验 `skill_bundles` 产物 checksum），基线落在 `skills-engineering/.integrity/`（已 gitignore）。

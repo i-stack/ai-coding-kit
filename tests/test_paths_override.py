@@ -9,8 +9,8 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-from platforms import common  # noqa: E402
-from platforms import paths  # noqa: E402
+from core import common  # noqa: E402
+from core import paths  # noqa: E402
 
 
 class PathsOverrideTests(unittest.TestCase):

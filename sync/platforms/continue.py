@@ -3,8 +3,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from . import recall
-from .paths import continue_root_dir
+from core import recall
+from core.paths import continue_root_dir
 
 
 def dump_yaml_scalar(v: Any) -> str:
@@ -117,7 +117,7 @@ def update_yaml_root_key(yaml_text: str, key_name: str, new_key_yaml: str) -> st
 # Injected into config.yaml `rules`, which Continue concatenates into the system
 # message for ALL Agent / Chat / Edit requests — its global always-on mechanism.
 # The block body is sourced from the SAME template the Bash preamble writer and
-# codebuddy.py use (sync/platforms/recall.py), so all paths stay byte-consistent.
+# codebuddy.py use (sync/core/recall.py), so all paths stay byte-consistent.
 
 _RECALL_BEGIN = "<!-- managed-block:historical-recall:begin"
 _RECALL_END = "<!-- managed-block:historical-recall:end"
@@ -318,7 +318,7 @@ def _sync_recall(cfg: dict[str, Any], yaml_text: str) -> str:
     rules are preserved. Set platforms.continue.recall=false or
     preamble.mode=none to opt out.
 
-    The block body is sourced from the shared template (sync/platforms/recall.py)
+    The block body is sourced from the shared template (sync/core/recall.py)
     so it stays byte-consistent with the Bash preamble writer and codebuddy.py.
     """
     preamble = cfg.get("preamble") or {}

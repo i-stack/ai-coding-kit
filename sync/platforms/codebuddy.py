@@ -2,9 +2,9 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from . import recall
-from .common import read_json_object, sync_json_mcp, write_json
-from .paths import (
+from core import recall
+from core.common import read_json_object, sync_json_mcp, write_json
+from core.paths import (
     claude_skills_base,
     codebuddy_mcp_path,
     codebuddy_models_path,
@@ -29,7 +29,7 @@ def _repo_root() -> Path:
 def _render_recall_block(codebuddy_skills_dir: Path) -> str | None:
     """Render the historical-recall managed block from the shared template.
 
-    Delegates to sync.platforms.recall (the single source of truth shared with
+    Delegates to sync.core.recall (the single source of truth shared with
     the Bash preamble writer and continue.py) so every path stays byte-consistent.
     """
     cli_path = str(
@@ -49,7 +49,7 @@ def _render_recall_block(codebuddy_skills_dir: Path) -> str | None:
 def _merge_recall_block(target: Path, block: str) -> None:
     """Idempotently merge the historical-recall managed block into CODEBUDDY.md.
 
-    Delegates to sync.platforms.recall (shared with the Bash preamble writer).
+    Delegates to sync.core.recall (shared with the Bash preamble writer).
     """
     recall.merge_recall_block_markdown(target, block)
 

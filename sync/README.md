@@ -116,7 +116,7 @@ still sync, but the Xcode-specific Codex / Claude / Gemini outputs are skipped.
 
 ## Custom Install Paths
 
-All platform paths are centralized in `sync/platforms/paths.py`. By default
+All platform paths are centralized in `sync/core/paths.py`. By default
 each tool resolves under its well-known home location (`~/.codex`, `~/.claude`,
 `~/.gemini`, …). To support tools installed in non-default locations, override
 any platform's install root via the `paths` object in `env/secrets.json`:
@@ -157,7 +157,8 @@ key falls back to the default. For Codex, the standard `CODEX_HOME` /
 1. Copy template: `cp env/templates/platform.template.json env/platforms/my-platform.json`
 2. Fill in config following the platform's official spec
 3. If the platform only needs `mcpServers` in a JSON file, add `"mcp_target": "~/.my-platform/mcp.json"` to the config
-4. If custom rendering is needed, create `sync/platforms/my_platform.py` with a `sync(mcp_servers, cfg)` function and register in `sync_config.py`
+4. If custom rendering is needed, create `sync/platforms/my_platform.py` with a `sync(mcp_servers, cfg)` function. The sync engine discovers it from `env/platforms/my-platform.json`; no `sync_config.py` registration is needed.
+5. Put shared path helpers in `sync/core/paths.py` only when the platform has a well-known default install root. Otherwise prefer the JSON `install_root` / `mcp_target` fields.
 
 ## Adding an MCP Server
 
@@ -171,18 +172,18 @@ bash sync.sh
 
 ```bash
 bash sync.sh                              # sync all
-python3 sync/sync_config.py --target all  # sync all (Python direct)
-python3 sync/sync_config.py --target codex  # single platform
+python3 sync/cli/main.py sync --target all  # sync all (Python direct)
+python3 sync/cli/main.py sync --target codex  # single platform
 ```
 
 ## 可选 MCP 服务器
 
-开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional-mcps/`，用 `sync/optional_mcps.sh` 按需启用：
+开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional-mcps/`，用 `sync/scripts/optional_mcps.sh` 按需启用：
 
 ```bash
-bash sync/optional_mcps.sh list                       # 查看可选服务器与启用状态
-bash sync/optional_mcps.sh enable puppeteer           # 启用 -> 下次 sync.sh 生效
-bash sync/optional_mcps.sh disable puppeteer          # 停用
+bash sync/scripts/optional_mcps.sh list                       # 查看可选服务器与启用状态
+bash sync/scripts/optional_mcps.sh enable puppeteer           # 启用 -> 下次 sync.sh 生效
+bash sync/scripts/optional_mcps.sh disable puppeteer          # 停用
 ```
 
 `disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认的 `env/mcp/*.json`。详见 `env/optional-mcps/README.md`。

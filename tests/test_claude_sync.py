@@ -15,8 +15,8 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-import sync_config  # noqa: E402
-from platforms import common  # noqa: E402
+from cli import sync_config  # noqa: E402
+from core import common  # noqa: E402
 from platforms import claude as claude_module  # noqa: E402
 
 

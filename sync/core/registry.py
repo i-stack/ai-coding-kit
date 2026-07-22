@@ -11,7 +11,7 @@ All sync surfaces (skills sync, preamble sync, verify) must consume this
 module instead of maintaining their own platform lists.
 
 Usage:
-    from registry import load_targets, enabled_targets, SyncTarget
+    from core.registry import load_targets, enabled_targets, SyncTarget
 """
 from __future__ import annotations
 
@@ -22,14 +22,14 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
-SYNC_DIR = Path(__file__).resolve().parent
+SYNC_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = SYNC_DIR.parent
 PLATFORMS_DIR = REPO_ROOT / "env" / "platforms"
 
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-from platforms import paths as _paths  # noqa: E402
+from core import paths as _paths  # noqa: E402
 
 
 @dataclass

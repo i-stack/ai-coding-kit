@@ -11,7 +11,7 @@ if [[ -f "${LOCAL_CONFIG}" ]]; then
 fi
 
 # Resolve a platform's install root via the SAME source as the Python sync engine
-# (sync/platforms/paths.py -> platform_install_root). Honors the top-level `paths`
+# (sync/core/paths.py -> platform_install_root). Honors the top-level `paths`
 # override in env/secrets.json AND platform-specific defaults (e.g. CODEX_HOME for
 # Codex) so the Bash preamble/skills writers never drift from the Python engine.
 # Falls back to `default` when the platform is unknown or resolution fails.
@@ -24,7 +24,7 @@ plat, default, sync_dir = sys.argv[1], sys.argv[2], sys.argv[3]
 if sync_dir not in sys.path:
     sys.path.insert(0, sync_dir)
 try:
-    from platforms.paths import platform_install_root
+    from core.paths import platform_install_root
     root = platform_install_root(plat)
     print(str(root) if root else (default or ""))
 except Exception:

@@ -10,7 +10,7 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-from validate_env_schema import known_fields_for_platform, validate_platform_file  # noqa: E402
+from cli.validate_env_schema import known_fields_for_platform, validate_platform_file  # noqa: E402
 
 
 class PlatformSchemaValidationTests(unittest.TestCase):
@@ -18,6 +18,8 @@ class PlatformSchemaValidationTests(unittest.TestCase):
         self.assertIn("theme", known_fields_for_platform("claude"))
         self.assertNotIn("theme", known_fields_for_platform("codebuddy"))
         self.assertIn("enabled", known_fields_for_platform("codebuddy"))
+        self.assertIn("install_root", known_fields_for_platform("codebuddy"))
+        self.assertIn("preamble", known_fields_for_platform("codebuddy"))
 
     def test_cross_platform_field_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

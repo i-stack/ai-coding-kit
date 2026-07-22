@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Sync MCP servers and platform configs into native formats.
 
@@ -25,8 +24,8 @@ from typing import Any
 
 import argparse
 
-from platforms import paths as _paths
-from platforms.common import (
+from core import paths as _paths
+from core.common import (
     discover_platforms,
     filter_mcp_for_platform,
     load_all_mcp,
@@ -34,7 +33,7 @@ from platforms.common import (
     sync_env_to_zshrc,
     sync_json_mcp,
 )
-from platforms.paths import platform_install_root, platform_is_installed
+from core.paths import platform_install_root, platform_is_installed
 
 # sync_fn signature: (mcp_servers: dict, platform_cfg: dict) -> None
 SyncFn = Callable[[dict[str, Any], dict[str, Any]], None]
@@ -188,7 +187,7 @@ def _sync_one_platform(
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
     mcp_all = load_all_mcp()
     if not mcp_all:
         print("[sync] No MCP servers found in env/mcp/ — continuing with empty MCP config.")
@@ -209,7 +208,7 @@ def main() -> None:
         metavar="TARGET",
         help=f"Platform to sync. One of: all, {', '.join(valid)}",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.target == "all":
         for name in valid:
@@ -222,7 +221,3 @@ def main() -> None:
             file=sys.stderr,
         )
         raise SystemExit(1)
-
-
-if __name__ == "__main__":
-    main()

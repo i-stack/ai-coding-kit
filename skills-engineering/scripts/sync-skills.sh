@@ -15,7 +15,7 @@ fi
 REPO_ROOT_REAL="$(cd "${REPO_ROOT}/.." && pwd)"
 
 # Resolve a platform's install root via the SAME source as the Python sync
-# engine (sync/platforms/paths.py -> platform_install_root), so the Bash skills
+# engine (sync/core/paths.py -> platform_install_root), so the Bash skills
 # writer never drifts from the Python engine.
 resolve_install_root() {
   local platform="$1"
@@ -26,7 +26,7 @@ plat, default, sync_dir = sys.argv[1], sys.argv[2], sys.argv[3]
 if sync_dir not in sys.path:
     sys.path.insert(0, sync_dir)
 try:
-    from platforms.paths import platform_install_root
+    from core.paths import platform_install_root
     root = platform_install_root(plat)
     print(str(root) if root else (default or ""))
 except Exception:

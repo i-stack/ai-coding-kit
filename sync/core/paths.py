@@ -5,7 +5,7 @@ the sync engine. Import from here rather than hardcoding paths in
 individual platform modules or shell scripts.
 
 Usage:
-    from platforms.paths import XCODE_CODEX_DIR, XCODE_CLAUDE_DIR
+    from core.paths import XCODE_CODEX_DIR, XCODE_CLAUDE_DIR
 
 Install-root overrides
 ----------------------

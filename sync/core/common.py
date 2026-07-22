@@ -20,7 +20,7 @@ def _flatten_secrets(data: dict[str, Any], prefix: str = "") -> dict[str, str]:
     """Recursively flatten nested dict into {prefix.key: str_value} entries.
 
     Skips _comment keys at any level. The top-level `paths` object is reserved
-    for install-root overrides (resolved by platforms.paths), not secrets, so
+    for install-root overrides (resolved by core.paths), not secrets, so
     it is skipped only at the top level — a nested `paths` key under a platform
     is still flattened normally.
     Example: {"codex": {"url": "https://...", "key": "sk-..."}}

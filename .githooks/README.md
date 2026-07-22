@@ -24,7 +24,7 @@ bash install-hooks.sh
 1. `sync-skills.sh` — 同步 skill 到各 Agent 目录
 2. `sync-agent-preamble.sh` — 重写 preamble 托管块
 3. `verify-sync.sh` — 校验同步结果
-4. `sync_all.sh` — 同步 MCP 配置到所有平台
+4. `sync/scripts/sync_all.sh` — 同步 MCP 配置到所有平台
 
 任一步骤失败则阻止推送。
 

@@ -1,4 +1,4 @@
-"""Shared historical-recall preamble rendering for all platforms.
+"""Shared historical-recall preamble rendering for all sync targets.
 
 Single source of truth
 ----------------------

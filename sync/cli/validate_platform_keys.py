@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate that platform config keys are properly covered.
 
 Checks that every key in env/platforms/*.json is either:
@@ -9,24 +8,21 @@ This prevents new platform config keys from silently leaking into
 settings or being silently dropped without being categorized.
 
 Usage:
-    python3 sync/validate_platform_keys.py              # check all platforms
-    python3 sync/validate_platform_keys.py --target claude  # check one platform
+    python3 sync/cli/main.py validate-keys                 # check all platforms
+    python3 sync/cli/main.py validate-keys --target claude # check one platform
 """
 import json
-import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+SYNC_DIR = Path(__file__).resolve().parents[1]
+REPO_ROOT = SYNC_DIR.parent
 
 from platforms.claude import _HOST_SKIP as CLAUDE_HOST_SKIP
 from platforms.codex import _HOST_SKIP as CODEX_HOST_SKIP
-from validate_env_schema import known_fields_for_platform
+from cli.validate_env_schema import COMMON_PLATFORM_FIELDS, known_fields_for_platform
 
 # Keys that are handled by the sync engine itself (not synced to settings)
-ENGINE_HANDLED_KEYS = {
-    "enabled", "env", "hooks", "export_env_to_zshrc", "_comment", "_hostSettings", "mcp_target"
-}
+ENGINE_HANDLED_KEYS = COMMON_PLATFORM_FIELDS | {"hooks", "_hostSettings"}
 ENGINE_HANDLED_BY_PLATFORM = {
     "continue": {"path", "recall"},
 }
@@ -138,11 +134,11 @@ def check_platform(platform: str) -> list[str]:
     return warnings
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--target", default="all", help="Platform to check (default: all)")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     if args.target == "all":
         platforms_dir = REPO_ROOT / "env" / "platforms"
@@ -159,10 +155,7 @@ def main() -> None:
         print("\nWARNINGS:")
         for w in all_warnings:
             print(w)
-        sys.exit(1)
+        return 1
     else:
         print("\nAll platform keys are properly categorized.")
-
-
-if __name__ == "__main__":
-    main()
+        return 0

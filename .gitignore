@@ -34,3 +34,4 @@ skills-engineering/.integrity/
 templates/portability-ecosystem.md
 PRD/
 env/review.json
+*__init__.py

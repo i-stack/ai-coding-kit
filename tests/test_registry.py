@@ -1,4 +1,4 @@
-"""Tests for sync/registry.py (P0: shared target registry).
+"""Tests for sync/core/registry.py (P0: shared target registry).
 
 Validates:
 - All platforms in env/platforms/*.json are discovered.
@@ -22,8 +22,8 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-import registry
-from platforms import paths as _paths
+from core import registry
+from core import paths as _paths
 
 
 class RegistryDiscoveryTests(unittest.TestCase):

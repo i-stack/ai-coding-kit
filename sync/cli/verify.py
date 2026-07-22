@@ -1,16 +1,15 @@
-#!/usr/bin/env python3
 """Python verifier for sync outputs.
 
 Replaces the hardcoded platform list in verify-sync.sh with targets discovered
-from the registry. All platforms declared in env/platforms/*.json plus the
+from the shared target registry. All platforms declared in env/platforms/*.json plus the
 Xcode special targets are verified consistently.
 
 Exit code: 0 on clean, 1 on any failure.
 
 Usage:
-    python3 sync/verify.py
-    python3 sync/verify.py --target claude
-    python3 sync/verify.py --target all
+    python3 sync/cli/main.py verify
+    python3 sync/cli/main.py verify --target claude
+    python3 sync/cli/main.py verify --target all
 """
 from __future__ import annotations
 
@@ -18,13 +17,10 @@ import argparse
 import sys
 from pathlib import Path
 
-SYNC_DIR = Path(__file__).resolve().parent
+SYNC_DIR = Path(__file__).resolve().parents[1]
 REPO_ROOT = SYNC_DIR.parent
 
-if str(SYNC_DIR) not in sys.path:
-    sys.path.insert(0, str(SYNC_DIR))
-
-from registry import SyncTarget, enabled_targets, is_enabled, load_targets  # noqa: E402
+from core.registry import SyncTarget, enabled_targets, is_enabled, load_targets  # noqa: E402
 
 # Directories that must not exist in an installed skill payload.
 _STALE_DIRS = frozenset({
@@ -206,7 +202,3 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"\nOK: {checked} target(s) clean")
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

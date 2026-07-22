@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate env/ JSON configuration files against expected schemas.
 
 Checks:
@@ -6,15 +5,14 @@ Checks:
   - env/platforms/*.json: valid platform configs
 
 Usage:
-    python3 sync/validate_env_schema.py                 # validate all
-    python3 sync/validate_env_schema.py --mcp-only      # only MCP files
-    python3 sync/validate_env_schema.py --platforms-only # only platform files
+    python3 sync/cli/main.py validate-env                  # validate all
+    python3 sync/cli/main.py validate-env --mcp-only       # only MCP files
+    python3 sync/cli/main.py validate-env --platforms-only # only platform files
 """
 import json
-import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 ENV_DIR = REPO_ROOT / "env"
 MCP_DIR = ENV_DIR / "mcp"
 OPTIONAL_MCP_DIR = ENV_DIR / "optional-mcps"
@@ -22,7 +20,6 @@ PLATFORMS_DIR = ENV_DIR / "platforms"
 
 # ── MCP server schema ────────────────────────────────────────────────────────
 
-MCP_REQUIRED_FIELDS = set()  # No strictly required fields (name defaults to filename)
 MCP_VALID_TYPES = {"stdio", "sse"}
 MCP_KNOWN_FIELDS = {
     "name", "type", "command", "args", "env", "url", "headers",
@@ -79,7 +76,15 @@ def validate_mcp_file(path: Path) -> list[str]:
 
 # ── Platform config schema ────────────────────────────────────────────────────
 
-COMMON_PLATFORM_FIELDS = {"_comment", "enabled", "env", "export_env_to_zshrc", "mcp_target"}
+COMMON_PLATFORM_FIELDS = {
+    "_comment",
+    "enabled",
+    "env",
+    "export_env_to_zshrc",
+    "install_root",
+    "mcp_target",
+    "preamble",
+}
 
 PLATFORM_FIELDS = {
     # Claude-specific
@@ -170,12 +175,12 @@ def validate_platform_file(path: Path) -> list[str]:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mcp-only", action="store_true", help="Only validate MCP files")
     parser.add_argument("--platforms-only", action="store_true", help="Only validate platform files")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     all_errors: list[str] = []
 
@@ -209,10 +214,7 @@ def main() -> None:
         print("\nERRORS:")
         for e in all_errors:
             print(f"  ✗ {e}")
-        sys.exit(1)
+        return 1
     else:
         print("\nAll env/ JSON files are valid.")
-
-
-if __name__ == "__main__":
-    main()
+        return 0

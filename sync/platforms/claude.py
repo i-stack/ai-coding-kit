@@ -2,8 +2,8 @@ import copy
 from pathlib import Path
 from typing import Any
 
-from .common import merge_object, read_json_object, write_json
-from .paths import (
+from core.common import merge_object, read_json_object, write_json
+from core.paths import (
     claude_config_json_path,
     claude_hooks_dir_path,
     claude_json_path,
