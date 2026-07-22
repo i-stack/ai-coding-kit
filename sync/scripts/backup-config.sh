@@ -11,7 +11,50 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 MCP_DIR="$REPO_ROOT/env/mcp"
 PLATFORMS_DIR="$REPO_ROOT/env/platforms"
-BACKUP_DIR="$HOME/.ai-coding-kit-backups"
+BACKUP_CONFIG="$REPO_ROOT/env/backup.json"
+DEFAULT_BACKUP_DIR="$HOME/.ai-coding-kit-backups"
+
+resolve_backup_dir() {
+  python3 - "$BACKUP_CONFIG" "$DEFAULT_BACKUP_DIR" "$REPO_ROOT" <<'PY'
+import json
+import os
+import sys
+
+config_path, default_dir, repo_root = sys.argv[1:4]
+
+if not os.path.exists(config_path):
+    print(default_dir)
+    sys.exit(0)
+
+try:
+    with open(config_path, encoding="utf-8") as fh:
+        cfg = json.load(fh)
+except Exception as exc:
+    print(f"[backup] Invalid JSON in {config_path}: {exc}", file=sys.stderr)
+    sys.exit(1)
+
+if not isinstance(cfg, dict):
+    print(f"[backup] {config_path}: root must be a JSON object", file=sys.stderr)
+    sys.exit(1)
+
+backup_dir = cfg.get("backupDir", "")
+if backup_dir in ("", None):
+    print(default_dir)
+    sys.exit(0)
+
+if not isinstance(backup_dir, str):
+    print(f"[backup] {config_path}: backupDir must be a string", file=sys.stderr)
+    sys.exit(1)
+
+backup_dir = os.path.expandvars(os.path.expanduser(backup_dir))
+if not os.path.isabs(backup_dir):
+    backup_dir = os.path.abspath(os.path.join(repo_root, backup_dir))
+
+print(backup_dir)
+PY
+}
+
+BACKUP_DIR="$(resolve_backup_dir)"
 
 cmd="${1:-list}"
 

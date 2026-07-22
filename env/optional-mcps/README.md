@@ -5,21 +5,21 @@
 ## 工作机制
 
 - `env/optional-mcps/*.json`：可选的 MCP 服务器定义（**不**自动同步）。
-- `sync/optional_mcps.sh enable <name>`：把定义复制到 `env/mcp/<name>.json`，由于 `env/mcp/*.json` 会被 `sync.sh` 自动发现，下一次 `sync.sh` 即生效。
-- `sync/optional_mcps.sh disable <name>`：从 `env/mcp/` 移除并停止同步。
+- `sync/scripts/optional_mcps.sh enable <name>`：把定义复制到 `env/mcp/<name>.json`，由于 `env/mcp/*.json` 会被 `sync.sh` 自动发现，下一次 `sync.sh` 即生效。
+- `sync/scripts/optional_mcps.sh disable <name>`：从 `env/mcp/` 移除并停止同步。
 - 启用状态记录在 `env/optional-mcps/enabled.json`（git 提交，便于团队共享「已启用集合」）。
 
 ## 用法
 
 ```bash
 # 列出所有可选服务器及其启用状态
-bash sync/optional_mcps.sh list
+bash sync/scripts/optional_mcps.sh list
 
 # 启用一个
-bash sync/optional_mcps.sh enable playwright
+bash sync/scripts/optional_mcps.sh enable playwright
 
 # 禁用一个
-bash sync/optional_mcps.sh disable playwright
+bash sync/scripts/optional_mcps.sh disable playwright
 
 # 启用后照常同步
 bash sync.sh
@@ -29,7 +29,7 @@ bash sync.sh
 
 1. 在 `env/optional-mcps/` 放 `<name>.json`（格式同 `env/mcp/*.json`，敏感值用 `${...}` 占位）。
 2. 若需要 secret，在 `env/secrets.json.example` 增加对应字段说明，并提醒用户填写 `env/secrets.json`。
-3. 运行 `bash sync/optional_mcps.sh enable <name>`。
+3. 运行 `bash sync/scripts/optional_mcps.sh enable <name>`。
 
 ## 示例
 

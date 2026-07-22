@@ -1,0 +1,4 @@
+{
+    "_comment": "可选：复制为 env/backup.json 后自定义配置备份保存目录。留空或删除 backupDir 即使用默认路径 ~/.ai-coding-kit-backups。",
+    "backupDir": "~/.ai-coding-kit-backups"
+}

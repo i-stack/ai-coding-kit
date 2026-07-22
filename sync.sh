@@ -17,7 +17,7 @@
 #
 # 此脚本会：
 #   1. 检查 env/secrets.json 是否存在（不存在则提示创建）
-#   2. 执行 sync/sync_all.sh 同步配置到各 AI 编码工具
+#   2. 执行 sync/scripts/sync_all.sh 同步配置到各 AI 编码工具
 # =============================================================================
 set -euo pipefail
 
@@ -73,7 +73,7 @@ run_sync() {
   echo ""
 
   # 调用 sync_all.sh 执行全部同步
-  bash "$SCRIPT_DIR/sync/sync_all.sh"
+  bash "$SCRIPT_DIR/sync/scripts/sync_all.sh"
 
   echo ""
   echo_ok "同步完成！"

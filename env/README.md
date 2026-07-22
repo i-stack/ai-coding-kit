@@ -11,6 +11,8 @@ env/
 │
 ├── review.json               ← auto-code-review 配置（gitignored）
 ├── review.json.example       ← review 配置模板（已提交）
+├── backup.json               ← 配置备份保存路径（gitignored）
+├── backup.json.example       ← backup 配置模板（已提交）
 │
 ├── mcp/                      ← 默认启用的 MCP 服务器定义
 │   ├── github.json
@@ -84,6 +86,22 @@ env/
 
 复制 `review.json.example` 为 `review.json` 后填写即可。仅在用户显式启动 `/auto-review` 后加载。
 
+## backup.json
+
+`sync/scripts/backup-config.sh` 默认把同步前备份保存到 `~/.ai-coding-kit-backups`。
+如果要改保存目录，复制 `backup.json.example` 为 `backup.json`：
+
+```json
+{
+  "backupDir": "~/Backups/ai-coding-kit"
+}
+```
+
+- `backupDir` 留空或删除时回退到默认 `~/.ai-coding-kit-backups`。
+- 支持 `~` 和环境变量展开。
+- 相对路径会按仓库根目录解析。
+- `env/backup.json` 是本地用户配置，不提交。
+
 ## optional-mcps — 可选 MCP 服务器
 
 将**非默认、社区/高级**的 MCP 服务器与开箱即用的 `env/mcp/` 集合分开，避免污染默认配置，同时保留「一键启用」能力。
@@ -91,21 +109,21 @@ env/
 ### 工作机制
 
 - `env/optional-mcps/*.json`：可选的 MCP 服务器定义（**不**自动同步）
-- `sync/optional_mcps.sh enable <name>`：启用并同步到 `env/mcp/`
-- `sync/optional_mcps.sh disable <name>`：禁用并移除
+- `sync/scripts/optional_mcps.sh enable <name>`：启用并同步到 `env/mcp/`
+- `sync/scripts/optional_mcps.sh disable <name>`：禁用并移除
 - 启用状态记录在 `env/optional-mcps/enabled.json`
 
 ### 用法
 
 ```bash
 # 列出所有可选服务器及其启用状态
-bash sync/optional_mcps.sh list
+bash sync/scripts/optional_mcps.sh list
 
 # 启用一个
-bash sync/optional_mcps.sh enable puppeteer
+bash sync/scripts/optional_mcps.sh enable puppeteer
 
 # 禁用一个
-bash sync/optional_mcps.sh disable puppeteer
+bash sync/scripts/optional_mcps.sh disable puppeteer
 ```
 
 ### 可用服务器

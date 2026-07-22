@@ -37,7 +37,7 @@ one target registry -> config sync / skills sync / preamble sync / verify / docs
 Entry points:
 
 - `sync.sh`
-- `sync/sync_all.sh`
+- `sync/scripts/sync_all.sh`
 - `sync/sync_config.py`
 
 Current behavior:
