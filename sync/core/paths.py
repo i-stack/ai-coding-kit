@@ -264,6 +264,10 @@ def codebuddy_skills_base() -> Path:
     return codebuddy_root_dir() / "skills"
 
 
+def qwen_models_path() -> Path:
+    return qwen_root_dir() / "models.json"
+
+
 def qwen_settings_json_path() -> Path:
     return qwen_root_dir() / "settings.json"
 

@@ -1,8 +1,51 @@
 {
-    "_comment": "Qwen Code platform configuration. Syncs DASHSCOPE_API_KEY to ~/.qwen/settings.json env and skills to ~/.qwen/skills/.",
+    "_comment": "Qwen Code platform configuration. Syncs DASHSCOPE_API_KEY to ~/.qwen/settings.json env and model definitions to ~/.qwen/models.json. API fields (env + models) sync by default; set api.enabled=false to disable API sync, clean the managed env keys, and clear the managed availableModels list.",
+    "api": {
+        "enabled": true
+    },
     "env": {
         "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}"
     },
+    "models": [
+        {
+            "id": "qwen3-coder-plus",
+            "name": "Qwen3 Coder Plus",
+            "vendor": "qwen",
+            "url": "${qwen.url}",
+            "apiKey": "${qwen.dashscopeApiKey}",
+            "maxInputTokens": 262144,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": true,
+            "supportsImages": false
+        },
+        {
+            "id": "qwen3-coder",
+            "name": "Qwen3 Coder",
+            "vendor": "qwen",
+            "url": "${qwen.url}",
+            "apiKey": "${qwen.dashscopeApiKey}",
+            "maxInputTokens": 262144,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": true,
+            "supportsImages": false
+        },
+        {
+            "id": "qwen-max",
+            "name": "Qwen Max",
+            "vendor": "qwen",
+            "url": "${qwen.url}",
+            "apiKey": "${qwen.dashscopeApiKey}",
+            "maxInputTokens": 131072,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": true,
+            "supportsImages": true
+        }
+    ],
+    "availableModels": [
+        "qwen3-coder-plus",
+        "qwen3-coder",
+        "qwen-max"
+    ],
     "preamble": {
         "target": "QWEN.md",
         "mode": "recall",

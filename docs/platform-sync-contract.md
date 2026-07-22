@@ -270,6 +270,102 @@ Answers to the platform-addition questions:
     disable-removes-model, disable-cleans-zshrc, idempotent re-sync, and
     re-enable-restore.
 
+## Qwen Reference
+
+Qwen Code is a platform that mirrors CodeBuddy's model-sync approach.
+
+`env/platforms/qwen.json` should stay close to:
+
+```json
+{
+  "api": {
+    "enabled": true
+  },
+  "env": {
+    "DASHSCOPE_API_KEY": "${qwen.dashscopeApiKey}"
+  },
+  "models": [
+    {
+      "id": "qwen3-coder-plus",
+      "name": "Qwen3 Coder Plus",
+      "vendor": "qwen",
+      "url": "${qwen.url}",
+      "apiKey": "${qwen.dashscopeApiKey}",
+      "maxInputTokens": 262144,
+      "maxOutputTokens": 8192,
+      "supportsToolCall": true,
+      "supportsImages": false
+    },
+    {
+      "id": "qwen3-coder",
+      "name": "Qwen3 Coder",
+      "vendor": "qwen",
+      "url": "${qwen.url}",
+      "apiKey": "${qwen.dashscopeApiKey}",
+      "maxInputTokens": 262144,
+      "maxOutputTokens": 8192,
+      "supportsToolCall": true,
+      "supportsImages": false
+    },
+    {
+      "id": "qwen-max",
+      "name": "Qwen Max",
+      "vendor": "qwen",
+      "url": "${qwen.url}",
+      "apiKey": "${qwen.dashscopeApiKey}",
+      "maxInputTokens": 131072,
+      "maxOutputTokens": 8192,
+      "supportsToolCall": true,
+      "supportsImages": true
+    }
+  ],
+  "availableModels": [
+    "qwen3-coder-plus",
+    "qwen3-coder",
+    "qwen-max"
+  ],
+  "preamble": {
+    "target": "QWEN.md",
+    "mode": "recall",
+    "tool": "qwen"
+  }
+}
+```
+
+Answers to the platform-addition questions:
+
+1. Target files: `~/.qwen/models.json` (`models` + `availableModels`),
+   `~/.qwen/settings.json` (API `env` keys declared in `env/platforms/qwen.json`),
+   `~/.qwen/skills/` (skills copied from Claude),
+   `~/.qwen/QWEN.md` (recall preamble — declared under `preamble`, rendered by
+   the same managed-block mechanism as the other recall platforms).
+2. API sync fields: `env` (e.g. `DASHSCOPE_API_KEY`) inside `~/.qwen/settings.json`,
+   and `models` + `availableModels` inside `~/.qwen/models.json`.
+3. Default for `api.enabled`: `true`. Qwen historically always synced its API
+   fields, so a missing `api` block or missing `api.enabled` keeps the old
+   always-sync behavior. Only an explicit `false` disables it.
+4. Owned target fields: `~/.qwen/settings.json` → `env` (gated by `api.enabled`);
+   `~/.qwen/models.json` → `models`, `availableModels` (both gated by
+   `api.enabled`); synced skill directories.
+5. Cleanup when `api.enabled=false`: set `availableModels` to an empty list `[]`
+   (CodeBuddy special handling — provider model definitions stay so they can be
+   re-enabled, but nothing is shown in the model picker); remove only the
+   syncer-managed `env` keys from `~/.qwen/settings.json`; config-managed
+   `models` are NOT merged while disabled (existing model definitions are
+   neither synced nor deleted).
+6. Unrelated user fields preserved: any top-level key other than
+   `models`/`availableModels` in `models.json` (e.g. `meta`, `uiPreference`),
+   user-added model entries, user `env` keys in `settings.json`, and user
+   content outside the managed block in `QWEN.md`.
+7. MCP servers: `sync/platforms/qwen.py` currently ignores `mcp_servers` (Qwen
+   Code's MCP wiring is not yet driven by `env/mcp/*.json`).
+8. Skills / preamble are independent of API sync — they still sync when
+   `api.enabled=false`.
+9. No login-bypass field like Claude `primaryApiKey=self`.
+10. Tests live in `tests/test_qwen_sync.py` and cover enable-by-default,
+    disable-empty, user-model preservation, idempotent re-sync, and
+    re-enable-restore.
+
 ## Cleanup Policy
 
 When removing a previously managed feature, prefer deletion over comments.
