@@ -13,6 +13,10 @@ env/
 ├── review.json.example       ← review 配置模板（已提交）
 ├── backup.json               ← 配置备份保存路径（gitignored）
 ├── backup.json.example       ← backup 配置模板（已提交）
+├── user-profile.json         ← 跨会话用户画像同步开关（gitignored）
+├── user-profile.json.example ← 用户画像同步配置模板（已提交）
+├── user-profile.md           ← 跨会话用户画像内容（gitignored）
+├── user-profile.md.example   ← 用户画像内容模板（已提交）
 │
 ├── mcp/                      ← 默认启用的 MCP 服务器定义
 │   ├── github.json
@@ -26,7 +30,7 @@ env/
 │   ├── postgres.json
 │   └── sqlite.json
 │
-├── optional-mcps/            ← 可选 MCP 服务器（需手动启用）
+├── optional_mcps/            ← 可选 MCP 服务器（需手动启用）
 │   ├── enabled.json          ← 启用状态记录
 │   ├── filesystem-extra.json
 │   ├── puppeteer.json
@@ -102,16 +106,47 @@ env/
 - 相对路径会按仓库根目录解析。
 - `env/backup.json` 是本地用户配置，不提交。
 
-## optional-mcps — 可选 MCP 服务器
+## user-profile.json + user-profile.md
+
+跨会话用户画像用于让 Codex / Claude / Gemini 等 Agent 在不同会话中共享你的稳定偏好、角色和约束。
+
+```bash
+cp env/user-profile.md.example env/user-profile.md
+cp env/user-profile.json.example env/user-profile.json
+bash sync.sh
+```
+
+`env/user-profile.json`：
+
+```json
+{
+  "enabled": "auto",
+  "source": "env/user-profile.md"
+}
+```
+
+| 字段 | 说明 |
+|------|------|
+| `enabled` | `auto`：画像文件存在则同步，不存在则跳过；`on`：强制同步，不存在时报错；`off`：跳过同步 |
+| `source` | 用户画像 Markdown 路径，支持 `~`、环境变量和相对仓库根目录的路径 |
+
+同步时会把画像复制到 `~/.ai-coding-kit/USER.md`，并向各端 Agent preamble 注入 `user-profile` 托管块。
+如需清理已注入托管块，运行：
+
+```bash
+bash skills-engineering/scripts/sync-user-profile.sh --remove
+```
+
+## optional_mcps — 可选 MCP 服务器
 
 将**非默认、社区/高级**的 MCP 服务器与开箱即用的 `env/mcp/` 集合分开，避免污染默认配置，同时保留「一键启用」能力。
 
 ### 工作机制
 
-- `env/optional-mcps/*.json`：可选的 MCP 服务器定义（**不**自动同步）
+- `env/optional_mcps/*.json`：可选的 MCP 服务器定义（**不**自动同步）
 - `sync/scripts/optional_mcps.sh enable <name>`：启用并同步到 `env/mcp/`
 - `sync/scripts/optional_mcps.sh disable <name>`：禁用并移除
-- 启用状态记录在 `env/optional-mcps/enabled.json`
+- 启用状态记录在 `env/optional_mcps/enabled.json`
 
 ### 用法
 
@@ -134,7 +169,7 @@ bash sync/scripts/optional_mcps.sh disable puppeteer
 | `filesystem-extra` | 扩展文件系统访问 | 是（`filesystem_extra.root`） |
 | `wechat-bridge` | 微信桥接 | 是（`wechat.token`） |
 
-详见 [optional-mcps/README.md](optional-mcps/README.md)。
+详见 [optional_mcps/README.md](optional_mcps/README.md)。
 
 ## 自定义安装路径（paths）
 

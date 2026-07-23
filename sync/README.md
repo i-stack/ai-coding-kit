@@ -194,7 +194,7 @@ python3 sync/cli/main.py sync --target codex  # single platform
 
 ## 可选 MCP 服务器
 
-开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional-mcps/`，用 `sync/scripts/optional_mcps.sh` 按需启用：
+开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional_mcps/`，用 `sync/scripts/optional_mcps.sh` 按需启用：
 
 ```bash
 bash sync/scripts/optional_mcps.sh list                       # 查看可选服务器与启用状态
@@ -202,7 +202,7 @@ bash sync/scripts/optional_mcps.sh enable puppeteer           # 启用 -> 下次
 bash sync/scripts/optional_mcps.sh disable puppeteer          # 停用
 ```
 
-`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认的 `env/mcp/*.json`。详见 `env/optional-mcps/README.md`。
+`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认的 `env/mcp/*.json`。详见 `env/optional_mcps/README.md`。
 
 ## Design Principles
 

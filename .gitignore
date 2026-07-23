@@ -8,6 +8,8 @@ skills-engineering/scripts/config.local.sh
 # User only needs to create env/secrets.json from env/secrets.json.example.
 env/secrets.json
 env/backup.json
+# 可选 MCP 启用状态（本机本地状态，不提交；脚本缺失时自动重建为 {}）
+env/optional_mcps/enabled.json
 
 *__pycache__*/
 .analysis_output/
@@ -28,8 +30,9 @@ skills-engineering/ios-engineer/evolution/usage/*
 skills-engineering/ios-engineer/evolution/.auto_proposal_registry.json
 # skill_bundles.sh 导出的 agentskills.io bundle 产物
 skills-engineering/.bundles/
-# 用户个人画像（从 USER.md.example 复制，不提交）
-USER.md
+# 用户个人画像（从 env/user-profile.md.example 复制，不提交）
+env/user-profile.md
+env/user-profile.json
 # 技能完整性校验基线（由 validate-skill-integrity.sh 生成）
 skills-engineering/.integrity/
 templates/portability-ecosystem.md

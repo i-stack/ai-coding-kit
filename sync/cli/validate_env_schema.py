@@ -18,7 +18,7 @@ from platforms.codex import _HOST_SKIP as _CODEX_HOST_SKIP
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENV_DIR = REPO_ROOT / "env"
 MCP_DIR = ENV_DIR / "mcp"
-OPTIONAL_MCP_DIR = ENV_DIR / "optional-mcps"
+OPTIONAL_MCP_DIR = ENV_DIR / "optional_mcps"
 PLATFORMS_DIR = ENV_DIR / "platforms"
 
 # ── MCP server schema ────────────────────────────────────────────────────────
@@ -206,7 +206,7 @@ def main(argv: list[str] | None = None) -> int:
 
     all_errors: list[str] = []
 
-    # Validate MCP files (env/mcp + env/optional-mcps)
+    # Validate MCP files (env/mcp + env/optional_mcps)
     if not args.platforms_only:
         mcp_dirs = [MCP_DIR]
         if OPTIONAL_MCP_DIR.is_dir():
@@ -221,7 +221,7 @@ def main(argv: list[str] | None = None) -> int:
                     continue  # registry 文件，不是 MCP 定义
                 all_errors.extend(validate_mcp_file(f))
                 total_mcp += 1
-        print(f"Checked {total_mcp} MCP file(s) (incl. optional-mcps).")
+        print(f"Checked {total_mcp} MCP file(s) (incl. optional_mcps).")
 
     # Validate platform files
     if not args.mcp_only and PLATFORMS_DIR.is_dir():
