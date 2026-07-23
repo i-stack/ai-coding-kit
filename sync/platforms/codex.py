@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from core.common import (
+    api_enabled as _api_enabled,
     codex_config_path,
     codex_root_dir,
     load_platform_config,
@@ -33,19 +34,6 @@ SHARED_BLOCK_PATTERN = re.compile(
     + re.escape(SHARED_END),
     re.DOTALL,
 )
-
-
-def _api_enabled(cfg: dict[str, Any]) -> bool:
-    """Codex third-party API sync toggle.
-
-    A missing ``api`` block or missing ``api.enabled`` defaults to enabled,
-    preserving the historical always-sync behavior. Only an explicit
-    ``false`` disables synced API fields.
-    """
-    api = cfg.get("api")
-    if not isinstance(api, dict):
-        return True
-    return api.get("enabled", True) is True
 
 
 def generate_mcp_toml(servers: dict[str, Any]) -> str:

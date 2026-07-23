@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from core import recall
-from core.common import read_json_object, sync_json_mcp, write_json
+from core.common import api_enabled as _api_enabled, read_json_object, sync_json_mcp, write_json
 from core.paths import (
     claude_skills_base,
     codebuddy_mcp_path,
@@ -52,19 +52,6 @@ def _merge_recall_block(target: Path, block: str) -> None:
     Delegates to sync.core.recall (shared with the Bash preamble writer).
     """
     recall.merge_recall_block_markdown(target, block)
-
-
-def _api_enabled(cfg: dict[str, Any]) -> bool:
-    """CodeBuddy third-party API sync toggle.
-
-    Like Claude, a missing ``api`` block or missing ``api.enabled`` defaults to
-    enabled so the historical always-sync behavior is preserved. Only an explicit
-    ``false`` disables synced API model fields.
-    """
-    api = cfg.get("api")
-    if not isinstance(api, dict):
-        return True
-    return api.get("enabled", True) is True
 
 
 def _validate_model_entries(value: Any) -> list[dict[str, Any]]:

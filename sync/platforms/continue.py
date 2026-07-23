@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from core import recall
+from core.common import api_enabled as _api_enabled
 from core.paths import continue_root_dir
 
 
@@ -309,19 +310,6 @@ def _repo_root() -> Path:
         if (ancestor / "skills-engineering").is_dir():
             return ancestor
     return here.parents[2]
-
-
-def _api_enabled(cfg: dict[str, Any]) -> bool:
-    """Continue third-party API sync toggle.
-
-    Missing ``api`` or missing ``api.enabled`` defaults to enabled, preserving
-    the historical always-sync behavior for the managed ``models`` block. Only
-    an explicit ``false`` disables synced API model fields.
-    """
-    api = cfg.get("api")
-    if not isinstance(api, dict):
-        return True
-    return api.get("enabled", True) is True
 
 
 def _remove_yaml_root_key(yaml_text: str, key_name: str) -> str:

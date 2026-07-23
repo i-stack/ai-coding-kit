@@ -22,7 +22,7 @@ import shutil
 from typing import Any
 from urllib.parse import urlparse
 
-from core.common import read_json_object, write_json
+from core.common import api_enabled as _api_enabled, read_json_object, write_json
 from core.paths import (
     claude_skills_base,
     qwen_root_dir,
@@ -76,6 +76,15 @@ def _derive_qwen_custom_env_key(protocol: str, base_url: str) -> str:
     Stripping the path reproduces the key Qwen generated when the custom
     provider was first added (``..._HTTPS_CLOUD_DATAEYES_AI_C2DF01B23F5B``),
     verified against the user's installed settings.json.
+
+    FRAGILE: this mirrors Qwen Code's internal, unversioned algorithm by
+    reverse-engineering its source. There is no way to verify correctness
+    other than diffing against Qwen Code's actual behavior — if Qwen changes
+    ``generateCustomEnvKey`` upstream, this silently drifts and starts
+    generating env keys Qwen Code's settings.json won't recognize. Re-check
+    against ``packages/core/src/providers/presets/custom-provider.ts`` on any
+    bug report involving custom-provider auth failing after a Qwen Code
+    upgrade.
     """
     parsed = urlparse(base_url)
     origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.netloc else base_url.rstrip("/")
@@ -136,20 +145,6 @@ def _derive_qwen_env_keys(cfg: dict[str, Any]) -> None:
             auto_val = next(iter(auto_values.values()))
             for key in derived_keys:
                 env[key] = auto_val
-
-
-def _api_enabled(cfg: dict[str, Any]) -> bool:
-    """Qwen third-party API sync toggle.
-
-    Like Claude and CodeBuddy, a missing ``api`` block or missing
-    ``api.enabled`` defaults to enabled so the historical always-sync behavior
-    is preserved. Only an explicit ``false`` disables synced API fields
-    (``env`` and the ``security`` / ``modelProviders`` / ``model`` fields).
-    """
-    api = cfg.get("api")
-    if not isinstance(api, dict):
-        return True
-    return api.get("enabled", True) is True
 
 
 def _merge_model_entries(
@@ -376,9 +371,29 @@ def _sync_skills() -> None:
             continue
 
         dest = qwen_skills_dir / skill_dir.name
+        tmp = qwen_skills_dir / f".{skill_dir.name}.tmp-sync"
+        backup = qwen_skills_dir / f".{skill_dir.name}.backup-sync"
+
+        if tmp.exists():
+            shutil.rmtree(tmp)
+        if backup.exists():
+            shutil.rmtree(backup)
+
+        shutil.copytree(skill_dir, tmp)
+
         if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(skill_dir, dest)
+            dest.rename(backup)
+        try:
+            tmp.rename(dest)
+        except OSError:
+            if backup.exists() and not dest.exists():
+                backup.rename(dest)
+            raise
+        finally:
+            if tmp.exists():
+                shutil.rmtree(tmp)
+            if backup.exists():
+                shutil.rmtree(backup)
         synced.append(skill_dir.name)
 
     print(f"[qwen] Synced {len(synced)} skills to {qwen_skills_dir}: {', '.join(synced) or '(none)'}.")

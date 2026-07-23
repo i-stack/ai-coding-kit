@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from core.common import (
+    api_enabled as _api_enabled,
     merge_object,
     prune_managed_keys_via_sidecar,
     read_json_object,
@@ -32,12 +33,6 @@ def _repo_hooks_dir() -> Path:
 
 _API_SIDECAR = ".managed_api_fields.json"
 
-
-def _api_enabled(cfg: dict[str, Any]) -> bool:
-    api = cfg.get("api")
-    if not isinstance(api, dict):
-        return True
-    return api.get("enabled", True) is True
 
 # ── Host-specific keys ──
 # These keys are kept in env/platforms/claude.json as reference but excluded

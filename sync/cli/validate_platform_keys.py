@@ -27,34 +27,6 @@ ENGINE_HANDLED_BY_PLATFORM = {
     "continue": {"path", "recall"},
 }
 
-# Canonical host-specific (personal) keys per platform. A key from this set that
-# appears in env/platforms/<platform>.json but is NOT declared in the platform's
-# _HOST_SKIP would leak into team-shared settings. Keep in sync with each
-# platform module's _HOST_SKIP / host-specific definitions.
-HOST_SPECIFIC_KEYS = {
-    "claude": {
-        "apiKeyHelper", "theme", "tui", "editorMode", "preferredNotifChannel",
-        "statusLine", "voice", "voiceEnabled", "viewMode", "prefersReducedMotion",
-        "syntaxHighlightingDisabled", "terminalProgressBarEnabled",
-        "wheelScrollAccelerationEnabled", "axScreenReaderRender", "showTurnDuration",
-        "showThinkingSummaries", "showClearContextOnPlanAccept", "autoScrollEnabled",
-        "spinnerTipsEnabled", "spinnerTipsOverride", "spinnerVerbs", "companyAnnouncements",
-        "footerLinksRegexes", "language", "ultracode", "fastModePerSessionOptIn",
-        "autoConnectIde", "autoInstallIdeExtension", "externalEditorContext",
-        "fileSuggestion", "feedbackSurveyRate", "cleanupPeriodDays", "defaultShell",
-        "prUrlTemplate", "autoUpdatesChannel", "sshConfigs", "worktree", "plansDirectory",
-        "autoMemoryDirectory", "teammateMode", "teammateDefaultModel", "disableAgentView",
-        "agent", "agentPushNotifEnabled", "inputNeededNotifEnabled", "remoteControlAtStartup",
-        "awsAuthRefresh", "awsCredentialExport", "gcpAuthRefresh", "otelHeadersHelper",
-        "claudeMd", "claudeMdExcludes", "policyHelper", "skipWebFetchPreflight",
-    },
-    "codex": {
-        "hide_agent_reasoning", "web_search", "file_opener", "history", "tools",
-        "shell_environment_policy", "tui", "agents", "memories", "analytics", "feedback",
-    },
-}
-
-
 def load_platform_json(platform: str) -> dict:
     path = REPO_ROOT / "env" / "platforms" / f"{platform}.json"
     if not path.is_file():
@@ -78,11 +50,12 @@ def check_platform(platform: str) -> list[str]:
       - internal (starts with '_'),
       - engine-handled (e.g. env, hooks, export_env_to_zshrc, _hostSettings),
       - declared in the platform's _HOST_SKIP (excluded from team settings),
-      - a known host-specific key that IS in _HOST_SKIP (leak guard),
       - a known team-shared key for this platform.
 
     Any other key (unknown/typo, or a host-specific key missing from _HOST_SKIP)
-    produces a warning, making the check fail-closed instead of always passing.
+    produces a warning through the schema allowlist, making the check
+    fail-closed instead of relying on another hand-maintained host-specific
+    list.
     """
     cfg = load_platform_json(platform)
     if not cfg:
@@ -90,7 +63,6 @@ def check_platform(platform: str) -> list[str]:
 
     warnings: list[str] = []
     host_skip = get_host_skip(platform)
-    host_specific = HOST_SPECIFIC_KEYS.get(platform, set())
     engine_handled = ENGINE_HANDLED_KEYS | ENGINE_HANDLED_BY_PLATFORM.get(platform, set())
     known_fields = known_fields_for_platform(platform)
 
@@ -105,12 +77,6 @@ def check_platform(platform: str) -> list[str]:
             continue
         if key in host_skip:
             skip_count += 1
-            continue
-        if key in host_specific:
-            warnings.append(
-                f"  {platform}: key '{key}' is host-specific but NOT in _HOST_SKIP "
-                f"— would leak to team-shared settings."
-            )
             continue
         if key not in known_fields:
             warnings.append(

@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from core.common import read_json_object, write_json
+from core.common import api_enabled as _api_enabled, read_json_object, write_json
 from core.paths import (
     claude_skills_base,
     cline_data_dir,
@@ -53,20 +53,6 @@ def _save_managed_keys(global_state_keys: set[str], secret_keys: set[str]) -> No
     })
 
 
-def _api_enabled(cfg: dict[str, Any]) -> bool:
-    """Cline third-party API sync toggle.
-
-    Missing ``api`` block or missing ``api.enabled`` defaults to enabled,
-    preserving the historical always-sync behavior (Cline previously always
-    merged globalState + secrets). Only an explicit ``false`` disables synced
-    API fields (globalState + secrets) and cleans the keys the syncer owns.
-    """
-    api = cfg.get("api")
-    if not isinstance(api, dict):
-        return True
-    return api.get("enabled", True) is True
-
-
 def _sync_mcp(servers: dict[str, Any]) -> None:
     targets = [p for p in cline_mcp_candidate_paths() if p.parent.exists()]
     if not targets:
@@ -94,9 +80,29 @@ def _sync_skills() -> None:
             continue
 
         dest = cline_skills_dir / skill_dir.name
+        tmp = cline_skills_dir / f".{skill_dir.name}.tmp-sync"
+        backup = cline_skills_dir / f".{skill_dir.name}.backup-sync"
+
+        if tmp.exists():
+            shutil.rmtree(tmp)
+        if backup.exists():
+            shutil.rmtree(backup)
+
+        shutil.copytree(skill_dir, tmp)
+
         if dest.exists():
-            shutil.rmtree(dest)
-        shutil.copytree(skill_dir, dest)
+            dest.rename(backup)
+        try:
+            tmp.rename(dest)
+        except OSError:
+            if backup.exists() and not dest.exists():
+                backup.rename(dest)
+            raise
+        finally:
+            if tmp.exists():
+                shutil.rmtree(tmp)
+            if backup.exists():
+                shutil.rmtree(backup)
         synced.append(skill_dir.name)
 
     print(f"Synced {len(synced)} skills to {cline_skills_dir}: {', '.join(synced) or '(none)'}.")

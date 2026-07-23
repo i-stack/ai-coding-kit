@@ -12,6 +12,9 @@ Usage:
 import json
 from pathlib import Path
 
+from platforms.claude import _HOST_SKIP as _CLAUDE_HOST_SKIP
+from platforms.codex import _HOST_SKIP as _CODEX_HOST_SKIP
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENV_DIR = REPO_ROOT / "env"
 MCP_DIR = ENV_DIR / "mcp"
@@ -87,38 +90,22 @@ COMMON_PLATFORM_FIELDS = {
 }
 
 PLATFORM_FIELDS = {
-    # Claude-specific
+    # Claude-specific: team-shared fields not covered by _HOST_SKIP, unioned
+    # with the platform's own host-specific set (kept in sync with the real
+    # skip list instead of hand-duplicating it — see platforms/claude.py).
     "claude": {
         "model", "effortLevel", "alwaysThinkingEnabled", "outputStyle",
         "includeGitInstructions", "respectGitignore", "fileCheckpointingEnabled",
         "autoCompactEnabled", "autoMemoryEnabled", "respondToBashCommands",
         "permissions", "hooks", "_hostSettings",
-        "apiKeyHelper", "theme", "tui", "editorMode", "preferredNotifChannel",
-        "statusLine", "voice", "voiceEnabled", "viewMode", "prefersReducedMotion",
-        "syntaxHighlightingDisabled", "terminalProgressBarEnabled",
-        "wheelScrollAccelerationEnabled", "axScreenReaderRender", "showTurnDuration",
-        "showThinkingSummaries", "showClearContextOnPlanAccept", "autoScrollEnabled",
-        "spinnerTipsEnabled", "spinnerTipsOverride", "spinnerVerbs", "companyAnnouncements",
-        "footerLinksRegexes", "language", "ultracode", "fastModePerSessionOptIn",
-        "autoConnectIde", "autoInstallIdeExtension", "externalEditorContext",
-        "fileSuggestion", "feedbackSurveyRate", "cleanupPeriodDays", "defaultShell",
-        "prUrlTemplate", "autoUpdatesChannel", "sshConfigs", "worktree", "plansDirectory",
-        "autoMemoryDirectory", "teammateMode", "teammateDefaultModel", "disableAgentView",
-        "agent", "agentPushNotifEnabled", "inputNeededNotifEnabled", "remoteControlAtStartup",
-        "awsAuthRefresh", "awsCredentialExport", "gcpAuthRefresh", "otelHeadersHelper",
-        "claudeMd", "claudeMdExcludes", "policyHelper", "skipWebFetchPreflight",
-    },
-    # Codex-specific
+    } | _CLAUDE_HOST_SKIP,
+    # Codex-specific: team-shared fields not covered by _HOST_SKIP, unioned
+    # with the platform's own host-specific set (see platforms/codex.py).
     "codex": {
-        "model", "model_provider", "model_providers", "personality",
-        "model_reasoning_effort", "model_verbosity", "model_reasoning_summary",
-        "plan_mode_reasoning_effort", "sandbox_mode", "approval_policy",
-        "allow_login_shell", "default_permissions", "project_doc_max_bytes",
-        "project_doc_fallback_filenames", "sandbox_workspace_write", "features",
-        "projects", "hide_agent_reasoning", "web_search", "file_opener", "history",
-        "tools", "shell_environment_policy", "tui", "agents", "memories",
-        "analytics", "feedback",
-    },
+        "model", "model_provider", "model_providers", "sandbox_mode",
+        "approval_policy", "allow_login_shell", "default_permissions",
+        "sandbox_workspace_write", "projects",
+    } | _CODEX_HOST_SKIP,
     # CodeBuddy-specific
     "codebuddy": {"models", "availableModels"},
     # Qwen-specific

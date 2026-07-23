@@ -314,9 +314,12 @@ class ClaudeSyncTests(unittest.TestCase):
         # Secrets should have been resolved
         self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
         self.assertEqual(settings["env"]["ANTHROPIC_BASE_URL"], "https://claude.example/v1")
-        self.assertNotIn("ANTHROPIC_DEFAULT_OPUS_MODEL", settings["env"])
-        self.assertNotIn("ANTHROPIC_DEFAULT_SONNET_MODEL", settings["env"])
-        self.assertNotIn("ANTHROPIC_DEFAULT_HAIKU_MODEL", settings["env"])
+        self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-4-8")
+        self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_SONNET_MODEL"], "claude-sonnet-5")
+        self.assertEqual(
+            settings["env"]["ANTHROPIC_DEFAULT_HAIKU_MODEL"],
+            "claude-haiku-4-5-20251001-thinking",
+        )
         self.assertEqual(settings["env"]["CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"], "1")
 
     def test_env_merge_preserves_existing_settings(self) -> None:

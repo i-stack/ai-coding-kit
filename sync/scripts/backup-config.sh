@@ -78,7 +78,11 @@ case "$cmd" in
     ts="$(date +%Y%m%d_%H%M%S)"
     dest="$BACKUP_DIR/config_${ts}.tar.gz"
 
-    tar -czf "$dest" -C "$REPO_ROOT/env" mcp platforms 2>/dev/null || true
+    if ! tar -czf "$dest" -C "$REPO_ROOT/env" mcp platforms; then
+      echo "[backup] tar failed while creating $dest — aborting." >&2
+      rm -f "$dest"
+      exit 1
+    fi
     chmod 600 "$dest"
     echo "[backup] Saved: $dest"
 

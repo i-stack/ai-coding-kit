@@ -155,8 +155,8 @@ case "$cmd" in
           echo "Disabled $name (removed $dst; current content matches optional source after sync)"
         else
           echo "Refusing to remove ${dst}: current content differs from what optional_mcps enabled (checksum mismatch)." >&2
-          echo "It may be a repo default or was edited after enabling — leaving the file in place." >&2
-          echo "Cleaning registry entry only." >&2
+          echo "It may be a repo default or was edited after enabling — leaving the file and registry entry in place." >&2
+          exit 1
         fi
       else
         rm -f "$dst"

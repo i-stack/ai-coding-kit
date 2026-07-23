@@ -384,6 +384,19 @@ def merge_object(existing: Any, updates: dict[str, Any]) -> dict[str, Any]:
     return {**base, **updates}
 
 
+def api_enabled(cfg: dict[str, Any]) -> bool:
+    """Third-party API sync toggle, shared by every platform's sync engine.
+
+    A missing ``api`` block or missing ``api.enabled`` defaults to enabled,
+    preserving the historical always-sync behavior. Only an explicit
+    ``false`` disables synced API fields.
+    """
+    api = cfg.get("api")
+    if not isinstance(api, dict):
+        return True
+    return api.get("enabled", True) is True
+
+
 # ── Path helpers (imported from centralized paths module) ────────────────────
 
 from .paths import (  # noqa: F401

@@ -1,7 +1,12 @@
 from pathlib import Path
 from typing import Any
 
-from core.common import prune_managed_keys_via_sidecar, read_json_object, write_json
+from core.common import (
+    api_enabled as _api_enabled,
+    prune_managed_keys_via_sidecar,
+    read_json_object,
+    write_json,
+)
 from core.paths import (
     gemini_root_dir,
     gemini_settings_path,
@@ -17,19 +22,6 @@ _INTERNAL_SKIP = {"export_env_to_zshrc", "_comment", "preamble", "api"}
 # When API sync is disabled, these API/model fields are neither written nor
 # merged, and are pruned from the target via the managed-keys sidecar.
 _API_MODEL_FIELDS = {"model"}
-
-
-def _api_enabled(cfg: dict[str, Any]) -> bool:
-    """Gemini third-party API sync toggle.
-
-    Missing ``api`` or missing ``api.enabled`` defaults to enabled, preserving
-    the historical always-sync behavior. Only an explicit ``false`` disables
-    synced API fields.
-    """
-    api = cfg.get("api")
-    if not isinstance(api, dict):
-        return True
-    return api.get("enabled", True) is True
 
 
 def _extract_settings(cfg: dict[str, Any], api_enabled: bool = True) -> dict[str, Any]:
