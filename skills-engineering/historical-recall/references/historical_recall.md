@@ -34,17 +34,17 @@
 
 ## HR-003 命令与输出边界
 
-执行：
+以 argv / 数组参数形式执行，让 query 作为单个参数传入：
 
-```bash
-node skills-engineering/plan-reviews/dist/cli.js recall "<query>" 2>/dev/null || true
+```js
+execFile("node", [cliPath, "recall", query])
 ```
 
-**Shell 注入安全（必读）**：`<query>` 来自用户当轮任务文本，可能含反引号、`` ` ``、`$()`、`${}` 等 shell 元字符。切勿用 shell 字符串插值拼接命令（如 `node ... recall "$USER_INPUT"` 后再 `eval`/直接 `bash -c` 执行），否则用户输入可注入任意命令。应通过**数组 / 参数形式**调用，让 query 作为单个 argv 元素传递，例如：
+**Shell 注入安全（必读）**：`query` 来自用户当轮任务文本，可能含反引号、`` ` ``、`$()`、`${}` 等 shell 元字符。切勿用 shell 字符串插值拼接命令（如 `node ... recall "$USER_INPUT"` 后再 `eval`/直接 `bash -c` 执行），否则用户输入可注入任意命令。应通过**数组 / 参数形式**调用，让 query 作为单个 argv 元素传递，例如：
 
 - Node：`spawn("node", [cliPath, "recall", query])` 或 `execFile`
 - Python：`subprocess.run(["node", cli_path, "recall", query])`
-- 仅在 query 不含 shell 元字符、或已做严格转义时才用 shell 字符串形式
+- 仅在 query 不含 shell 元字符、且已做严格转义时才可用 shell 字符串形式；默认不要这样做
 
 绝不要用 `bash -c "node ... recall ${query}"` 之类把 query 直接嵌入 shell 语句。
 
