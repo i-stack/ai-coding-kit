@@ -87,12 +87,13 @@ Each `env/mcp/<name>.json`:
 
 ## Platform Config Files
 
-Each `env/platforms/<name>.json` follows that platform's **official configuration spec**:
+Each `env/platforms/<name>.json` mostly follows that platform's native configuration shape,
+with a small number of sync-engine metadata fields such as `api.enabled`.
 
 | Platform | File | Follows |
 |----------|------|---------|
 | Codex | `codex.json` | [Codex config.toml schema](https://developers.openai.com/codex/config-reference) |
-| Claude | `claude.json` | Claude Code settings.json `env` + `hooks` |
+| Claude | `claude.json` | Claude Code `env` API sync + preamble/agents metadata |
 | CodeBuddy | `codebuddy.json` | CodeBuddy `models.json` schema |
 | Gemini | `gemini.json` | Gemini CLI env vars |
 | Continue | `continue.json` | Continue `config.yaml` models |
@@ -100,7 +101,20 @@ Each `env/platforms/<name>.json` follows that platform's **official configuratio
 | Cline | `cline.json` | Merge `globalState` + `secrets` into `~/.cline/data/` |
 | Qwen Code | `qwen.json` | Merge `env` into `~/.qwen/settings.json`, sync skills |
 
-The JSON keys map directly to the platform's native format — no field name translation needed.
+Engine metadata is consumed by the sync layer and is not written into the target tool config.
+For Claude, `api.enabled` defaults to `true`; setting it to `false` skips API env sync and
+removes sync-managed API fields, while MCP servers and preamble/agents still sync.
+For CodeBuddy, `api.enabled` also defaults to `true`; setting it to `false` skips model
+definition sync and clears the managed `availableModels` list in `~/.codebuddy/models.json`
+(set to `[]`, not removed) so synced models drop out of the picker without losing provider
+definitions. MCP servers, skills, and the preamble still sync.
+For Gemini, `api.enabled` also defaults to `true`; setting it to `false` skips syncing the
+`model` field into `~/.gemini/settings.json` (pruned via the managed-keys sidecar) and
+removes the managed env block (`GEMINI_API_KEY`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_MODEL`)
+from `~/.zshrc`. MCP servers, general settings, and the preamble still sync.
+
+Use the Claude cleanup as the reference contract before adding another
+platform's API toggle: [Platform Sync Contract](../docs/platform-sync-contract.md).
 
 ## Targets
 
@@ -116,10 +130,10 @@ still sync, but the Xcode-specific Codex / Claude / Gemini outputs are skipped.
 
 ## Custom Install Paths
 
-All platform paths are centralized in `sync/platforms/paths.py`. By default
+All platform paths are centralized in `sync/core/paths.py`. By default
 each tool resolves under its well-known home location (`~/.codex`, `~/.claude`,
 `~/.gemini`, …). To support tools installed in non-default locations, override
-any platform's install root via the `paths` object in `env/secrets.json`:
+any platform's install root via the `paths` object in `env/config.json`:
 
 ```json
 { "paths": { "codex": "/opt/codex", "claude": "/custom/.claude" } }
@@ -130,6 +144,9 @@ skills, MCP files) resolves under the override. Empty string `""` or a missing
 key falls back to the default. For Codex, the standard `CODEX_HOME` /
 `CODEX_CONFIG` env vars still take precedence over this override. See
 [env/README.md](../env/README.md#自定义安装路径paths) for the full key list.
+Cursor project rule sync can also read additional project roots from
+`paths.cursor_project_roots` in `env/config.json`; `CURSOR_PROJECT_ROOTS`
+remains available as a one-shot environment override.
 
 | Target | Output |
 |--------|--------|
@@ -138,26 +155,29 @@ key falls back to the default. For Codex, the standard `CODEX_HOME` /
 | Codex CLI | Managed MCP + shared blocks in `~/.codex/config.toml` |
 | Xcode Codex | `~/Library/.../CodingAssistant/codex/` |
 | Claude Code | Replace `mcpServers` in `~/.claude.json` + Xcode Claude |
-| Claude settings | Merge `env` + `hooks` into `~/.claude/settings.json`, set `~/.claude/config.json` `primaryApiKey` to `self` |
+| Claude settings | If `api.enabled=true`, merge API `env` into `~/.claude/settings.json` and set `~/.claude/config.json` `primaryApiKey` to `self`; if `false`, clean sync-managed API fields |
 | Cline | Replace `mcpServers` in VSCode extension settings + skills sync + merge `globalState`/`secrets` into `~/.cline/data/` |
 | Gemini CLI | Replace `mcpServers` in `~/.gemini/settings.json` + `~/.zshrc` env |
 | Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml`, creating it when `~/.continue` exists |
 | Qwen Code | Merge `env` into `~/.qwen/settings.json`, sync skills to `~/.qwen/skills/` |
 
-> **End-to-end recall:** the historical-recall trigger is also wired to Cline
-> (`~/.cline/rules/ai-coding-kit-recall.md`), CodeBuddy
-> (`~/.codebuddy/CODEBUDDY.md`), and Qwen Code (`~/.qwen/QWEN.md`) via
-> `skills-engineering/scripts/sync-agent-preamble.sh`, and to Continue via the
+> **End-to-end recall:** the historical-recall trigger is wired to Cline
+> (`~/.cline/rules/ai-coding-kit-recall.md`) and Qwen Code (`~/.qwen/QWEN.md`)
+> as recall-only preambles, and to CodeBuddy (`~/.codebuddy/CODEBUDDY.md`) as a
+> **full** preamble (which embeds historical-recall) — all three via
+> `skills-engineering/scripts/sync-agent-preamble.sh`. Continue gets it via the
 > `rules` field in `~/.continue/config.yaml` (injected by `sync/platforms/continue.py`).
 > Run **both** `sync.sh` (covers Continue) and `sync-agent-preamble.sh`
-> (covers Cline / CodeBuddy / Qwen) so every platform receives the recall block.
+> (covers Cline / CodeBuddy / Qwen) so every platform receives its preamble.
 
 ## Adding a Platform
 
 1. Copy template: `cp env/templates/platform.template.json env/platforms/my-platform.json`
 2. Fill in config following the platform's official spec
-3. If the platform only needs `mcpServers` in a JSON file, add `"mcp_target": "~/.my-platform/mcp.json"` to the config
-4. If custom rendering is needed, create `sync/platforms/my_platform.py` with a `sync(mcp_servers, cfg)` function and register in `sync_config.py`
+3. Read [Platform Sync Contract](../docs/platform-sync-contract.md) and decide field ownership, cleanup, and `api.enabled` semantics before writing the renderer.
+4. If the platform only needs `mcpServers` in a JSON file, add `"mcp_target": "~/.my-platform/mcp.json"` to the config
+5. If custom rendering is needed, create `sync/platforms/my_platform.py` with a `sync(mcp_servers, cfg)` function. The sync engine discovers it from `env/platforms/my-platform.json`; no `sync_config.py` registration is needed.
+6. Put shared path helpers in `sync/core/paths.py` only when the platform has a well-known default install root. Otherwise prefer the JSON `install_root` / `mcp_target` fields.
 
 ## Adding an MCP Server
 
@@ -171,21 +191,21 @@ bash sync.sh
 
 ```bash
 bash sync.sh                              # sync all
-python3 sync/sync_config.py --target all  # sync all (Python direct)
-python3 sync/sync_config.py --target codex  # single platform
+python3 sync/cli/main.py sync --target all  # sync all (Python direct)
+python3 sync/cli/main.py sync --target codex  # single platform
 ```
 
 ## 可选 MCP 服务器
 
-开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional-mcps/`，用 `sync/optional_mcps.sh` 按需启用：
+开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional_mcps/`，用 `sync/scripts/optional_mcps.sh` 按需启用：
 
 ```bash
-bash sync/optional_mcps.sh list                       # 查看可选服务器与启用状态
-bash sync/optional_mcps.sh enable puppeteer           # 启用 -> 下次 sync.sh 生效
-bash sync/optional_mcps.sh disable puppeteer          # 停用
+bash sync/scripts/optional_mcps.sh list                       # 查看可选服务器与启用状态
+bash sync/scripts/optional_mcps.sh enable puppeteer           # 启用 -> 下次 sync.sh 生效
+bash sync/scripts/optional_mcps.sh disable puppeteer          # 停用
 ```
 
-`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认的 `env/mcp/*.json`。详见 `env/optional-mcps/README.md`。
+`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认的 `env/mcp/*.json`。详见 `env/optional_mcps/README.md`。
 
 ## Design Principles
 

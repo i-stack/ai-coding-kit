@@ -14,9 +14,9 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-import sync_config  # noqa: E402
+from cli import sync_config  # noqa: E402
 from platforms import codebuddy as codebuddy_mod  # noqa: E402
-from platforms import common  # noqa: E402
+from core import common  # noqa: E402
 
 
 DEFAULT_CODEBUDDY_CFG = {
@@ -52,21 +52,36 @@ DEFAULT_CODEBUDDY_CFG = {
         "deepseek-v4-pro",
         "deepseek-v4-flash",
     ],
+    # Mirror the real env/platforms/codebuddy.json: CodeBuddy is now a full
+    # preamble target. Recall-mode / none-mode behavior is exercised explicitly
+    # by the tests below, not via this default.
+    "preamble": {
+        "target": "CODEBUDDY.md",
+        "mode": "full",
+        "tool": "codebuddy",
+    },
 }
 
 
 @contextlib.contextmanager
 def patched_sync_environment(root: Path):
     """Redirect HOME and common module paths for isolated CodeBuddy sync tests."""
+    import core.paths as _paths
     home = root / "home"
     old_env = {k: os.environ.get(k) for k in ("HOME",)}
     old_paths = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
+    old_paths_cfg = _paths.CONFIG_PATH
+    old_overrides = _paths._PATH_OVERRIDES
     old_argv = sys.argv[:]
     try:
         os.environ["HOME"] = str(home)
         common.MCP_DIR = root / "env" / "mcp"
         common.PLATFORMS_DIR = root / "env" / "platforms"
         common.SECRETS_PATH = root / "env" / "secrets.json"
+        # Isolate path overrides so a developer's local env/config.json
+        # can't leak into this test (empty config => default paths).
+        _paths.CONFIG_PATH = root / "env" / "config.json"
+        _paths._PATH_OVERRIDES = None
         yield
     finally:
         for key, value in old_env.items():
@@ -75,6 +90,8 @@ def patched_sync_environment(root: Path):
             else:
                 os.environ[key] = value
         common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_paths
+        _paths.CONFIG_PATH = old_paths_cfg
+        _paths._PATH_OVERRIDES = old_overrides
         sys.argv = old_argv
 
 
@@ -417,29 +434,6 @@ class CodeBuddySyncTests(unittest.TestCase):
 
         self.assertEqual(result["models"], {"meta": {"version": 2}})
 
-    def test_disabled_platform_config_removes_existing_managed_model_keys(self) -> None:
-        """enabled=false keeps config JSON valid while disabling managed model sync."""
-        models_path = self.root / "home" / ".codebuddy" / "models.json"
-        self._write_json(
-            models_path,
-            {
-                "meta": {"version": 2},
-                "models": [
-                    {
-                        "id": "deepseek-v4-pro",
-                        "name": "Stale DeepSeek V4 Pro",
-                        "vendor": "old",
-                    }
-                ],
-                "availableModels": ["deepseek-v4-pro"],
-            },
-        )
-        cfg = {"enabled": False, **self.platform_cfg}
-
-        result = self._run_codebuddy_sync(cfg)
-
-        self.assertEqual(result["models"], {"meta": {"version": 2}})
-
     def test_commented_platform_config_removes_existing_managed_model_keys(self) -> None:
         """A fully commented codebuddy.json parses as absent config and clears managed model keys."""
         models_path = self.root / "home" / ".codebuddy" / "models.json"
@@ -498,6 +492,116 @@ class CodeBuddySyncTests(unittest.TestCase):
             ["deepseek-v4-pro", "deepseek-v4-flash"],
         )
         self.assertNotIn("models", result["models"])
+
+    # ── API toggle (api.enabled) ───────────────────────────────────────────────
+
+    def test_api_enabled_by_default(self) -> None:
+        """Missing api block defaults to enabled — normal model sync runs."""
+        result = self._run_codebuddy_sync({"models": self.platform_cfg["models"],
+                                           "availableModels": self.platform_cfg["availableModels"]})
+
+        self.assertEqual(len(result["models"]["models"]), 2)
+        self.assertEqual(
+            result["models"]["availableModels"],
+            ["deepseek-v4-pro", "deepseek-v4-flash"],
+        )
+
+    def test_api_disabled_empties_available_models(self) -> None:
+        """When api.enabled=false, availableModels is set to [] (CodeBuddy special handling)."""
+        cfg = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        result = self._run_codebuddy_sync(cfg)
+
+        self.assertEqual(result["models"]["availableModels"], [])
+        # Model definitions are NOT synced while disabled, so the key is absent.
+        self.assertNotIn("models", result["models"])
+
+    def test_api_disabled_preserves_user_models(self) -> None:
+        """User-added model definitions survive a disabled API sync."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        models_path.parent.mkdir(parents=True, exist_ok=True)
+        models_path.write_text(
+            json.dumps(
+                {
+                    "models": [
+                        {
+                            "id": "custom-model",
+                            "name": "Custom Model",
+                            "vendor": "custom",
+                        }
+                    ],
+                    "availableModels": ["custom-model"],
+                },
+                indent=4,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        cfg = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        result = self._run_codebuddy_sync(cfg)
+
+        # User model kept; availableModels emptied by the disabled sync.
+        model_ids = [m["id"] for m in result["models"]["models"]]
+        self.assertIn("custom-model", model_ids)
+        self.assertEqual(result["models"]["availableModels"], [])
+
+    def test_api_disabled_is_idempotent(self) -> None:
+        """Re-running a disabled sync keeps availableModels empty and models intact."""
+        cfg = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        self._run_codebuddy_sync(cfg)
+        result = self._run_codebuddy_sync(cfg)
+
+        self.assertEqual(result["models"]["availableModels"], [])
+        # Disabled sync never writes the models key, so it stays absent.
+        self.assertNotIn("models", result["models"])
+
+    def test_api_enabled_after_disabled_restores_models(self) -> None:
+        """Re-enabling API sync restores availableModels from config."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    {
+                        "id": "deepseek-v4-pro",
+                        "name": "Stale DeepSeek V4 Pro",
+                        "vendor": "old",
+                    }
+                ],
+                "availableModels": ["deepseek-v4-pro"],
+            },
+        )
+
+        disabled = {
+            "api": {"enabled": False},
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        self._run_codebuddy_sync(disabled)
+        self.assertEqual(self._read_json(models_path)["availableModels"], [])
+
+        enabled = {
+            "models": self.platform_cfg["models"],
+            "availableModels": self.platform_cfg["availableModels"],
+        }
+        result = self._run_codebuddy_sync(enabled)
+        self.assertEqual(
+            result["models"]["availableModels"],
+            ["deepseek-v4-pro", "deepseek-v4-flash"],
+        )
+        self.assertEqual(len(result["models"]["models"]), 2)
 
     def test_empty_mcp_servers_does_not_break(self) -> None:
         """Sync with no MCP servers still runs CodeBuddy models sync."""
@@ -572,15 +676,23 @@ class CodeBuddySyncTests(unittest.TestCase):
             self.assertNotIn(key, result["mcp"], f"Internal key '{key}' leaked into mcp.json")
             self.assertNotIn(key, result["models"], f"Internal key '{key}' leaked into models.json")
 
-    # ── Recall preamble (CODEBUDDY.md) ──────────────────────────────────────
+    # ── Preamble (CODEBUDDY.md) ────────────────────────────────────────────
 
     def _read_codebuddy_md(self) -> str:
         path = self.root / "home" / ".codebuddy" / "CODEBUDDY.md"
         return path.read_text(encoding="utf-8") if path.exists() else ""
 
-    def test_recall_block_synced_to_codebuddy_md(self) -> None:
-        """The historical-recall managed block is rendered into CODEBUDDY.md."""
-        self._run_codebuddy_sync()
+    def _recall_cfg(self) -> dict:
+        """Explicit recall-mode config — keeps recall-path coverage now that the
+        default cfg is mode=full."""
+        return {
+            **self.platform_cfg,
+            "preamble": {"target": "CODEBUDDY.md", "mode": "recall", "tool": "codebuddy"},
+        }
+
+    def test_recall_mode_writes_standalone_recall_block(self) -> None:
+        """preamble.mode=recall renders the standalone historical-recall block."""
+        self._run_codebuddy_sync(self._recall_cfg())
 
         text = self._read_codebuddy_md()
         self.assertIn("managed-block:historical-recall:begin", text)
@@ -598,7 +710,7 @@ class CodeBuddySyncTests(unittest.TestCase):
         cb = self.root / "home" / ".codebuddy" / "CODEBUDDY.md"
         cb.write_text("# my custom header\n\nkeep me\n", encoding="utf-8")
 
-        self._run_codebuddy_sync()
+        self._run_codebuddy_sync(self._recall_cfg())
 
         text = self._read_codebuddy_md()
         self.assertIn("keep me", text)
@@ -606,11 +718,27 @@ class CodeBuddySyncTests(unittest.TestCase):
 
     def test_recall_block_idempotent(self) -> None:
         """Re-running sync does not duplicate the managed block."""
-        self._run_codebuddy_sync()
-        self._run_codebuddy_sync()
+        self._run_codebuddy_sync(self._recall_cfg())
+        self._run_codebuddy_sync(self._recall_cfg())
 
         text = self._read_codebuddy_md()
         self.assertEqual(text.count("managed-block:historical-recall:begin"), 1)
+
+    def test_full_mode_does_not_write_standalone_recall_block(self) -> None:
+        """preamble.mode=full (the default) never writes a standalone recall block;
+        the full preamble incl. historical-recall is rendered by sync-agent-preamble.sh."""
+        # Default cfg is mode=full.
+        self._run_codebuddy_sync()
+        self.assertNotIn("managed-block:historical-recall:begin", self._read_codebuddy_md())
+
+    def test_none_mode_skips_recall_block(self) -> None:
+        """preamble.mode=none writes neither a recall nor a full preamble block."""
+        cfg = {
+            **self.platform_cfg,
+            "preamble": {"target": "CODEBUDDY.md", "mode": "none", "tool": "codebuddy"},
+        }
+        self._run_codebuddy_sync(cfg)
+        self.assertNotIn("managed-block:historical-recall:begin", self._read_codebuddy_md())
 
     def test_recall_block_skipped_when_root_missing(self) -> None:
         """When ~/.codebuddy does not exist, no CODEBUDDY.md is created."""
@@ -621,6 +749,196 @@ class CodeBuddySyncTests(unittest.TestCase):
         self.assertFalse(
             (self.root / "home" / ".codebuddy" / "CODEBUDDY.md").exists()
         )
+
+
+class AgentPreambleTemplateDedupTests(unittest.TestCase):
+    """Source-template guards that lock the single-source-of-truth for the
+    historical-recall section (see sync-agent-preamble.sh render_managed_block).
+
+    These prevent a silent regression where someone re-inlines the recall body
+    into the full ``agent-preamble`` block, defeating the DRY design.
+    """
+
+    TEMPLATE = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "scripts"
+        / "templates"
+        / "agent-preamble.md.tmpl"
+    ).read_text(encoding="utf-8")
+
+    AGENT_BEGIN = "<!-- managed-block:agent-preamble:begin"
+    AGENT_END = "<!-- managed-block:agent-preamble:end"
+    RECALL_BEGIN = "<!-- managed-block:historical-recall:begin"
+    RECALL_END = "<!-- managed-block:historical-recall:end"
+
+    @staticmethod
+    def _extract_block(text: str, begin: str, end: str) -> str:
+        in_block = False
+        out = []
+        for line in text.splitlines():
+            if begin in line:
+                in_block = True
+                continue
+            if end in line:
+                in_block = False
+                continue
+            if in_block:
+                out.append(line)
+        return "\n".join(out)
+
+    def test_recall_body_is_single_source(self) -> None:
+        """The recall signature HR-001 lives in exactly ONE place: the
+        standalone historical-recall block. It must not be duplicated
+        anywhere (e.g. re-inlined into the full block)."""
+        self.assertEqual(self.TEMPLATE.count("HR-001"), 1)
+
+    def test_full_block_references_recall_via_placeholder(self) -> None:
+        """The full agent-preamble block must reference the recall section via
+        the {{HISTORICAL_RECALL_BLOCK}} placeholder (exactly once) and must
+        NOT inline the recall body (no HR-001)."""
+        full = self._extract_block(self.TEMPLATE, self.AGENT_BEGIN, self.AGENT_END)
+        self.assertEqual(full.count("{{HISTORICAL_RECALL_BLOCK}}"), 1)
+        self.assertNotIn("HR-001", full)
+
+    def test_standalone_recall_block_holds_the_body(self) -> None:
+        """The standalone historical-recall block is the single source of truth
+        and must contain the recall body signature HR-001."""
+        recall = self._extract_block(self.TEMPLATE, self.RECALL_BEGIN, self.RECALL_END)
+        self.assertIn("HR-001", recall)
+
+    def test_anti_edit_template_note_present(self) -> None:
+        """The source-only anti-edit note guards the placeholder injection point
+        and must appear exactly once (in the full block), so it cannot leak
+        into rendered targets unnoticed."""
+        self.assertEqual(self.TEMPLATE.count("template-note"), 1)
+        full = self._extract_block(self.TEMPLATE, self.AGENT_BEGIN, self.AGENT_END)
+        self.assertIn("template-note", full)
+
+
+class MultiSkillCoordinationTests(unittest.TestCase):
+    """Guards for the multi-skill combination-harmony fixes (D1–D5).
+
+    Skills are meant to stack as complementary enhancement, never as
+    contradiction. These tests lock the coordination clauses so a future edit
+    cannot silently regress that invariant (e.g. re-introducing a duplicated
+    calibration block or a contradictory question-count rule).
+    """
+
+    TEMPLATE = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "scripts"
+        / "templates"
+        / "agent-preamble.md.tmpl"
+    ).read_text(encoding="utf-8")
+
+    ENG_DISC = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "engineering-discipline"
+        / "references"
+        / "engineering_discipline.md"
+    ).read_text(encoding="utf-8")
+
+    COG_EXP = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "cognitive-expansion"
+        / "references"
+        / "cognitive_expansion.md"
+    ).read_text(encoding="utf-8")
+
+    CAM = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "ios-engineer"
+        / "references"
+        / "cognitive_adversary_mode.md"
+    ).read_text(encoding="utf-8")
+
+    PLAN_GRILL = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "plan-grill"
+        / "references"
+        / "plan_grill.md"
+    ).read_text(encoding="utf-8")
+
+    def test_preamble_has_multi_skill_coordination_section(self) -> None:
+        # D3: the stacking-harmony overview must exist in the preamble template.
+        self.assertIn("# global multi-skill coordination", self.TEMPLATE)
+
+    def test_preamble_cam_suppresses_lightweight_block(self) -> None:
+        # D1: CAM activation must suppress the standalone preamble calibration block.
+        self.assertIn("CAM 激活", self.TEMPLATE)
+        self.assertIn("不再单独输出", self.TEMPLATE)
+
+    def test_engdisc_gr002_absorbs_grill(self) -> None:
+        # D2: GR-002 must state it is absorbed by PG-000 grilling (no duplicate block).
+        self.assertIn("PG-000 已进入盘问", self.ENG_DISC)
+
+    def test_engdisc_gr006_merges_with_gr002(self) -> None:
+        # D2: GR-006 strategic interruption merges with GR-002 same anchor.
+        self.assertIn("本中断块与 `engineering-discipline` GR-002", self.ENG_DISC)
+
+    def test_gr004_has_coordination_subsections(self) -> None:
+        # D3/D4/D5: GR-004 merge SOP must carry the extended subsections.
+        for marker in (
+            "校准层与 iOS 专属层的纳入",
+            "跨块置信度总协调",
+            "多 SKILL 叠加时的读取与预算上限",
+        ):
+            self.assertIn(marker, self.ENG_DISC)
+
+    def test_gr004_cam_keeps_mechanical_format(self) -> None:
+        # D4: CAM fields must be preserved, not collapsed into 逻辑链/验证锚点.
+        self.assertIn("保留 CAM 机械格式", self.ENG_DISC)
+
+    def test_gr004_confidence_normalizes_to_retained_field(self) -> None:
+        # D5: confidence normalizes to the single retained field, not always 验证锚点.
+        self.assertIn("本轮唯一保留的置信度", self.ENG_DISC)
+
+    def test_cogexp_tier2_excludes_preamble_calibration(self) -> None:
+        # D1: cognitive_expansion.md truth text must exclude preamble lightweight
+        # calibration under Tier 2 (entry and truth text must agree).
+        self.assertIn("轻量认知校准段", self.COG_EXP)
+        self.assertIn("CAM 完整结构承载", self.COG_EXP)
+
+    def test_plan_grill_absorbs_gr002(self) -> None:
+        # D2: plan-grill truth file must state the first grill question absorbs GR-002.
+        self.assertIn("吸收为盘问首问", self.PLAN_GRILL)
+
+    def test_cam_fields_not_collapsed(self) -> None:
+        # D4: CAM detail file keeps its fields intact (no collapse into other blocks).
+        self.assertIn("不得省略或并入其它块", self.CAM)
+
+
+class GlobalSkillValidationScriptTests(unittest.TestCase):
+    """The one-shot validation entrypoint must stay read-only and complete."""
+
+    SCRIPT = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "scripts"
+        / "validate-global-skills.sh"
+    ).read_text(encoding="utf-8")
+
+    def test_global_validation_entrypoint_covers_closure_steps(self) -> None:
+        for marker in (
+            "validate-skill-structure.sh",
+            "validate-skill-behavior.sh",
+            "sync-agent-preamble.sh\" --dry-run",
+            "verify-sync.sh",
+            "validate-skill-integrity.sh\" --check-only",
+            "python3 tests/test_codebuddy_sync.py",
+        ):
+            self.assertIn(marker, self.SCRIPT)
+
+    def test_global_validation_entrypoint_is_read_only(self) -> None:
+        self.assertIn("--dry-run", self.SCRIPT)
+        self.assertIn("--check-only", self.SCRIPT)
+        self.assertNotIn("sync-skills.sh", self.SCRIPT)
 
 
 if __name__ == "__main__":

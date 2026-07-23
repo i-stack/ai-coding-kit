@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Validate env/ JSON configuration files against expected schemas.
 
 Checks:
@@ -6,23 +5,24 @@ Checks:
   - env/platforms/*.json: valid platform configs
 
 Usage:
-    python3 sync/validate_env_schema.py                 # validate all
-    python3 sync/validate_env_schema.py --mcp-only      # only MCP files
-    python3 sync/validate_env_schema.py --platforms-only # only platform files
+    python3 sync/cli/main.py validate-env                  # validate all
+    python3 sync/cli/main.py validate-env --mcp-only       # only MCP files
+    python3 sync/cli/main.py validate-env --platforms-only # only platform files
 """
 import json
-import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+from platforms.claude import _HOST_SKIP as _CLAUDE_HOST_SKIP
+from platforms.codex import _HOST_SKIP as _CODEX_HOST_SKIP
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
 ENV_DIR = REPO_ROOT / "env"
 MCP_DIR = ENV_DIR / "mcp"
-OPTIONAL_MCP_DIR = ENV_DIR / "optional-mcps"
+OPTIONAL_MCP_DIR = ENV_DIR / "optional_mcps"
 PLATFORMS_DIR = ENV_DIR / "platforms"
 
 # ── MCP server schema ────────────────────────────────────────────────────────
 
-MCP_REQUIRED_FIELDS = set()  # No strictly required fields (name defaults to filename)
 MCP_VALID_TYPES = {"stdio", "sse"}
 MCP_KNOWN_FIELDS = {
     "name", "type", "command", "args", "env", "url", "headers",
@@ -79,43 +79,37 @@ def validate_mcp_file(path: Path) -> list[str]:
 
 # ── Platform config schema ────────────────────────────────────────────────────
 
-COMMON_PLATFORM_FIELDS = {"_comment", "enabled", "env", "export_env_to_zshrc", "mcp_target"}
+COMMON_PLATFORM_FIELDS = {
+    "_comment",
+    "api",
+    "env",
+    "export_env_to_zshrc",
+    "install_root",
+    "mcp_target",
+    "preamble",
+}
 
 PLATFORM_FIELDS = {
-    # Claude-specific
+    # Claude-specific: team-shared fields not covered by _HOST_SKIP, unioned
+    # with the platform's own host-specific set (kept in sync with the real
+    # skip list instead of hand-duplicating it — see platforms/claude.py).
     "claude": {
         "model", "effortLevel", "alwaysThinkingEnabled", "outputStyle",
         "includeGitInstructions", "respectGitignore", "fileCheckpointingEnabled",
         "autoCompactEnabled", "autoMemoryEnabled", "respondToBashCommands",
         "permissions", "hooks", "_hostSettings",
-        "apiKeyHelper", "theme", "tui", "editorMode", "preferredNotifChannel",
-        "statusLine", "voice", "voiceEnabled", "viewMode", "prefersReducedMotion",
-        "syntaxHighlightingDisabled", "terminalProgressBarEnabled",
-        "wheelScrollAccelerationEnabled", "axScreenReaderRender", "showTurnDuration",
-        "showThinkingSummaries", "showClearContextOnPlanAccept", "autoScrollEnabled",
-        "spinnerTipsEnabled", "spinnerTipsOverride", "spinnerVerbs", "companyAnnouncements",
-        "footerLinksRegexes", "language", "ultracode", "fastModePerSessionOptIn",
-        "autoConnectIde", "autoInstallIdeExtension", "externalEditorContext",
-        "fileSuggestion", "feedbackSurveyRate", "cleanupPeriodDays", "defaultShell",
-        "prUrlTemplate", "autoUpdatesChannel", "sshConfigs", "worktree", "plansDirectory",
-        "autoMemoryDirectory", "teammateMode", "teammateDefaultModel", "disableAgentView",
-        "agent", "agentPushNotifEnabled", "inputNeededNotifEnabled", "remoteControlAtStartup",
-        "awsAuthRefresh", "awsCredentialExport", "gcpAuthRefresh", "otelHeadersHelper",
-        "claudeMd", "claudeMdExcludes", "policyHelper", "skipWebFetchPreflight",
-    },
-    # Codex-specific
+    } | _CLAUDE_HOST_SKIP,
+    # Codex-specific: team-shared fields not covered by _HOST_SKIP, unioned
+    # with the platform's own host-specific set (see platforms/codex.py).
     "codex": {
-        "model", "model_provider", "model_providers", "personality",
-        "model_reasoning_effort", "model_verbosity", "model_reasoning_summary",
-        "plan_mode_reasoning_effort", "sandbox_mode", "approval_policy",
-        "allow_login_shell", "default_permissions", "project_doc_max_bytes",
-        "project_doc_fallback_filenames", "sandbox_workspace_write", "features",
-        "projects", "hide_agent_reasoning", "web_search", "file_opener", "history",
-        "tools", "shell_environment_policy", "tui", "agents", "memories",
-        "analytics", "feedback",
-    },
+        "model", "model_provider", "model_providers", "sandbox_mode",
+        "approval_policy", "allow_login_shell", "default_permissions",
+        "sandbox_workspace_write", "projects",
+    } | _CODEX_HOST_SKIP,
     # CodeBuddy-specific
     "codebuddy": {"models", "availableModels"},
+    # Qwen-specific
+    "qwen": {"security", "modelProviders", "model"},
     # Continue-specific
     "continue": {"models", "path", "recall"},
     # Gemini-specific
@@ -145,11 +139,6 @@ def validate_platform_file(path: Path) -> list[str]:
     if not isinstance(data, dict):
         return [f"{path.name}: root must be a JSON object"]
 
-    # Check enabled is a boolean if present
-    enabled = data.get("enabled")
-    if enabled is not None and not isinstance(enabled, bool):
-        errors.append(f"{path.name}: 'enabled' must be a boolean")
-
     # Check env is an object if present
     env = data.get("env")
     if env is not None and not isinstance(env, dict):
@@ -159,6 +148,44 @@ def validate_platform_file(path: Path) -> list[str]:
     export_env = data.get("export_env_to_zshrc")
     if export_env is not None and not isinstance(export_env, dict):
         errors.append(f"{path.name}: 'export_env_to_zshrc' must be a JSON object")
+
+    # Check api.enabled is a boolean if present
+    api = data.get("api")
+    if api is not None:
+        if not isinstance(api, dict):
+            errors.append(f"{path.name}: 'api' must be a JSON object")
+        else:
+            api_unknown = set(api.keys()) - {"enabled"}
+            if api_unknown:
+                errors.append(
+                    f"{path.name}: unknown api fields: {', '.join(sorted(api_unknown))}"
+                )
+            enabled = api.get("enabled")
+            if enabled is not None and not isinstance(enabled, bool):
+                errors.append(f"{path.name}: 'api.enabled' must be a boolean")
+
+    # Check preamble sync metadata if present
+    preamble = data.get("preamble")
+    if preamble is not None:
+        if not isinstance(preamble, dict):
+            errors.append(f"{path.name}: 'preamble' must be a JSON object")
+        else:
+            preamble_unknown = set(preamble.keys()) - {"target", "mode", "tool", "format", "agents"}
+            if preamble_unknown:
+                errors.append(
+                    f"{path.name}: unknown preamble fields: {', '.join(sorted(preamble_unknown))}"
+                )
+            mode = preamble.get("mode")
+            if mode is not None and mode not in {"full", "recall", "none"}:
+                errors.append(f"{path.name}: 'preamble.mode' must be one of: full, none, recall")
+            fmt = preamble.get("format")
+            if fmt is not None and fmt not in {"markdown", "yaml", "cursor-mdc"}:
+                errors.append(
+                    f"{path.name}: 'preamble.format' must be one of: cursor-mdc, markdown, yaml"
+                )
+            agents = preamble.get("agents")
+            if agents is not None and not isinstance(agents, bool):
+                errors.append(f"{path.name}: 'preamble.agents' must be a boolean")
 
     # Check for unknown (typo / uncategorized) top-level fields
     unknown = set(data.keys()) - known_fields_for_platform(path.stem)
@@ -170,16 +197,16 @@ def validate_platform_file(path: Path) -> list[str]:
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mcp-only", action="store_true", help="Only validate MCP files")
     parser.add_argument("--platforms-only", action="store_true", help="Only validate platform files")
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     all_errors: list[str] = []
 
-    # Validate MCP files (env/mcp + env/optional-mcps)
+    # Validate MCP files (env/mcp + env/optional_mcps)
     if not args.platforms_only:
         mcp_dirs = [MCP_DIR]
         if OPTIONAL_MCP_DIR.is_dir():
@@ -194,7 +221,7 @@ def main() -> None:
                     continue  # registry 文件，不是 MCP 定义
                 all_errors.extend(validate_mcp_file(f))
                 total_mcp += 1
-        print(f"Checked {total_mcp} MCP file(s) (incl. optional-mcps).")
+        print(f"Checked {total_mcp} MCP file(s) (incl. optional_mcps).")
 
     # Validate platform files
     if not args.mcp_only and PLATFORMS_DIR.is_dir():
@@ -209,10 +236,7 @@ def main() -> None:
         print("\nERRORS:")
         for e in all_errors:
             print(f"  ✗ {e}")
-        sys.exit(1)
+        return 1
     else:
         print("\nAll env/ JSON files are valid.")
-
-
-if __name__ == "__main__":
-    main()
+        return 0

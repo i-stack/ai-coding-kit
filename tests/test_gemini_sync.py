@@ -14,21 +14,28 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-import sync_config  # noqa: E402
-from platforms import common  # noqa: E402
+from cli import sync_config  # noqa: E402
+from core import common  # noqa: E402
 
 
 @contextlib.contextmanager
 def patched_sync_environment(root: Path):
     """Redirect HOME and module-level paths for isolated Gemini sync tests."""
+    import core.paths as _paths
     old_env = {k: os.environ.get(k) for k in ("HOME",)}
     old_paths = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
+    old_paths_cfg = _paths.CONFIG_PATH
+    old_overrides = _paths._PATH_OVERRIDES
     old_argv = sys.argv[:]
     try:
         os.environ["HOME"] = str(root / "home")
         common.MCP_DIR = root / "env" / "mcp"
         common.PLATFORMS_DIR = root / "env" / "platforms"
         common.SECRETS_PATH = root / "env" / "secrets.json"
+        # Isolate path overrides so a developer's local env/config.json
+        # can't leak into this test (empty config => default paths).
+        _paths.CONFIG_PATH = root / "env" / "config.json"
+        _paths._PATH_OVERRIDES = None
         yield
     finally:
         for key, value in old_env.items():
@@ -37,6 +44,8 @@ def patched_sync_environment(root: Path):
             else:
                 os.environ[key] = value
         common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_paths
+        _paths.CONFIG_PATH = old_paths_cfg
+        _paths._PATH_OVERRIDES = old_overrides
         sys.argv = old_argv
 
 
@@ -48,6 +57,12 @@ class GeminiSyncTests(unittest.TestCase):
         self.platform_cfg = json.loads(
             (REPO_ROOT / "env" / "platforms" / "gemini.json").read_text()
         )
+        # api.enabled is a user-configurable local toggle, not a fixed schema
+        # value — pin the fixture baseline to enabled=True so tests don't
+        # silently inherit whatever value happens to be committed in
+        # env/platforms/gemini.json. Tests that need the disabled path set
+        # cfg["api"] = {"enabled": False} explicitly.
+        self.platform_cfg["api"] = {"enabled": True}
         self._write_json(
             self.root / "env" / "mcp" / "sample.json",
             {
@@ -358,6 +373,7 @@ class GeminiSyncTests(unittest.TestCase):
         settings = self._run_gemini_sync()
 
         covered_keys = {
+            "api",
             "model",
             "context",
             "tools",
@@ -373,14 +389,31 @@ class GeminiSyncTests(unittest.TestCase):
         self.assertEqual(set(self.platform_cfg), covered_keys)
 
         # Keys that should appear in settings.json
-        managed_keys = covered_keys - {"export_env_to_zshrc", "_comment", "preamble"}
+        managed_keys = covered_keys - {"api", "export_env_to_zshrc", "_comment", "preamble"}
         for key in managed_keys:
             self.assertIn(key, settings, f"Managed key '{key}' missing from settings.json")
 
-        # Internal keys that should NOT appear
+        # Internal/engine-handled keys that should NOT appear
         self.assertNotIn("_comment", settings)
         self.assertNotIn("export_env_to_zshrc", settings)
         self.assertNotIn("preamble", settings)
+        self.assertNotIn("api", settings)
+
+    # ── Sidecar recovery ─────────────────────────────────────────────────────
+
+    def test_dropped_managed_key_is_pruned_on_next_sync(self) -> None:
+        """A managed key removed from gemini.json is pruned on the next sync."""
+        cfg_with = dict(self.platform_cfg)
+        cfg_with["extraManagedKey"] = {"foo": "bar"}
+        settings = self._run_gemini_sync(cfg_with)
+        self.assertIn("extraManagedKey", settings)
+
+        settings = self._run_gemini_sync(dict(self.platform_cfg))
+        self.assertNotIn("extraManagedKey", settings)
+        sidecar = self._read_json(
+            self.root / "home" / ".gemini" / ".managed_settings_keys.json"
+        )
+        self.assertNotIn("extraManagedKey", sidecar["managedKeys"])
 
     # ── Edge cases ───────────────────────────────────────────────────────────
 
@@ -418,6 +451,84 @@ class GeminiSyncTests(unittest.TestCase):
 
         zshrc = self.root / "home" / ".zshrc"
         self.assertFalse(zshrc.exists(), "zshrc should not be created without export_env_to_zshrc")
+
+    # ── API toggle (api.enabled) ───────────────────────────────────────────────
+
+    def test_api_enabled_by_default(self) -> None:
+        """Missing api block defaults to enabled — model + env still sync."""
+        settings = self._run_gemini_sync()
+
+        self.assertIn("model", settings)
+        self.assertEqual(settings["model"]["name"], "gemini-3.5-flash")
+        zshrc = self.root / "home" / ".zshrc"
+        self.assertTrue(zshrc.exists())
+        self.assertIn("export GEMINI_API_KEY=sk-test-gemini", zshrc.read_text(encoding="utf-8"))
+
+    def test_api_disabled_removes_model_from_settings(self) -> None:
+        """When api.enabled=false, the model field is not written and is pruned."""
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+
+        # First enable (so model is recorded as managed), then disable.
+        self._run_gemini_sync(dict(self.platform_cfg))
+        settings = self._run_gemini_sync(cfg)
+
+        self.assertNotIn("model", settings)
+        # Non-API settings still sync.
+        self.assertEqual(settings["context"]["fileName"], "GEMINI.md")
+        self.assertTrue(settings["tools"]["useRipgrep"])
+        self.assertIn("mcpServers", settings)
+
+    def test_api_disabled_skips_env_export_and_cleans_zshrc(self) -> None:
+        """When api.enabled=false, env vars are not exported and any managed block is removed."""
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+
+        # First enable so a managed env block exists.
+        self._run_gemini_sync(dict(self.platform_cfg))
+        zshrc = self.root / "home" / ".zshrc"
+        self.assertTrue(zshrc.exists())
+        self.assertIn("export GEMINI_API_KEY=sk-test-gemini", zshrc.read_text(encoding="utf-8"))
+
+        # Now disable.
+        self._run_gemini_sync(cfg)
+        zshrc_text = zshrc.read_text(encoding="utf-8")
+        self.assertNotIn("export GEMINI_API_KEY", zshrc_text)
+        self.assertNotIn("BEGIN GEMINI ENV SYNC", zshrc_text)
+        self.assertNotIn("END GEMINI ENV SYNC", zshrc_text)
+
+    def test_api_disabled_idempotent(self) -> None:
+        """Re-running a disabled sync stays clean (no model, no env block)."""
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+
+        self._run_gemini_sync(cfg)
+        settings = self._run_gemini_sync(cfg)
+
+        self.assertNotIn("model", settings)
+        zshrc = self.root / "home" / ".zshrc"
+        if zshrc.exists():
+            self.assertNotIn("BEGIN GEMINI ENV SYNC", zshrc.read_text(encoding="utf-8"))
+
+    def test_api_enabled_after_disabled_restores_model_and_env(self) -> None:
+        """Re-enabling API sync restores the model field and the env block."""
+        settings_path = self.root / "home" / ".gemini" / "settings.json"
+        zshrc = self.root / "home" / ".zshrc"
+
+        # Disable first.
+        disabled = dict(self.platform_cfg)
+        disabled["api"] = {"enabled": False}
+        self._run_gemini_sync(disabled)
+        self.assertNotIn("model", self._read_json(settings_path))
+        if zshrc.exists():
+            self.assertNotIn("BEGIN GEMINI ENV SYNC", zshrc.read_text(encoding="utf-8"))
+
+        # Re-enable.
+        settings = self._run_gemini_sync(dict(self.platform_cfg))
+        self.assertIn("model", settings)
+        self.assertEqual(settings["model"]["name"], "gemini-3.5-flash")
+        self.assertTrue(zshrc.exists())
+        self.assertIn("export GEMINI_API_KEY=sk-test-gemini", zshrc.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

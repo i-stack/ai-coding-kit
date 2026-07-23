@@ -1,4 +1,4 @@
-"""Tests for TOML generation utilities in sync/platforms/common.py."""
+"""Tests for TOML generation utilities in sync/core/common.py."""
 
 import sys
 import unittest
@@ -9,7 +9,7 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-from platforms.common import (  # noqa: E402
+from core.common import (  # noqa: E402
     toml_array,
     toml_bare_key_segment,
     toml_header_key_segment,

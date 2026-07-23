@@ -57,7 +57,7 @@ PG-004 决策树解析完 → 写 PLAN.md（七段填实）
 
 ## 运行前置依赖
 
-历史召回已统一由全局 `historical-recall` skill 负责（见该 skill 的 HR-001~HR-005），`plan-grill` 不再内联调用，因此本 skill 无 recall 相关的运行前置依赖。`historical-recall` 自身依赖 `plan-reviews` 工具（仓库内 `skills-engineering/plan-reviews/`），会在动手前 best-effort 执行 `node skills-engineering/plan-reviews/dist/cli.js recall "<query>"`（CLI 需先 `npm run build` 生成 `dist/`）。召回失败不阻断主任务，但若盘问依赖历史线索做出决策，须在最终 PLAN.md 的 Risks 中记录未验证假设。
+历史召回已统一由全局 `historical-recall` skill 负责（见该 skill 的 HR-001~HR-005），`plan-grill` 不再内联调用，因此本 skill 无 recall 相关的运行前置依赖。`historical-recall` 自身依赖 `plan-reviews` 工具（仓库内 `skills-engineering/plan-reviews/`），会在动手前 best-effort 以 argv/数组参数形式执行 `node skills-engineering/plan-reviews/dist/cli.js recall <query>`（CLI 需先 `npm run build` 生成 `dist/`）。召回失败不阻断主任务，但若盘问依赖历史线索做出决策，须在最终 PLAN.md 的 Risks 中记录未验证假设。
 
 ## 计划模板（PLAN.md）
 

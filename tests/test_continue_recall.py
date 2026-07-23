@@ -13,11 +13,11 @@ if str(SYNC_DIR) not in sys.path:
 # `continue` is a Python keyword, so import via importlib like sync_config.py does.
 continue_mod = importlib.import_module("platforms.continue")
 
-from validate_env_schema import (  # noqa: E402
+from cli.validate_env_schema import (  # noqa: E402
     known_fields_for_platform,
     validate_platform_file,
 )
-from validate_platform_keys import (  # noqa: E402
+from cli.validate_platform_keys import (  # noqa: E402
     ENGINE_HANDLED_BY_PLATFORM,
     check_platform,
     load_platform_json,
@@ -226,12 +226,20 @@ class ContinueRecallValidationTests(unittest.TestCase):
     def test_recall_allowed_in_continue_schema(self) -> None:
         self.assertIn("recall", known_fields_for_platform("continue"))
         self.assertIn("recall", ENGINE_HANDLED_BY_PLATFORM["continue"])
+        self.assertIn("preamble", known_fields_for_platform("continue"))
 
     def test_validate_platform_file_allows_recall(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp) / "continue.json"
             p.write_text(
-                json.dumps({"models": [], "path": "x", "recall": False}),
+                json.dumps(
+                    {
+                        "models": [],
+                        "path": "x",
+                        "recall": False,
+                        "preamble": {"format": "yaml", "mode": "recall"},
+                    }
+                ),
                 encoding="utf-8",
             )
             self.assertEqual(validate_platform_file(p), [])
@@ -241,7 +249,12 @@ class ContinueRecallValidationTests(unittest.TestCase):
         original = load_platform_json
         validate_platform_keys_module = sys.modules[load_platform_json.__module__]
         validate_platform_keys_module.load_platform_json = (
-            lambda platform: {"models": [], "path": "x", "recall": False}
+            lambda platform: {
+                "models": [],
+                "path": "x",
+                "recall": False,
+                "preamble": {"format": "yaml", "mode": "recall"},
+            }
         )
         try:
             warnings = check_platform("continue")

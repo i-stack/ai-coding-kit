@@ -5,12 +5,12 @@ the sync engine. Import from here rather than hardcoding paths in
 individual platform modules or shell scripts.
 
 Usage:
-    from platforms.paths import XCODE_CODEX_DIR, XCODE_CLAUDE_DIR
+    from core.paths import XCODE_CODEX_DIR, XCODE_CLAUDE_DIR
 
 Install-root overrides
 ----------------------
 Every platform's install root can be overridden via the top-level ``paths``
-object in ``env/secrets.json``, so tools installed in non-default locations
+object in ``env/config.json``, so tools installed in non-default locations
 (e.g. a custom Codex or Claude Code prefix) are still found:
 
     {
@@ -30,7 +30,7 @@ object in ``env/secrets.json``, so tools installed in non-default locations
 When a platform key is present, ALL derived paths for that platform resolve
 under the override. Missing file / malformed JSON / empty value => default.
 For Codex, the standard env vars (``CODEX_HOME``, ``CODEX_CONFIG``) still take
-precedence over the secrets.json override.
+precedence over the config.json override.
 """
 import json
 from pathlib import Path
@@ -44,13 +44,13 @@ def _home() -> Path:
 
 # ── User-configurable install-root overrides ─────────────────────────────────
 
-SECRETS_PATH = Path(__file__).resolve().parents[2] / "env" / "secrets.json"
+CONFIG_PATH = Path(__file__).resolve().parents[2] / "env" / "config.json"
 
 _PATH_OVERRIDES: dict[str, Path] | None = None
 
 
 def _load_path_overrides() -> dict[str, Path]:
-    """Load per-platform install-root overrides from env/secrets.json.
+    """Load per-platform install-root overrides from env/config.json.
 
     Reads the top-level ``paths`` object. Cached after first read. Returns {}
     on any read/parse error or when no override is configured.
@@ -60,7 +60,7 @@ def _load_path_overrides() -> dict[str, Path]:
         return _PATH_OVERRIDES
     overrides: dict[str, Path] = {}
     try:
-        text = SECRETS_PATH.read_text(encoding="utf-8")
+        text = CONFIG_PATH.read_text(encoding="utf-8")
         data = json.loads(text)
     except (OSError, json.JSONDecodeError):
         _PATH_OVERRIDES = overrides
@@ -262,6 +262,10 @@ def cline_skills_base() -> Path:
 
 def codebuddy_skills_base() -> Path:
     return codebuddy_root_dir() / "skills"
+
+
+def qwen_models_path() -> Path:
+    return qwen_root_dir() / "models.json"
 
 
 def qwen_settings_json_path() -> Path:

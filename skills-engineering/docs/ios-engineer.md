@@ -28,14 +28,23 @@
 ## 加载方式
 
 Skill 文件结构：
-- `SKILL.md` — 技能主入口
-- `AGENT-BRIEF.md` — Agent 快速决策参考
-- `references/` — 28 份按主题拆分的规则细则
+- `SKILL.md` — 技能主入口（含 frontmatter `description`，是 Cline / Qwen 等 recall-only 端 `use_skill` 命中的唯一闸门；CodeBuddy 已切到 full 模式，见链路 A）
+- `AGENT-BRIEF.md` — 触发词参考（随 skill 同步到各端，但当前加载链**不读取它**来判断命中，详见下方说明）
+- `references/` — 34 份按主题拆分的规则细则
 
-Agent 自动加载流程：
-1. 读 `AGENT-BRIEF.md` 判断是否命中
-2. 命中后读 `SKILL.md` 全文
-3. 按 ROUTE 表加载相关 reference 文件
+实际加载链路分两类，取决于目标端是否注入了 ios-engineer preamble 指令：
+
+### A. 已注入 ios-engineer preamble 的目标（Claude / Codex / Gemini / Xcode / CodeBuddy）
+`scripts/sync-agent-preamble.sh` 把 `agent-preamble.md.tmpl` 中的指令写入各端全局文件（`~/.claude/CLAUDE.md`、`~/.codex/AGENTS.md` 等），其中硬编码：
+> 执行 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务前，必须先加载并遵循 `ios-engineer` SKILL 规则（SKILL.md + references/rule_index.md …）
+
+即「只要是 iOS 任务就强制加载」，命中率最高。Agent 加载完整 `SKILL.md`（约 25KB，已含全部 ROUTE/SYM/IR），再按 ROUTE 表按需读 2–4 份 reference。
+
+### B. recall-only 目标（Cline / Qwen）
+这些端只注入 `historical-recall` 托管块，**不注入** ios-engineer 加载指令（`sync-agent-preamble.sh` 中归为 recall 模式）。是否命中完全取决于各端 skill 系统对 `SKILL.md` frontmatter `description` 的匹配（表现为是否调用 `use_skill`）。因此 `description` 的关键词覆盖直接决定命中率——必须包含 Objective-C / Combine / async-await / WidgetKit 及中文触发词（崩溃 / 卡顿 / 布局错位 / 重构 / 代码审查），否则相关任务可能漏命中。
+
+### 关于 AGENT-BRIEF.md
+`AGENT-BRIEF.md` 由 `sync-skills.sh` 同步到各端 skills 目录，但**没有任何加载逻辑会先读它来判断命中**（preamble 模板与 `use_skill` 都不引用它）。其丰富的触发词表当前是「已同步但未接入」状态。维护触发词时，应同步更新 `SKILL.md` 的 frontmatter `description`，而非只改 `AGENT-BRIEF.md`，否则改进对命中率无效。
 
 ## 常见场景
 

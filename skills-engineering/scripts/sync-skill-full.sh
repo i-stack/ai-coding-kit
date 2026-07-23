@@ -14,7 +14,9 @@ echo "Running sync-agent-preamble.sh"
 echo "---"
 echo "Running sync-user-profile.sh (cross-session user profile)"
 if [[ "${SKIP_USER_PROFILE:-false}" != "true" ]]; then
-  "${SCRIPT_DIR}/sync-user-profile.sh"
+  if ! "${SCRIPT_DIR}/sync-user-profile.sh"; then
+    echo "  sync-user-profile.sh FAILED (optional; continuing)" >&2
+  fi
 else
   echo "  (skipped: SKIP_USER_PROFILE=true)"
 fi

@@ -2,10 +2,10 @@
 # =============================================================================
 # optional_mcps.sh — 可选 MCP 服务器的启用 / 禁用 / 列出
 #
-# 对齐 Hermes Agent 的 optional-mcps/：把非默认、社区/高级 MCP 服务器与开箱
+# 对齐 Hermes Agent 的 optional_mcps/：把非默认、社区/高级 MCP 服务器与开箱
 # 即用的 env/mcp/ 分开，避免污染默认配置。
 #
-#   enable <name>   把 env/optional-mcps/<name>.json 复制到 env/mcp/<name>.json
+#   enable <name>   把 env/optional_mcps/<name>.json 复制到 env/mcp/<name>.json
 #                   下一次 sync.sh 会自动发现并同步
 #   disable <name>  从 env/mcp/ 移除并停止同步
 #   list            列出所有可选服务器及启用状态
@@ -14,8 +14,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-OPT_DIR="${REPO_ROOT}/env/optional-mcps"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+OPT_DIR="${REPO_ROOT}/env/optional_mcps"
 MCP_DIR="${REPO_ROOT}/env/mcp"
 REGISTRY="${OPT_DIR}/enabled.json"
 
@@ -155,8 +155,8 @@ case "$cmd" in
           echo "Disabled $name (removed $dst; current content matches optional source after sync)"
         else
           echo "Refusing to remove ${dst}: current content differs from what optional_mcps enabled (checksum mismatch)." >&2
-          echo "It may be a repo default or was edited after enabling — leaving the file in place." >&2
-          echo "Cleaning registry entry only." >&2
+          echo "It may be a repo default or was edited after enabling — leaving the file and registry entry in place." >&2
+          exit 1
         fi
       else
         rm -f "$dst"

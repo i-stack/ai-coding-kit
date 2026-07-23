@@ -9,32 +9,42 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-from platforms import common  # noqa: E402
-from platforms import paths  # noqa: E402
+from core import common  # noqa: E402
+from core import paths  # noqa: E402
 
 
 class PathsOverrideTests(unittest.TestCase):
     def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
-        self.secrets = self.root / "env" / "secrets.json"
-        self.secrets.parent.mkdir(parents=True, exist_ok=True)
+        self.env = self.root / "env"
+        self.env.mkdir(parents=True, exist_ok=True)
+        self.secrets = self.env / "secrets.json"
+        self.config = self.env / "config.json"
         # Save globals we monkeypatch BEFORE patching, so tearDown can restore
         # them and avoid leaking a dangling temp path into later tests.
         self._orig_common_secrets_path = common.SECRETS_PATH
-        self._orig_paths_secrets_path = paths.SECRETS_PATH
+        self._orig_paths_config_path = paths.CONFIG_PATH
         # Reset module-level cache so each test re-reads the patched path.
         paths._PATH_OVERRIDES = None
-        paths.SECRETS_PATH = self.secrets
+        common.SECRETS_PATH = self.secrets
+        paths.CONFIG_PATH = self.config
 
     def tearDown(self) -> None:
         paths._PATH_OVERRIDES = None
-        paths.SECRETS_PATH = self._orig_paths_secrets_path
+        paths.CONFIG_PATH = self._orig_paths_config_path
         common.SECRETS_PATH = self._orig_common_secrets_path
         self.tmp.cleanup()
 
     def _write_secrets(self, data: dict) -> None:
         self.secrets.write_text(json.dumps(data) + "\n", encoding="utf-8")
+
+    def _write_config(self, data) -> None:
+        if isinstance(data, (dict, list)):
+            text = json.dumps(data) + "\n"
+        else:
+            text = data  # allow writing malformed JSON for negative tests
+        self.config.write_text(text, encoding="utf-8")
 
     def test_defaults_when_no_paths_key(self) -> None:
         self._write_secrets({"github": {"token": "x"}})
@@ -52,7 +62,7 @@ class PathsOverrideTests(unittest.TestCase):
         )
 
     def test_overrides_resolve_all_derived_paths(self) -> None:
-        self._write_secrets({
+        self._write_config({
             "paths": {
                 "codex": "/opt/codex",
                 "claude": "/custom/.claude",
@@ -113,40 +123,36 @@ class PathsOverrideTests(unittest.TestCase):
         self.assertEqual(paths.xcode_claude_skills_base(), xcode / "ClaudeAgentConfig/skills")
 
     def test_empty_string_falls_back_to_default(self) -> None:
-        self._write_secrets({"paths": {"codex": "", "claude": "   "}})
+        self._write_config({"paths": {"codex": "", "claude": "   "}})
         self.assertEqual(paths.codex_root_dir(), Path.home() / ".codex")
         self.assertEqual(paths.claude_root_dir(), Path.home() / ".claude")
 
     def test_platform_install_root_reflects_override(self) -> None:
-        self._write_secrets({"paths": {"codex": "/alt/codex"}})
+        self._write_config({"paths": {"codex": "/alt/codex"}})
         self.assertEqual(paths.platform_install_root("codex"), Path("/alt/codex"))
         self.assertEqual(paths.platform_install_root("claude"), Path.home() / ".claude")
 
-    def test_malformed_secrets_is_safe(self) -> None:
-        self.secrets.write_text("{ not valid json", encoding="utf-8")
+    def test_malformed_config_is_safe(self) -> None:
+        self._write_config("{ not valid json")
         self.assertEqual(paths.codex_root_dir(), Path.home() / ".codex")
 
     def test_cursor_root_registered_and_override_reflected(self) -> None:
         # Regression for P1: cursor must participate in the "skip if not
         # installed" contract via platform_install_root(), and overrides must
         # propagate to its derived paths.
-        self._write_secrets({
-            "paths": {"cursor": "/opt/cursor"},
-            "codex": {"key": "sk-x"},
-        })
+        self._write_config({"paths": {"cursor": "/opt/cursor"}})
+        self._write_secrets({"codex": {"key": "sk-x"}})
         self.assertEqual(paths.platform_install_root("cursor"), Path("/opt/cursor"))
         self.assertFalse(paths.platform_is_installed("cursor"))
         self.assertEqual(paths.cursor_root_dir(), Path("/opt/cursor"))
         self.assertEqual(paths.cursor_mcp_path(), Path("/opt/cursor/mcp.json"))
         self.assertEqual(paths.cursor_skills_base(), Path("/opt/cursor/skills"))
 
-    def test_paths_not_exposed_as_secret_placeholder(self) -> None:
-        # Regression for P2: the reserved `paths` object must NOT be flattened
-        # into secrets, so ${paths.codex} cannot be resolved / injected.
-        self._write_secrets({
-            "codex": {"key": "sk-real"},
-            "paths": {"codex": "/opt/codex"},
-        })
+    def test_config_paths_not_exposed_as_secret_placeholder(self) -> None:
+        # config.json's `paths` must NOT be flattened into secrets, so
+        # ${paths.codex} cannot be resolved / injected into other configs.
+        self._write_secrets({"codex": {"key": "sk-real"}})
+        self._write_config({"paths": {"codex": "/opt/codex"}})
         common.SECRETS_PATH = self.secrets
         flat = common.load_secrets()
         self.assertIn("codex.key", flat)
@@ -159,9 +165,8 @@ class PathsOverrideTests(unittest.TestCase):
         )
 
     def test_nested_paths_still_flattened(self) -> None:
-        # Regression for P3-1: only the TOP-LEVEL `paths` is reserved for
-        # install-root overrides. A nested `paths` key inside a platform must
-        # still be flattened so ${somePlatform.paths} resolves normally.
+        # A nested `paths` key inside a platform must be flattened like any
+        # other field, so ${somePlatform.paths} resolves normally.
         self._write_secrets({
             "somePlatform": {"paths": "/nested/path", "key": "sk-x"},
         })
@@ -174,13 +179,12 @@ class PathsOverrideTests(unittest.TestCase):
             "/nested/path",
         )
 
-
     def test_bogus_tilde_user_does_not_crash(self) -> None:
         # Regression for H-1: a dangling `~nonexistent-user` override previously
         # raised KeyError/RuntimeError from expanduser() OUTSIDE the try block,
         # crashing the whole sync engine. It must be skipped, and sibling valid
         # overrides must still resolve.
-        self._write_secrets({
+        self._write_config({
             "paths": {
                 "cline": "/custom/.cline",
                 "codebuddy": "~nonexistent_user_zzz12345/x",

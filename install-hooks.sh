@@ -4,7 +4,7 @@
 # Registers the root .githooks/ directory with this clone:
 #   - pre-commit:  SKILL evolution-proposal guard for skills-engineering/ios-engineer/
 #   - post-commit: evolution history GC (keep latest KEEP_RECENT snapshots)
-#   - pre-push:    skill-sync chain + sync/sync_all.sh (MCP + Codex shared)
+#   - pre-push:    skill-sync chain + sync/scripts/sync_all.sh (MCP + Codex shared)
 #
 # Run this once per clone:
 #   bash install-hooks.sh

@@ -1,6 +1,6 @@
 ---
 name: ios-engineer
-description: iOS / Swift / SwiftUI / UIKit / Xcode / CocoaPods / SPM engineering - architecture, concurrency, networking, performance, crash debugging, code review, refactoring, migration, testing. Covers design, implementation, and production risk control.
+description: iOS / iPadOS / macOS (Catalyst) / watchOS / tvOS engineering with Swift, SwiftUI, UIKit, Objective-C, Objective-C++, Combine, async/await, Xcode, CocoaPods, SPM, Carthage, WidgetKit, App Extensions, TestFlight, App Store. Covers architecture, concurrency (actor / Sendable / @MainActor), networking, performance (卡顿 / 启动慢 / 内存上涨 / 能耗异常), crash debugging (崩溃 / 闪退 / 野指针 / EXC_BAD_ACCESS / 断言), UI & layout (布局错位 / 约束冲突 / 列表跳动 / 复用错乱 / 无障碍), code review (代码审查 / PR Review), refactoring (重构), migration (迁移 / 架构升级), testing. 设计、实现与生产风险控制。
 locale: auto
 supported_locales: [zh-CN, en-US]
 ---

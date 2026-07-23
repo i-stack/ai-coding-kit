@@ -1,13 +1,15 @@
 {
-    "_comment": "Cline global state + secrets sync. Keys in 'globalState' and 'secrets' are merged into ~/.cline/data/globalState.json and ~/.cline/data/secrets.json respectively. Placeholder values (${cline.*}) are skipped by the sync script when unresolved.",
-    "enabled": true,
+    "_comment": "Cline global state + secrets sync. Keys in 'globalState' and 'secrets' are merged into ~/.cline/data/globalState.json and ~/.cline/data/secrets.json respectively. Placeholder values (${cline.*}) are skipped by the sync script when unresolved. These are API sync fields owned by the syncer and gated by 'api.enabled' (missing defaults to enabled, matching the historical always-sync behavior). Set 'api.enabled': false to stop syncing them and clean the syncer-owned keys from the two target files. MCP servers and the recall preamble (declared under 'preamble') are independent of API sync and always sync when Cline is installed.",
+    "api": {
+        "enabled": true
+    },
     "globalState": {
-        "openAiBaseUrl": "https://integrate.api.nvidia.com/v1",
+        "openAiBaseUrl": "${cline.url}",
         "planModeOpenAiModelId": "deepseek-ai/deepseek-v4-pro",
         "actModeOpenAiModelId": "deepseek-ai/deepseek-v4-flash"
     },
     "secrets": {
-        "openAiApiKey": "${cline.openaiKey}"
+        "openAiApiKey": "${cline.key}"
     },
     "preamble": {
         "target": "rules/ai-coding-kit-recall.md",

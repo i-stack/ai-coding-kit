@@ -34,6 +34,8 @@ Explicit grill/lock-plan trigger phrases skip this gate and force entry to PG-00
 
 plan-grill does not start until problem-analysis is complete — otherwise it grills on wrong premises.
 
+**Handoff with engineering-discipline GR-002**: GR-002 handles "pre-confirmation when description is unclear", while PG-000 handles the "solution decision tree" after it. If both trigger in the same round, when PG-000 enters grilling it immediately absorbs GR-002's confirmation question as the first grill question, and does not ask again; if GR-006 strategic interruption triggers during grilling, its "Pre-confirmation" block merges with GR-002 at the same anchor (see GR-002 Coordination clause).
+
 ## Grilling Rules (PG-001 ~ PG-006 Detailed Spec)
 
 ### PG-001 One Question at a Time
@@ -42,6 +44,7 @@ plan-grill does not start until problem-analysis is complete — otherwise it gr
 - Prohibit appending a second question with "also..." or "by the way...".
 - If questions have dependencies, ask the depended-upon one first; do not drill down when dependencies are unclear.
 - Throwing multiple questions at once makes users bewildered (Matt Pocock's original words), violates this rule.
+- **Coordination with GR-002**: If the task description is unclear and `engineering-discipline` GR-002 pre-confirmation should have come first, once grilling begins that confirmation question is **absorbed as the first grill question**, and no separate "Pre-confirmation" block is opened; grilling proceeds per "one question at a time", and GR-002's ≥1 question folds into the grill cadence (see GR-002 Coordination clause and engineering-discipline GR-004).
 
 ### PG-002 Give Recommended Answers
 

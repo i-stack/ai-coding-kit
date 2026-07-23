@@ -18,7 +18,7 @@
 #      clean and preambles are tilde-ified
 #
 # MCP-sync:
-#   4. sync/sync_all.sh                                   — sync MCP server
+#   4. sync/scripts/sync_all.sh                           — sync MCP server
 #      definitions from env/mcp/*.json plus platform configs from
 #      env/platforms/*.json to Cursor / Codex / Claude / Xcode.
 #
@@ -38,7 +38,7 @@ PREAMBLE_SCRIPT="${ROOT}/skills-engineering/scripts/sync-agent-preamble.sh"
 VERIFY_SCRIPT="${ROOT}/skills-engineering/scripts/verify-sync.sh"
 STRUCT_SCRIPT="${ROOT}/skills-engineering/scripts/validate-skill-structure.sh"
 BEHAVIOR_SCRIPT="${ROOT}/skills-engineering/scripts/validate-skill-behavior.sh"
-MCP_SYNC="${ROOT}/sync/sync_all.sh"
+MCP_SYNC="${ROOT}/sync/scripts/sync_all.sh"
 
 # Collect missing scripts upfront so user sees all issues at once
 missing_scripts=()

@@ -1,7 +1,7 @@
 from typing import Any
 
-from .common import sync_json_mcp
-from .paths import cursor_mcp_path
+from core.common import sync_json_mcp
+from core.paths import cursor_mcp_path
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:

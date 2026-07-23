@@ -1,0 +1,12 @@
+{
+  "proposal_id": "20260723-152751-expand-description-platforms",
+  "proposal_file": "evolution/proposals/20260723-152751-expand-description-platforms.md",
+  "validated_at": "2026-07-23T15:30:32+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v73",
+  "base_validation_output": "validate_skill_evolution.sh not auto-run: execution-time limit in this environment. Manual review confirms the change touches only the SKILL.md frontmatter `description` field (one line); no body rules or references/ changed, and no behavior-validation literal strings affected. Base validation expected pass.",
+  "promotion_readiness": "not_ready",
+  "scenario_validation_status": "not_run",
+  "scenario_records": []
+}

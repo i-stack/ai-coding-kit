@@ -10,13 +10,13 @@
 # base_url / api_key / model_providers 等关键词的字段并打印成表。
 #
 # 用法:
-#   bash sync/list_models.sh
-#   bash sync/list_models.sh --json
+#   bash sync/scripts/list_models.sh
+#   bash sync/scripts/list_models.sh --json
 # =============================================================================
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 PLATFORMS_DIR="${REPO_ROOT}/env/platforms"
 
 EMIT_JSON=0

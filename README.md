@@ -19,8 +19,10 @@
 git clone https://github.com/i-stack/ai-coding-kit.git
 cd ai-coding-kit
 
-# 唯一需要编辑的文件
-cp env/secrets.json.example env/secrets.json
+# 初始化本地配置（从 env/*.example 模板创建缺失文件，幂等）
+bash install.sh
+
+# 唯一需要编辑的文件：填入真实 API Keys / Tokens
 $EDITOR env/secrets.json
 
 # 一键同步
@@ -32,6 +34,12 @@ bash sync.sh
 当前主要开发和测试环境为 **macOS**。部分平台模块（如 Codex 同步中的 Xcode 集成、`.zshrc` 导出）在 macOS 外不可用。
 
 欢迎 Windows 用户在 Windows 上验证并提交 PR。核心同步逻辑已尽量保持跨平台，适配改动预计较小。
+
+---
+
+> **🔒 纯本地同步，API 永不离机。** sync 引擎仅在你的本机文件系统内工作——将 `env/secrets.json` 中的密钥注入 MCP 定义，渲染到各平台本地配置文件。**不会上传任何数据到外部服务器，不会调用任何网络 API。** 你的 API Key 始终只保存在这台机器上。[可查看 sync 源码](sync/) 。
+>
+> **🔒 Local-only sync. Your API keys never leave this machine.** The sync engine works entirely within your local filesystem — it reads secrets from `env/secrets.json`, injects them into MCP definitions, and renders them into each platform's local config files. **No data is uploaded to any external server. No network API is called.** Your API keys stay on this machine, always. [verify in the sync source code](sync/).
 
 ## 模块
 

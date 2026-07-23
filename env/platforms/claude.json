@@ -1,77 +1,21 @@
 {
-    "_comment": "Claude Code team-shared configuration. Host-specific keys are listed in _hostSettings for reference but excluded during sync — each developer configures them individually in ~/.claude/settings.json.",
-    "model": "claude-sonnet-4-6",
-    "effortLevel": "medium",
-    "alwaysThinkingEnabled": true,
-    "outputStyle": "Explanatory",
-    "includeGitInstructions": true,
-    "respectGitignore": true,
-    "fileCheckpointingEnabled": true,
-    "autoCompactEnabled": true,
-    "autoMemoryEnabled": true,
-    "respondToBashCommands": true,
+    "_comment": "Claude Code third-party API sync metadata. API credentials sync by default; set api.enabled=false to disable and clean managed API fields.",
+    "api": {
+        "enabled": true
+    },
     "env": {
         "ANTHROPIC_AUTH_TOKEN": "${claude.token}",
         "ANTHROPIC_BASE_URL": "${claude.url}",
-        "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
-        "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-4-6",
-        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "deepseek-v4-flash",
         "CLAUDE_CODE_EFFORT_LEVEL": "medium",
-        "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1"
-    },
-    "permissions": {
-        "allow": [
-            "Bash(git diff *)",
-            "Bash(git log *)",
-            "Bash(git status *)",
-            "Bash(git branch *)"
-        ],
-        "deny": [
-            "Bash(curl *)",
-            "Bash(wget *)"
-        ],
-        "defaultMode": "default"
-    },
-    "hooks": {
-        "SessionStart": [
-            {
-                "hooks": [
-                    {
-                        "type": "command",
-                        "command": "~/.claude/hooks/xmcp-init.sh",
-                        "timeout": 10
-                    }
-                ]
-            }
-        ]
-    },
-    "_hostSettings": {
-        "_comment": "Host-specific settings — listed for reference only. Excluded from managed sync. Each developer configures these in ~/.claude/settings.json.",
-        "theme": "dark",
-        "tui": "fullscreen",
-        "editorMode": "normal",
-        "preferredNotifChannel": "auto",
-        "viewMode": "default",
-        "showTurnDuration": true,
-        "showThinkingSummaries": false,
-        "autoScrollEnabled": true,
-        "spinnerTipsEnabled": true,
-        "syntaxHighlightingDisabled": false,
-        "terminalProgressBarEnabled": true,
-        "wheelScrollAccelerationEnabled": true,
-        "prefersReducedMotion": false,
-        "axScreenReaderRender": false,
-        "cleanupPeriodDays": 30,
-        "defaultShell": "bash",
-        "autoUpdatesChannel": "stable",
-        "feedbackSurveyRate": 0.05,
-        "language": "chinese"
+        "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS": "1",
+        "ANTHROPIC_DEFAULT_OPUS_MODEL": "claude-opus-4-8",
+        "ANTHROPIC_DEFAULT_SONNET_MODEL": "claude-sonnet-5",
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL": "claude-haiku-4-5-20251001-thinking"
     },
     "preamble": {
         "target": "CLAUDE.md",
         "mode": "full",
         "tool": "claude-code",
-        "router": true,
         "agents": true
     }
 }

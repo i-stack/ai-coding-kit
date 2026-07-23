@@ -985,7 +985,7 @@ class WorkflowConsistencyTests(unittest.TestCase):
         preamble = (SE_DIR / "scripts" / "templates" / "agent-preamble.md.tmpl").read_text(encoding="utf-8")
         self.assertIn("PG-000", pg_skill)
         self.assertIn("条件自动进入", pg_skill)
-        self.assertIn("global requirements clarity gate", preamble)
+        self.assertIn("global plan-grill requirements-clarity", preamble)
         self.assertIn("{{PLAN_GRILL_SKILLS_DIR}}references/plan_grill.md", preamble)
 
     def test_workflow_chain_in_skill_md(self):

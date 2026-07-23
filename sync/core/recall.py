@@ -1,4 +1,4 @@
-"""Shared historical-recall preamble rendering for all platforms.
+"""Shared historical-recall preamble rendering for all sync targets.
 
 Single source of truth
 ----------------------
@@ -14,7 +14,7 @@ Which platforms receive a preamble, where it lands, and in which mode is
 declared once in ``env/platforms/<platform>.json`` under a ``preamble`` key,
 e.g.::
 
-    "preamble": { "target": "CODEBUDDY.md", "mode": "recall", "tool": "codebuddy" }
+    "preamble": { "target": "rules/ai-coding-kit-recall.md", "mode": "recall", "tool": "cline" }
 
 Adding a platform = add one JSON declaration — no engine code changes.
 """

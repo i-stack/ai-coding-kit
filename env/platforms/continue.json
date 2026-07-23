@@ -1,4 +1,8 @@
 {
+    "_comment": "Continue platform configuration. The 'models' block in config.yaml is synced as a third-party API definition by default; set api.enabled=false to disable API sync and remove the managed 'models' block. MCP servers and the historical-recall preamble are independent of API sync and always sync. Continue has no standalone preamble markdown file — recall is injected into config.yaml 'rules' (preamble.format=yaml, target=None by design).",
+    "api": {
+        "enabled": true
+    },
     "path": "~/.continue/config.yaml",
     "models": [
         {

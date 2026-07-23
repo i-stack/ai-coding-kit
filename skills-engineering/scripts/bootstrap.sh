@@ -26,7 +26,7 @@
 #                          the script prompts interactively (Enter = default).
 #                          Default: ~/Desktop/github/ai-coding-kit
 #   REF                    Branch/tag/commit to check out after clone. Default: main
-#   CURSOR_PROJECT_ROOTS   Passthrough to sync-agent-preamble.sh (optional)
+#   CURSOR_PROJECT_ROOTS   One-shot override for env/config.json paths.cursor_project_roots
 #   SKIP_PREAMBLE=true     Skip sync-agent-preamble.sh
 #   SKIP_SKILLS=true       Skip sync-skills.sh
 #   SKIP_CLAUDE_HOOKS=true Skip sync-claude-hooks.sh
@@ -107,7 +107,9 @@ fi
 if [[ "${SKIP_USER_PROFILE:-false}" != "true" ]]; then
   echo "---"
   echo "Running sync-user-profile.sh"
-  "${SCRIPTS_DIR}/sync-user-profile.sh"
+  if ! "${SCRIPTS_DIR}/sync-user-profile.sh"; then
+    echo "  sync-user-profile.sh FAILED (optional; continuing)" >&2
+  fi
 fi
 
 if [[ "${SKIP_MEMORY:-false}" != "true" ]]; then

@@ -19,20 +19,13 @@ _ENV_VAR_NAME_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*\Z")
 def _flatten_secrets(data: dict[str, Any], prefix: str = "") -> dict[str, str]:
     """Recursively flatten nested dict into {prefix.key: str_value} entries.
 
-    Skips _comment keys at any level. The top-level `paths` object is reserved
-    for install-root overrides (resolved by platforms.paths), not secrets, so
-    it is skipped only at the top level — a nested `paths` key under a platform
-    is still flattened normally.
+    Skips _comment keys at any level.
     Example: {"codex": {"url": "https://...", "key": "sk-..."}}
           -> {"codex.url": "https://...", "codex.key": "sk-..."}
     """
     flat: dict[str, str] = {}
     for k, v in data.items():
         if k.startswith("_"):
-            continue
-        # Skip the top-level `paths` object (install-root overrides), but allow
-        # nested `paths` keys inside platforms to be flattened as secrets.
-        if prefix == "" and k == "paths":
             continue
         full_key = f"{prefix}.{k}" if prefix else k
         if isinstance(v, dict):
@@ -246,6 +239,32 @@ def sync_env_to_zshrc(platform: str, env: dict[str, str]) -> None:
     print(f"[{platform}] Run 'source {zshrc}' in your terminal to apply changes.")
 
 
+def clear_env_block(platform: str) -> bool:
+    """Remove the platform's managed env block from ~/.zshrc, if present.
+
+    Used when a platform's API sync is disabled so previously-synced API env
+    vars are cleaned rather than left lingering. Returns True if a block was
+    removed, False if there was nothing to remove.
+    """
+    zshrc = Path.home() / ".zshrc"
+    if not zshrc.exists():
+        return False
+    text = zshrc.read_text(encoding="utf-8")
+    block_re = re.compile(
+        r"# BEGIN " + platform.upper() + r" ENV SYNC(?: \(from [^)]+\))?"
+        + r".*?"
+        + re.escape(f"# END {platform.upper()} ENV SYNC")
+        + r"\n?",
+        re.DOTALL,
+    )
+    new_text = block_re.sub("", text)
+    if new_text == text:
+        return False
+    zshrc.write_text(new_text, encoding="utf-8")
+    print(f"[{platform}] Removed managed env block from {zshrc} (API sync disabled).")
+    return True
+
+
 def filter_mcp_for_platform(mcp_all: dict[str, Any], platform: str) -> dict[str, Any]:
     """Filter MCP servers to those enabled for the given platform.
 
@@ -284,9 +303,15 @@ def discover_platforms() -> list[str]:
 # ── JSON I/O utilities ───────────────────────────────────────────────────────
 
 def sync_json_mcp(path: Path, servers: dict[str, Any]) -> None:
-    if path.is_symlink():
-        path.unlink()
+    # Read existing content BEFORE unlinking. When `path` is a symlink,
+    # read_json_object() follows it and returns the target's full content, so
+    # non-mcpServers top-level keys are preserved. Unlinking first would make
+    # read_json_object() return {} and silently drop every other key.
     existing = read_json_object(path)
+    if path.is_symlink():
+        # Replace the symlink with a regular file so we don't write through it
+        # into the (possibly shared) link target.
+        path.unlink()
     existing["mcpServers"] = servers
     write_json(path, existing)
     print(f"Replaced MCP servers in {path}.")
@@ -309,9 +334,60 @@ def write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=4, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def prune_managed_keys_via_sidecar(
+    settings_path: Path,
+    managed_keys: set[str],
+    sidecar_path: Path,
+) -> None:
+    """Prune previously-managed settings keys that are no longer managed.
+
+    Platforms that push a set of "team-shared" top-level keys into a tool's
+    settings file keep a sidecar (``sidecar_path``) recording exactly which keys
+    they manage. After the renderer has merged the current ``managed`` dict into
+    ``settings_path`` and written it, call this to:
+
+      * remove any top-level key that was previously managed (recorded in the
+        sidecar) but is absent from ``managed_keys`` — e.g. a key dropped from
+        the platform config between syncs;
+      * persist the new ``managed_keys`` set to the sidecar so the next sync can
+        still prune keys removed in the meantime.
+
+    The sidecar only ever tracks managed (team-shared) keys — never universal
+    payloads such as ``mcpServers`` or per-developer ``env``/``hooks`` — so those
+    are never removed by this routine. The sidecar is a dot-file ignored by the
+    target tool.
+    """
+    record = set(read_json_object(sidecar_path).get("managedKeys", []))
+    if not record and not managed_keys:
+        return
+
+    existing = read_json_object(settings_path)
+    stale = record - managed_keys
+    if stale:
+        for key in stale:
+            existing.pop(key, None)
+        write_json(settings_path, existing)
+
+    if record != managed_keys:
+        write_json(sidecar_path, {"managedKeys": sorted(managed_keys)})
+
+
 def merge_object(existing: Any, updates: dict[str, Any]) -> dict[str, Any]:
     base = existing if isinstance(existing, dict) else {}
     return {**base, **updates}
+
+
+def api_enabled(cfg: dict[str, Any]) -> bool:
+    """Third-party API sync toggle, shared by every platform's sync engine.
+
+    A missing ``api`` block or missing ``api.enabled`` defaults to enabled,
+    preserving the historical always-sync behavior. Only an explicit
+    ``false`` disables synced API fields.
+    """
+    api = cfg.get("api")
+    if not isinstance(api, dict):
+        return True
+    return api.get("enabled", True) is True
 
 
 # ── Path helpers (imported from centralized paths module) ────────────────────

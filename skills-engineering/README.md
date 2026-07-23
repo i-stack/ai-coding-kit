@@ -67,11 +67,10 @@
 │   ├── bootstrap.sh
 │   ├── sync-skills.sh
 │   ├── sync-agent-preamble.sh
-│   ├── sync-user-profile.sh      # 跨会话用户画像（USER.md → ~/.ai-coding-kit/USER.md → preamble 托管块）
+│   ├── sync-user-profile.sh      # 跨会话用户画像（env/user-profile.md → ~/.ai-coding-kit/USER.md → preamble 托管块）
 │   ├── sync-memory.sh            # 跨会话事件级记忆（MEMORY.md + remember/recall + preamble 托管块）
 │   ├── verify-sync.sh
 │   ├── list-skills.sh
-│   ├── config.local.sh.example
 │   └── templates/
 ├── docs/                      # 各 skill 使用文档（供人类阅读）
 ├── .agents/                   # Agent 调用规范与文档写作规范
@@ -84,7 +83,7 @@
 - `ios-engineer/references/`：按主题拆分的技能规则与参考材料，例如认知对手模式、并发、布局、网络、性能、审查、迁移、测试、可观测性和自进化治理。
 - `ios-engineer/scripts/`：技能演进、校验、提案、验证、晋升、回滚、usage ledger 写入与汇总脚本。
 - `ios-engineer/evolution/`：技能演进数据，包括 `proposals/`、`validations/`、`approvals/`、`history/`、`scenarios/`、`usage/`。
-- `scripts/`：仓库级脚本，负责同步技能、同步 Agent preamble 与同步结果校验；本地机器专属配置放在 `scripts/config.local.sh`（模板为 `scripts/config.local.sh.example`），路径由仓库根 `.gitignore` 排除，会被 sync 脚本自动 source。
+- `scripts/`：仓库级脚本，负责同步技能、同步 Agent preamble 与同步结果校验；本机专属路径配置统一放在仓库根 `env/secrets.json`。
 - `docs/`：各 skill 的独立使用文档，供人类阅读，不参与 Agent 运行时加载。
 - `.agents/`：`invocation.md`（多 skill 并行加载规范）、`composition.md`（多技能同时命中时的块发射顺序与冲突裁决）和 `writing-docs.md`（文档写作规范）。
 - `.claude-plugin/plugin.json`：Claude Code 插件清单，支持一键安装为 Claude 插件。
@@ -204,11 +203,9 @@ SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=0 SYNC_XCODE_CODEX=0 SYNC_XCODE_CLAUDE=1 
 - `~/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md`
 - `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md`
 
-同步到 `~/.claude/CLAUDE.md` 时，脚本还会维护一个 Claude 专用的 `claude-router-pro-mode`
-托管块，用于写入 HAIKU / SONNET / OPUS 伪自动分流规则、复杂度评分、二阶段执行、成本优化与
-fallback 策略；该块不会同步到 Codex、Cursor 或 Xcode Claude。脚本同时会生成
-`~/.claude/agents/router-agent.md`、`~/.claude/agents/coder-agent.md`、`~/.claude/agents/fast-agent.md`。
-该 router 托管块会固定写在 `~/.claude/CLAUDE.md` 顶部；若用户手动移动，下次同步会自动归位。
+同步到 `~/.claude/CLAUDE.md` 时，脚本会清理历史遗留的 Claude router 托管块。
+`agents: true` 仅表示 Claude 端允许同步 agent/preamble 能力，不再默认写入自动模型分流规则，
+也不再生成旧的分流 agent 文件。
 
 如需同步 Cursor 项目规则，传入冒号分隔的项目根目录：
 
@@ -216,12 +213,12 @@ fallback 策略；该块不会同步到 Codex、Cursor 或 Xcode Claude。脚本
 CURSOR_PROJECT_ROOTS="/path/to/appA:/path/to/appB" ./scripts/sync-agent-preamble.sh
 ```
 
-也可以把 `CURSOR_PROJECT_ROOTS` 写进 `scripts/config.local.sh`（从 `scripts/config.local.sh.example` 复制得到；该文件已由仓库根 `.gitignore` 按路径 `skills-engineering/scripts/config.local.sh` 排除），脚本启动时会自动 source，CLI / shell 变量仍然优先。
+也可以把外部 Cursor 项目根写进 `env/config.json` 的 `paths.cursor_project_roots`。命令行传入的 `CURSOR_PROJECT_ROOTS` 仍然优先，适合一次性覆盖。
 
-Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 侧由 `CURSOR_PROJECT_ROOTS` 是否设置来决定，不复用 `SYNC_CURSOR`。
+Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 项目规则由 `env/config.json` 的 `paths.cursor_project_roots` 或临时 `CURSOR_PROJECT_ROOTS` 决定，不复用 `SYNC_CURSOR`。
 Xcode Codex / Claude 侧分别遵循 `SYNC_XCODE_CODEX` / `SYNC_XCODE_CLAUDE` 门控语义（`1 / 0 / 留空自动探测`），默认写入 `codex/AGENTS.md` 与 `ClaudeAgentConfig/CLAUDE.md`。
 
-脚本只重写 `<!-- managed-block:ios-engineer:begin ... :end -->` 托管块，保留文件中的其他内容。
+脚本只重写 `<!-- managed-block:agent-preamble:begin ... :end -->` 托管块（并兼容迁移旧的 `ios-engineer` 托管块标记），保留文件中的其他内容。
 
 ### 3. 校验同步结果
 
@@ -255,13 +252,13 @@ curl -fsSL https://raw.githubusercontent.com/i-stack/ai-coding-kit/main/skills-e
 - `SKIP_PREAMBLE=true`：跳过 `sync-agent-preamble.sh`
 - `SKIP_USER_PROFILE=true`：跳过 `sync-user-profile.sh`（跨会话用户画像）
 - `SKIP_MEMORY=true`：跳过 `sync-memory.sh`（跨会话事件记忆）
-- `CURSOR_PROJECT_ROOTS`：透传给 `sync-agent-preamble.sh`
+- `CURSOR_PROJECT_ROOTS`：临时覆盖 `env/config.json` 的 `paths.cursor_project_roots`，透传给 `sync-agent-preamble.sh`
 
 ### 5. 跨会话记忆（用户画像 + 事件记忆）
 
 对标 Hermes Agent 的持久记忆系统，提供两层互补的长期记忆，均跨会话、跨端共享：
 
-**L0 — 用户画像（`sync-user-profile.sh`）**：用户从仓库根 `USER.md.example` 复制出 `USER.md`（已 gitignore）手动维护稳定偏好 / 角色 / 约束；脚本把画像同步到 `~/.ai-coding-kit/USER.md`，并在各端 preamble 注入独立的 `user-profile` 托管块（与 ios-engineer 块互不干扰）。
+**L0 — 用户画像（`sync-user-profile.sh`）**：用户从 `env/user-profile.md.example` 复制出 `env/user-profile.md`（已 gitignore）手动维护稳定偏好 / 角色 / 约束；`env/user-profile.json` 提供 `auto/on/off` 开关与画像路径配置。脚本把画像同步到 `~/.ai-coding-kit/USER.md`，并在各端 preamble 注入独立的 `user-profile` 托管块（与 agent-preamble 块互不干扰）。
 
 **L1 — 事件级记忆（`sync-memory.sh`）**：交互中累积的纠正、项目约定与决策理由，落在本机 `~/.ai-coding-kit/MEMORY.md`（仓库外，无需 gitignore）。脚本向各端 preamble 注入独立的 `user-memory` 托管块，并把自身复制到 `~/.ai-coding-kit/sync-memory.sh` 作为 Agent 的稳定调用入口：
 
@@ -279,7 +276,7 @@ bash scripts/sync-memory.sh
 bash scripts/sync-memory.sh --remove
 ```
 
-两层记忆与 `user-profile`、`ios-engineer` 托管块标记各自独立，`sync-agent-preamble.sh` 重写 ios-engineer 块时不会破坏它们；`verify-sync.sh` 只校验 ios-engineer 块的 tilde 化，不受新增块影响。
+两层记忆与 `user-profile`、`agent-preamble` 托管块标记各自独立，`sync-agent-preamble.sh` 重写 agent-preamble 块时不会破坏它们；`verify-sync.sh` 校验 agent-preamble 块的标记与关键路径，不受新增块影响。
 
 ## ios-engineer 技能概览
 
@@ -300,6 +297,24 @@ bash scripts/sync-memory.sh --remove
 - `review_checklists.md`：代码审查与方案审查
 - `migration_strategy.md`：重构、灰度、回滚和迁移
 - `self_evolution.md`：技能自进化治理
+
+## 跨技能协调与 i18n 治理
+
+多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `ios-engineer` 认知对手模式（CAM））。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`；块发射顺序与冲突裁决另见 `.agents/composition.md`）：
+
+### 多技能叠加口径（D1-D5）
+
+- **前置确认被盘问吸收（GR-002 ↔ PG-000）**：任务描述不清时，`engineering-discipline` GR-002 的「前置确认」不另起独立块；若 `plan-grill` PG-000 已进入盘问，该确认问题被吸收为盘问首问，按「一次只问一个」推进。
+- **战略性中断同 anchor 合并（GR-006 ↔ GR-002）**：`GR-006` 战略性中断若在盘问/排查期间触发，其「前置确认」块与 GR-002 同 anchor 合并，≥2 战略分支吸收 GR-002 提问，不重复输出。
+- **CAM 机械格式保留（GR-004 ↔ ios-engineer CAM）**：CAM 激活时，其 `Step 0–6 + 置信度` 字段已承载 `逻辑链` / `验证锚点` 的校准语义，二者不另起独立块；但 CAM 字段须按「最终输出格式」原样输出，不得省略或并入其它块。
+- **跨块置信度归一**：同一回复内所有置信 / 强度信号（逻辑链结论强度、验证锚点置信度、CAM 置信度、认知校准不确定）必须同源、写同一值，归一到本轮唯一保留的字段。
+- **分级读取与预算上限**：各 skill「须先读 references 全文」仅在该 skill 详规确被命中时执行；多技能同轮触发时按 `问题分析(输入) → 工程纪律 / 论证 / 真值接地(论证与交付) → 计划盘问(计划锁定) → 平台 specifics` 分配读取与输出预算，避免叠加爆炸触发 GR-006 中断。
+
+### i18n 镜像治理
+
+- **zh 源 + en-US 镜像**：`SKILL.md` / `references/*.md` 的 zh-CN 为唯一真源；`i18n/en-US/` 是 zh 源的分发镜像（翻译改写产物，`sync-skills.sh` 同步全文到各端）。
+- **同步纪律**：改动任一协调条款的 zh 源，必须同步更新对应 en-US 镜像，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL（zh 源 ↔ en-US 镜像双向锚点断言）。
+- **覆盖校验**：`validate-skill-behavior.sh` 在 pre-push 阶段检查 i18n 镜像覆盖与跨技能硬链提示。
 
 ## 演进工作流
 
@@ -402,6 +417,19 @@ bash ios-engineer/scripts/summarize_usage_ledger.sh
 
 Ledger schema、脱敏要求和 self-grading 偏差说明见 `ios-engineer/references/usage_ledger.md`。
 
+### 全局协调与 i18n 回归测试
+
+除 `ios-engineer` 自有的演进校验外，仓库级 Python 测试守护「多技能协调条款」与「en-US 镜像」不漂移：
+
+```bash
+python3 tests/test_en_us_mirror_sync.py      # zh 源 ↔ en-US 镜像双向锚点断言
+python3 tests/test_codebuddy_sync.py         # 含多技能协调断言与全局验收入口校验
+```
+
+- `test_en_us_mirror_sync.py`：锁定 `engineering-discipline` / `plan-grill` / `ios-engineer` / `cognitive-expansion` 的协同条款在 zh 源与 en-US 镜像中成对存在，任一侧漏翻即 FAIL。
+- `test_codebuddy_sync.py`：含 `MultiSkillCoordinationTests`（多技能叠加口径）与 `GlobalSkillValidationScriptTests`（校验 `validate-global-skills.sh` 为只读且覆盖完整验收步骤）。
+- 一键只读验收：`bash skills-engineering/scripts/validate-global-skills.sh`（见下方「pre-push」）。
+
 ## 提交与推送守卫
 
 钩子由仓库根目录统一管理（合并入 `ai-coding-kit` 后，整个仓库共享一个 `core.hooksPath`）。在 `ai-coding-kit/` 根执行：
@@ -426,6 +454,14 @@ bash install-hooks.sh
 
 ### pre-push：推送前强制同步并校验
 
+若只想本地一键跑完整验收闭环，可执行：
+
+```bash
+bash skills-engineering/scripts/validate-global-skills.sh
+```
+
+该脚本串起结构校验、行为一致性、preamble dry-run、同步验证、integrity `--check-only` 与全局协调回归测试；它是只读验收入口，不会刷新 integrity baseline。
+
 [`.githooks/pre-push`](../.githooks/pre-push) 在推送前顺序执行（默认任一失败即中止 push）：
 
 0. `skills-engineering/scripts/validate-skill-structure.sh` —— 推送前校验全部 `SKILL.md` 的机器可识别结构（frontmatter 必填键、行数上限、本地 `references/` 引用存在性、内部链接可解析、无孤儿 reference）；任一技能结构回归即中止 push。
@@ -433,17 +469,17 @@ bash install-hooks.sh
 1. `skills-engineering/scripts/sync-skills.sh` —— 把 `ios-engineer/` 同步到 `~/.claude`、`~/.codex`、`~/.cursor`，以及可选的 `~/Library/Developer/Xcode/CodingAssistant/codex` 和 `~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig` skill 缓存（按 `SYNC_*` 门控与排除规则）。
 2. `skills-engineering/scripts/sync-agent-preamble.sh` —— 重写各端 preamble 托管块，并按 `sync-manifest` 的 `skill:*` 生成 `.cursor/rules/*.mdc`。
 3. `skills-engineering/scripts/verify-sync.sh` —— 断言各已启用缓存只有 `SKILL.md + references/`、preamble 托管块已 tilde 化。
-4. `sync/sync_all.sh` —— 把 MCP / Codex 共享配置同步到 Cursor / Codex / Claude / Xcode（来自 `sync/` subtree，与本守卫并存）。
+4. `sync/scripts/sync_all.sh` —— 把 MCP / Codex 共享配置同步到 Cursor / Codex / Claude / Xcode（来自 `sync/` subtree，与本守卫并存）。
 
 任何一步失败都会 `exit 1` 并阻止 `git push`，保证远端指向的版本与本地 Agent 正在加载的版本一致。  
-例外：若仅缺少本地 `env/secrets.json`，`sync/sync_all.sh` 会按"未配置本地密钥文件"处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
+例外：若仅缺少本地 `env/secrets.json`，`sync/scripts/sync_all.sh` 会按"未配置本地密钥文件"处理并退出 `0`，即跳过本次 MCP 同步但不阻断 push。
 
 ### 紧急绕过
 
 ```bash
-SKILL_BYPASS=1 git commit ...        # 跳过 pre-commit + pre-push 中的 skill-sync 段（仍会跑 sync/sync_all.sh）
+SKILL_BYPASS=1 git commit ...        # 跳过 pre-commit + pre-push 中的 skill-sync 段（仍会跑 sync/scripts/sync_all.sh）
 SKILL_BYPASS=1 git push ...
-git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all.sh）
+git push --no-verify                 # 跳过整个 pre-push（含 sync/scripts/sync_all.sh）
 ```
 
 绕过只应用于无法走完整流程的紧急修复，并应在 commit message / PR 里说明原因。
@@ -453,50 +489,12 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/sync_all
 - 修改技能前先读 `ios-engineer/SKILL.md` 和目标 `references/*.md`，避免把规则重复写到多个 owner 文件。
 - 新增或修改规则 ID 时，先更新 `ios-engineer/references/rule_index.md`，再同步 `SKILL.md` 中的 inline ID。
 - 跨文件共享概念变更前先全量搜索相关术语，proposal 中明确覆盖范围。
+- 修改任一技能的 zh 源（`SKILL.md` / `references/*.md`）时，若涉及 en-US 镜像覆盖的协调条款，必须同步更新 `i18n/en-US/`，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL；该测试是 en-US 分发闭环的回归护栏。
 - 提交前运行 `./scripts/sync-skills.sh --dry-run` 和 `bash ios-engineer/scripts/validate_skill_evolution.sh`。
 - 修改托管 preamble 时只改 `scripts/templates/agent-preamble.md.tmpl`，再运行 `./scripts/sync-agent-preamble.sh --dry-run` 检查输出。
 - 推送前（或 `SKILL_BYPASS=1` 推送后）手动跑 `./scripts/verify-sync.sh` 确认各已启用缓存与 preamble 状态一致，避免 Agent 侧加载漂移版本。
-- 本机专属配置（如 `CURSOR_PROJECT_ROOTS`）写进 `scripts/config.local.sh`（由 `scripts/config.local.sh.example` 复制）；该路径在仓库根 `.gitignore` 中已排除，切勿提交进仓库。
+- 本机专属配置（如外部 Cursor 项目根）写进仓库根 `env/secrets.json`；该文件已由仓库根 `.gitignore` 排除，切勿提交进仓库。
 
 ## 变更记录
 
-仓库结构与工具链的变化记录于此；各 skill 内部规则变化通过 `ios-engineer/evolution/` 管理。
-
-### 3.0.0 — 2026-07-05
-
-- 新增各 skill 目录的 `AGENT-BRIEF.md`（Agent 快速决策参考）和 `OUT-OF-SCOPE.md`（范围外声明）
-- 新增 `docs/`：每个 skill 的独立使用文档
-- 新增 `.agents/`：`invocation.md` 和 `writing-docs.md`
-- 新增 `.claude-plugin/plugin.json`：Claude Code 插件清单
-- 新增 `.out-of-scope/repository-scope.md`：仓库级范围外声明
-- 新增 `scripts/list-skills.sh`：列出所有已注册 skill 及描述
-- 新增 `scripts/templates/epistemic-integrity.mdc.tmpl`：补齐 Cursor `.mdc` 生成链路
-- 修复 `scripts/verify-sync.sh`：补齐 `epistemic-integrity` 和 `problem-analysis` 的 preamble 检查
-
-### 3.0.1 — 2026-07-10
-
-- 新增 `scripts/validate-skill-behavior.sh`：跨技能行为/一致性校验（companion 文件齐备、自有规则 ID 在 `references/` 有定义、`.agents/invocation.md` 触发矩阵覆盖全部技能、i18n 镜像覆盖与跨技能硬链提示）；接入 `pre-push` 作为结构校验后的硬闸门。
-  - 加固（后续 review 修复）：discovery 改以"含 SKILL.md 的顶层目录"为准，使缺 companion 的新 skill 也能被捕获；规则 ID 定义校验改为**仅在本 skill 的 `references/*.md` 内**用结构化锚点（标题 `## ID` / 括号 `[ID]` / 表格 `| ID |`）匹配，不再把 SKILL.md 或 ios-engineer 的 references 并入搜索空间（原本会让检查完全失效或误兜底）。
-  - `cognitive-expansion` 补 `CE-001~013` 自有规则 ID（`SKILL.md` 声明 + `references/rule_index.md` 表格定义 + `references/examples.md` before/after 形态样本与退化标本）；使其从"纯散文规范"升为可被 `validate-skill-behavior.sh` Check 2 校验的契约，对齐 ios-engineer 的 `rule_index.md` 模式。
-  - 复查修复：SKILL.md 入口链接 `examples.md`，消除结构门禁 `validate-skill-structure.sh` 的 orphan reference（原 examples.md 从入口不可达）；`validate-skill-behavior.sh` Check 2 增加反向校验（rule_index.md 中 active 表行须被 SKILL.md 声明），使"双向一致"契约成真，并排除 ios-engineer 的 retired / 镜像 ID 误报。
-  - 复查修复（续）：Check 2 前向定义集合此前经 `DEF_TABLE` 包含所有表行，使 `| ID | retired |` 这类退役行仍可作"有效定义"，与"退役 ID 不应再出现在 SKILL.md"的生命周期约定冲突，且注释自相矛盾。改为仅以 `DEF_ACTIVE`（active 表行）填充 `defined`，删除已无用的 `DEF_TABLE`；负向测试（把某 CE 行改 `retired`）现正确触发前向 FAIL。
-  - `cognitive-expansion` 收口（P1/P2 中的 C+B）：① Tier 3 `跨域类比` 加护栏（CE-008 细化）——须机制对齐、点名被映射机制，禁陈词/换词类比，附 1 good/1 bad 例（`cognitive_expansion.md` §Tier 3 + `examples.md` 示例 2 复用同一 good 例）；② `流程保障`（预测日志/双会话/每周深潜）由契约段移入`附录`并标注"可选习惯、非门控、不计入 `validate-skill-behavior.sh` 任何 Check"，避免稀释强制部分。三处 CE-008 措辞同步，`SKILL.md`/`rule_index.md`/`cognitive_expansion.md` 一致。
-- 新增 `scripts/verify-review-setup.sh`：审查链前置自检（plan-reviews 构建产物、auto-code-review 配置、reviewer CLI 可用性）。
-- 新增 `.agents/composition.md`：多全局技能同时命中时的块发射顺序与冲突裁决。
-- `.agents/invocation.md`：触发矩阵补齐缺失的 `plan-grill` 与 `cross-model-review`，并指向 `composition.md`。
-- `cognitive-expansion` / `logical-reasoning` 及 `cognitive_expansion.md`：对 ios-engineer 的跨技能链接加"条件性"说明，消除非 iOS 环境死链风险。
-- `ios-engineer/SKILL.md`：en-US 镜像声明改为诚实的部分镜像说明（符合 GR-011）。
-
-### 3.0.2 — 2026-07-21（对标 NousResearch/hermes-agent 补充）
-
-> 分析开源库 `NousResearch/hermes-agent` 后，按优先级补入与其「受控演进」定位契合、且不与其运行时能力冲突的能力：
-
-- **P0-1 Skill 自我改进闭环**：新增 `ios-engineer/scripts/suggest_skill_proposals.sh`，读取 `summarize_usage_ledger.sh --json` 的提案候选信号，**自动生成 draft proposal**（仅 draft，不自动晋升），并用 `evolution/.auto_proposal_registry.json` 去重。对齐 Hermes 学习循环，但落在既有受控演进闸门内（观测 → 建议 → 人工审批）。
-- **P0-2 agentskills.io 兼容打包/导入/校验**：新增 `scripts/skill_bundles.sh`（`export` / `validate` / `import` / `list`），把任一 skill 打包成 agentskills.io 兼容产物（`SKILL.md` + `references/` + `bundle.json` 含 sha256），支持从社区 Skills Hub / Hermes 兼容 bundle 导入。导出产物落在 `skills-engineering/.bundles/`（已 gitignore）。
-- **P1-3 定时同步自动化**：新增 `cron/`（launchd 默认、`--cron` 可选 crontab），`run-sync.sh` 复用 `sync.sh` + 技能同步 + preamble + 校验，日志滚动保留 30 份。
-- **P1-4 可选 MCP 服务器目录**：新增 `env/optional-mcps/`（playwright 改名 `puppeteer` 避免与默认 `env/mcp/playwright.json` 冲突；另含 `filesystem-extra`、`wechat-bridge` 示例）与 `sync/optional_mcps.sh`（`enable` / `disable` / `list` / `sync`）。`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认 `env/mcp/*.json`。
-- **P1-5 跨会话用户画像**：新增仓库根 `USER.md.example` 与 `scripts/sync-user-profile.sh`，把用户画像同步到 `~/.ai-coding-kit/USER.md` 并注入各端 preamble 的 `user-profile` 托管块（与 ios-engineer 块标记独立、互不干扰）；个人 `USER.md` 已 gitignore。现已接入 `sync-skill-full.sh` / `bootstrap.sh`（含 `SKIP_USER_PROFILE`）/ `cron/run-sync.sh`，使该能力真正通电。
-- **P1-5b 跨会话事件记忆**：新增 `scripts/sync-memory.sh`，落 `~/.ai-coding-kit/MEMORY.md`（仓库外、跨端共享），提供 `remember "..." [--tag]` / `recall [关键词]` 子命令；向各端 preamble 注入独立的 `user-memory` 托管块，并把脚本自复制到 `~/.ai-coding-kit/sync-memory.sh` 作为 Agent 稳定调用入口。补齐 Hermes 持久记忆中「从交互自动累积」的那一层（user-profile 为静态手维护，memory 为事件级累积，二者互补）。同样接入 `sync-skill-full.sh` / `bootstrap.sh`（`SKIP_MEMORY`）/ `cron/run-sync.sh`。
-- **P2-6 多平台模型路由抽象**：新增 `sync/list_models.sh`（跨平台 model/provider 配置总览，密钥打码）与 `sync/model_routing.md`（统一 Provider 层设计说明）。
-- **P2-7 子代理并行同步**：`scripts/sync-skills.sh` 支持 `PARALLEL=1`（默认 `MAX_PARALLEL=4`），把 (skill × target) 同步以子代理式后台并行执行。
-- **P2-8 技能校验加固**：新增 `scripts/validate-skill-integrity.sh`（sha256 基线比对，发现 ADDED/MODIFIED/REMOVED；`--verify-bundle` 校验 `skill_bundles` 产物 checksum），基线落在 `skills-engineering/.integrity/`（已 gitignore）。
+所有修改 / 新增 / 删除类变更统一记录在仓库根的 [`CHANGELOG.md`](../CHANGELOG.md)；各 skill 内部规则变化通过 `ios-engineer/evolution/` 治理（proposal 驱动）。本说明文档只描述结构与使用方式，不含版本变更明细。
