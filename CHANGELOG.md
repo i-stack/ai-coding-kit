@@ -18,6 +18,7 @@ All notable changes to ai-coding-kit will be documented in this file.
 
 ### Changed
 - **IR-001 语义变更**: 从"始终使用简体中文"→"输出语言与用户输入语言一致"
+- **多 global skill 叠加口径协调 (D1-D5)**: GR-002 前置确认被 PG-000 盘问吸收、GR-006 中断与 GR-002 同 anchor 合并；GR-004 与 CAM 详规对齐（不重复语义但保留 CAM 机械格式）；跨块置信度归一到本轮唯一保留字段；新增多 SKILL 叠加分级读取与预算上限；CAM 激活时抑制 preamble 轻量校准段（Tier0/Tier2 互斥扩展到 preamble 层）。ios-engineer 走 create_skill_proposal 演进流程（提案 20260723-173058-cam-fields-preserve-format）
 
 ### Fixed
 - **Continue recall 合并破坏 YAML rules**: `_parse_rules` 的 block scalar 解析会吞掉同级 `- ` sibling 列表项，且 simple 列表项分支缺失 `i += 1` 导致死循环；改为按列表项缩进边界终止 block、保留内部相对缩进，并补 `tests/test_continue_recall.py` 回归测试
@@ -28,6 +29,7 @@ All notable changes to ai-coding-kit will be documented in this file.
 - **Continue folded 标量被误转 literal（H-2）**: `_parse_rules` 把 `>`(folded) 与 `|`(literal) 都按 literal 存储，`_render_rules_yaml` 永远输出 `  - |`，丢失 folded 语义；现对 `>` 按空格折叠为单行内联值、对 `|` 保留换行块，补 folded/literal 区分与往返测试
 - **Continue repo root 硬编码（M-1）**: `_sync_recall` 的 `parents[2]` 改为 `_repo_root()` 向上查找 `skills-engineering/` 标记目录，文件移动后不再静默指向错误路径
 - **HR-003 shell 注入面（M-2）**: `historical_recall.md` 及 recall 指令块补充安全要求——query 须以数组/参数形式传递，严禁拼进 shell 字符串执行，避免反引号/`$()` 注入
+- **en-US 镜像分发闭环**: engineering-discipline / plan-grill / ios-engineer / cognitive-expansion 的 en-US 镜像补齐 D1-D5 协同条款英文翻译，与 zh 源口径一致；新增 `tests/test_en_us_mirror_sync.py` 双向锚点回归测试，防止 en-US 再次静默滞后
 
 ---
 
