@@ -742,5 +742,70 @@ class CodeBuddySyncTests(unittest.TestCase):
         )
 
 
+class AgentPreambleTemplateDedupTests(unittest.TestCase):
+    """Source-template guards that lock the single-source-of-truth for the
+    historical-recall section (see sync-agent-preamble.sh render_managed_block).
+
+    These prevent a silent regression where someone re-inlines the recall body
+    into the full ``agent-preamble`` block, defeating the DRY design.
+    """
+
+    TEMPLATE = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "scripts"
+        / "templates"
+        / "agent-preamble.md.tmpl"
+    ).read_text(encoding="utf-8")
+
+    AGENT_BEGIN = "<!-- managed-block:agent-preamble:begin"
+    AGENT_END = "<!-- managed-block:agent-preamble:end"
+    RECALL_BEGIN = "<!-- managed-block:historical-recall:begin"
+    RECALL_END = "<!-- managed-block:historical-recall:end"
+
+    @staticmethod
+    def _extract_block(text: str, begin: str, end: str) -> str:
+        in_block = False
+        out = []
+        for line in text.splitlines():
+            if begin in line:
+                in_block = True
+                continue
+            if end in line:
+                in_block = False
+                continue
+            if in_block:
+                out.append(line)
+        return "\n".join(out)
+
+    def test_recall_body_is_single_source(self) -> None:
+        """The recall signature HR-001 lives in exactly ONE place: the
+        standalone historical-recall block. It must not be duplicated
+        anywhere (e.g. re-inlined into the full block)."""
+        self.assertEqual(self.TEMPLATE.count("HR-001"), 1)
+
+    def test_full_block_references_recall_via_placeholder(self) -> None:
+        """The full agent-preamble block must reference the recall section via
+        the {{HISTORICAL_RECALL_BLOCK}} placeholder (exactly once) and must
+        NOT inline the recall body (no HR-001)."""
+        full = self._extract_block(self.TEMPLATE, self.AGENT_BEGIN, self.AGENT_END)
+        self.assertEqual(full.count("{{HISTORICAL_RECALL_BLOCK}}"), 1)
+        self.assertNotIn("HR-001", full)
+
+    def test_standalone_recall_block_holds_the_body(self) -> None:
+        """The standalone historical-recall block is the single source of truth
+        and must contain the recall body signature HR-001."""
+        recall = self._extract_block(self.TEMPLATE, self.RECALL_BEGIN, self.RECALL_END)
+        self.assertIn("HR-001", recall)
+
+    def test_anti_edit_template_note_present(self) -> None:
+        """The source-only anti-edit note guards the placeholder injection point
+        and must appear exactly once (in the full block), so it cannot leak
+        into rendered targets unnoticed."""
+        self.assertEqual(self.TEMPLATE.count("template-note"), 1)
+        full = self._extract_block(self.TEMPLATE, self.AGENT_BEGIN, self.AGENT_END)
+        self.assertIn("template-note", full)
+
+
 if __name__ == "__main__":
     unittest.main()
