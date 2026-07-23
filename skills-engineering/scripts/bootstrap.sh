@@ -26,7 +26,7 @@
 #                          the script prompts interactively (Enter = default).
 #                          Default: ~/Desktop/github/ai-coding-kit
 #   REF                    Branch/tag/commit to check out after clone. Default: main
-#   CURSOR_PROJECT_ROOTS   One-shot override for env/secrets.json paths.cursor_project_roots
+#   CURSOR_PROJECT_ROOTS   One-shot override for env/config.json paths.cursor_project_roots
 #   SKIP_PREAMBLE=true     Skip sync-agent-preamble.sh
 #   SKIP_SKILLS=true       Skip sync-skills.sh
 #   SKIP_CLAUDE_HOOKS=true Skip sync-claude-hooks.sh

@@ -67,7 +67,7 @@ resolve_cursor_project_roots() {
     printf '%s\n' "${CURSOR_PROJECT_ROOTS}"
     return
   fi
-  python3 - "${REPO_ROOT}/env/secrets.json" <<'PY'
+  python3 - "${REPO_ROOT}/env/config.json" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -112,7 +112,7 @@ Recall-only targets (historical-recall managed block, no ios-engineer audit):
 
 Cursor project rules (from sync-manifest skill:* lines):
   <repo>/.cursor/rules/<skill>.mdc
-  <env/secrets.json paths.cursor_project_roots>/.cursor/rules/<skill>.mdc
+  <env/config.json paths.cursor_project_roots>/.cursor/rules/<skill>.mdc
 
 Skill full text is synced by sync-skills.sh to ~/.*/skills/<skill>/ — run
 sync-skill-full.sh or sync-skills.sh before this script.
@@ -569,5 +569,5 @@ if [[ -n "${CURSOR_PROJECT_ROOTS}" ]]; then
     sync_manifest_skill_cursor_rules "${_root}"
   done
 else
-  echo "paths.cursor_project_roots not set in env/secrets.json; skipping Cursor ios-engineer.mdc on external projects."
+  echo "paths.cursor_project_roots not set in env/config.json; skipping Cursor ios-engineer.mdc on external projects."
 fi

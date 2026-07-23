@@ -213,9 +213,9 @@ SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=0 SYNC_XCODE_CODEX=0 SYNC_XCODE_CLAUDE=1 
 CURSOR_PROJECT_ROOTS="/path/to/appA:/path/to/appB" ./scripts/sync-agent-preamble.sh
 ```
 
-也可以把外部 Cursor 项目根写进 `env/secrets.json` 的 `paths.cursor_project_roots`。命令行传入的 `CURSOR_PROJECT_ROOTS` 仍然优先，适合一次性覆盖。
+也可以把外部 Cursor 项目根写进 `env/config.json` 的 `paths.cursor_project_roots`。命令行传入的 `CURSOR_PROJECT_ROOTS` 仍然优先，适合一次性覆盖。
 
-Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 项目规则由 `env/secrets.json` 的 `paths.cursor_project_roots` 或临时 `CURSOR_PROJECT_ROOTS` 决定，不复用 `SYNC_CURSOR`。
+Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 项目规则由 `env/config.json` 的 `paths.cursor_project_roots` 或临时 `CURSOR_PROJECT_ROOTS` 决定，不复用 `SYNC_CURSOR`。
 Xcode Codex / Claude 侧分别遵循 `SYNC_XCODE_CODEX` / `SYNC_XCODE_CLAUDE` 门控语义（`1 / 0 / 留空自动探测`），默认写入 `codex/AGENTS.md` 与 `ClaudeAgentConfig/CLAUDE.md`。
 
 脚本只重写 `<!-- managed-block:agent-preamble:begin ... :end -->` 托管块（并兼容迁移旧的 `ios-engineer` 托管块标记），保留文件中的其他内容。
@@ -252,7 +252,7 @@ curl -fsSL https://raw.githubusercontent.com/i-stack/ai-coding-kit/main/skills-e
 - `SKIP_PREAMBLE=true`：跳过 `sync-agent-preamble.sh`
 - `SKIP_USER_PROFILE=true`：跳过 `sync-user-profile.sh`（跨会话用户画像）
 - `SKIP_MEMORY=true`：跳过 `sync-memory.sh`（跨会话事件记忆）
-- `CURSOR_PROJECT_ROOTS`：临时覆盖 `env/secrets.json` 的 `paths.cursor_project_roots`，透传给 `sync-agent-preamble.sh`
+- `CURSOR_PROJECT_ROOTS`：临时覆盖 `env/config.json` 的 `paths.cursor_project_roots`，透传给 `sync-agent-preamble.sh`
 
 ### 5. 跨会话记忆（用户画像 + 事件记忆）
 

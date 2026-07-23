@@ -22,7 +22,7 @@ from core import paths as _paths  # noqa: E402
 def patched_sync_environment(root: Path):
     old_env = {k: os.environ.get(k) for k in ("HOME",)}
     old_common = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
-    old_paths_sp = _paths.SECRETS_PATH
+    old_paths_cfg = _paths.CONFIG_PATH
     old_overrides = _paths._PATH_OVERRIDES
     old_argv = sys.argv[:]
     try:
@@ -30,10 +30,10 @@ def patched_sync_environment(root: Path):
         common.MCP_DIR = root / "env" / "mcp"
         common.PLATFORMS_DIR = root / "env" / "platforms"
         common.SECRETS_PATH = root / "env" / "secrets.json"
-        # Isolate platform install-root resolution: point paths at the same
-        # patched secrets and drop any module-level cache so a developer's
-        # local env/secrets.json overrides can't leak into this test.
-        _paths.SECRETS_PATH = root / "env" / "secrets.json"
+        # Isolate platform install-root resolution: point paths at the patched
+        # config (empty => default paths) so a developer's local env/config.json
+        # overrides can't leak into this test.
+        _paths.CONFIG_PATH = root / "env" / "config.json"
         _paths._PATH_OVERRIDES = None
         yield
     finally:
@@ -43,7 +43,7 @@ def patched_sync_environment(root: Path):
             else:
                 os.environ[key] = value
         common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_common
-        _paths.SECRETS_PATH = old_paths_sp
+        _paths.CONFIG_PATH = old_paths_cfg
         _paths._PATH_OVERRIDES = old_overrides
         sys.argv = old_argv
 

@@ -1,9 +1,10 @@
 .DS_Store
 
-# env/: only secrets.json is gitignored.
+# env/: secrets.json (keys/tokens/urls) and config.json (path overrides) are gitignored.
 # env/mcp/*.json and env/platforms/*.json are committed (use ${VAR} references, no real secrets).
-# User only needs to create env/secrets.json from env/secrets.json.example.
+# User creates env/secrets.json and (optionally) env/config.json from their .example templates.
 env/secrets.json
+env/config.json
 env/backup.json
 # 可选 MCP 启用状态（本机本地状态，不提交；脚本缺失时自动重建为 {}）
 env/optional_mcps/enabled.json

@@ -8,7 +8,6 @@
         "mcp"
     ],
     "env": {
-        "XCODEBUILDMCP_CWD": "${workspaceFolder}",
         "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging,device"
     },
     "platforms": [

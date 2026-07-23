@@ -19,8 +19,10 @@
 git clone https://github.com/i-stack/ai-coding-kit.git
 cd ai-coding-kit
 
-# 唯一需要编辑的文件
-cp env/secrets.json.example env/secrets.json
+# 初始化本地配置（从 env/*.example 模板创建缺失文件，幂等）
+bash install.sh
+
+# 唯一需要编辑的文件：填入真实 API Keys / Tokens
 $EDITOR env/secrets.json
 
 # 一键同步

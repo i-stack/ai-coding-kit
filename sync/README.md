@@ -133,7 +133,7 @@ still sync, but the Xcode-specific Codex / Claude / Gemini outputs are skipped.
 All platform paths are centralized in `sync/core/paths.py`. By default
 each tool resolves under its well-known home location (`~/.codex`, `~/.claude`,
 `~/.gemini`, …). To support tools installed in non-default locations, override
-any platform's install root via the `paths` object in `env/secrets.json`:
+any platform's install root via the `paths` object in `env/config.json`:
 
 ```json
 { "paths": { "codex": "/opt/codex", "claude": "/custom/.claude" } }
@@ -145,7 +145,7 @@ key falls back to the default. For Codex, the standard `CODEX_HOME` /
 `CODEX_CONFIG` env vars still take precedence over this override. See
 [env/README.md](../env/README.md#自定义安装路径paths) for the full key list.
 Cursor project rule sync can also read additional project roots from
-`paths.cursor_project_roots` in `env/secrets.json`; `CURSOR_PROJECT_ROOTS`
+`paths.cursor_project_roots` in `env/config.json`; `CURSOR_PROJECT_ROOTS`
 remains available as a one-shot environment override.
 
 | Target | Output |

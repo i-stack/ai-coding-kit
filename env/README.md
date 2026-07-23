@@ -6,8 +6,10 @@
 
 ```text
 env/
-├── secrets.json              ← 你唯一需要填写的文件（gitignored）
+├── secrets.json              ← 密钥配置：key/token/url（gitignored）
 ├── secrets.json.example      ← 模板（已提交）
+├── config.json              ← 非密钥配置：安装根/路径覆盖（gitignored，可选）
+├── config.json.example      ← 模板（已提交）
 │
 ├── review.json               ← auto-code-review 配置（gitignored）
 ├── review.json.example       ← review 配置模板（已提交）
@@ -26,9 +28,7 @@ env/
 │   ├── shell.json
 │   ├── xcodebuild.json
 │   ├── lanhu.json
-│   ├── moonvy.json
-│   ├── postgres.json
-│   └── sqlite.json
+│   └── moonvy.json
 │
 ├── optional_mcps/            ← 可选 MCP 服务器（需手动启用）
 │   ├── enabled.json          ← 启用状态记录
@@ -88,7 +88,7 @@ env/
 
 **加载优先级**：`env/review.json` → `.auto-review-config.json` → `AUTO_REVIEW_*` 环境变量。
 
-复制 `review.json.example` 为 `review.json` 后填写即可。仅在用户显式启动 `/auto-review` 后加载。
+复制 `review.json.example` 为 `review.json` 后填写即可（`bash install.sh` 会一并从模板创建，无需手动 cp）。仅在用户显式启动 `/auto-review` 后加载。
 
 ## backup.json
 
@@ -111,10 +111,15 @@ env/
 跨会话用户画像用于让 Codex / Claude / Gemini 等 Agent 在不同会话中共享你的稳定偏好、角色和约束。
 
 ```bash
-cp env/user-profile.md.example env/user-profile.md
-cp env/user-profile.json.example env/user-profile.json
-bash sync.sh
+bash install.sh   # 创建 user-profile.json（enabled=auto）；user-profile.md 不自动创建
+bash sync.sh      # 同步（画像文件缺失时自动跳过）
 ```
+
+> `env/user-profile.md` 是含占位符的内容模板，`install.sh` 不会自动复制它，否则会被当成真实画像同步成假的全局用户画像。需要画像时再手动：
+>
+> ```bash
+> cp env/user-profile.md.example env/user-profile.md   # 然后填写真实信息
+> ```
 
 `env/user-profile.json`：
 
@@ -175,7 +180,7 @@ bash sync/scripts/optional_mcps.sh disable puppeteer
 
 各平台的安装根目录默认是 `~/.codex`、`~/.claude`、`~/.gemini` 等固定位置。
 如果某工具安装在非默认路径（例如自定义前缀、便携版、或 Xcode 的 CodingAssistant 目录被移动），
-可以在 `secrets.json` 顶层增加 `paths` 对象来覆盖：
+可以在 `config.json` 顶层增加 `paths` 对象来覆盖（`bash install.sh` 会自动从 `config.json.example` 创建该文件，也可手动 `cp env/config.json.example env/config.json`）：
 
 ```json
 {
@@ -201,7 +206,7 @@ bash sync/scripts/optional_mcps.sh disable puppeteer
 - 设置后，该平台的所有派生路径（配置、settings、skills、MCP 文件等）都会基于覆盖值解析。
 - `cursor_project_roots` 是额外的 Cursor 项目根列表，用于同步项目内 `.cursor/rules/*.mdc`；也可用 `CURSOR_PROJECT_ROOTS="/path/a:/path/b"` 临时覆盖。
 - Codex 仍优先使用标准环境变量 `CODEX_HOME` / `CODEX_CONFIG`，其次才是此处覆盖。
-- `paths` 不是密钥，不会参与 `${...}` 占位符注入，仅用于路径解析。
+- `paths` 不是密钥，放在 `env/config.json`（gitignored 的本地配置），不会参与 `${...}` 占位符注入，仅用于路径解析。
 
 ## 占位符机制
 

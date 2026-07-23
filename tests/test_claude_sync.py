@@ -23,14 +23,21 @@ from platforms import claude as claude_module  # noqa: E402
 @contextlib.contextmanager
 def patched_sync_environment(root: Path):
     """Redirect HOME and common module paths to an isolated test root."""
+    import core.paths as _paths
     old_env = {k: os.environ.get(k) for k in ("HOME",)}
     old_paths = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
+    old_paths_cfg = _paths.CONFIG_PATH
+    old_overrides = _paths._PATH_OVERRIDES
     old_argv = sys.argv[:]
     try:
         os.environ["HOME"] = str(root / "home")
         common.MCP_DIR = root / "env" / "mcp"
         common.PLATFORMS_DIR = root / "env" / "platforms"
         common.SECRETS_PATH = root / "env" / "secrets.json"
+        # Isolate path overrides so a developer's local env/config.json
+        # can't leak into this test (empty config => default paths).
+        _paths.CONFIG_PATH = root / "env" / "config.json"
+        _paths._PATH_OVERRIDES = None
         yield
     finally:
         for key, value in old_env.items():
@@ -39,6 +46,8 @@ def patched_sync_environment(root: Path):
             else:
                 os.environ[key] = value
         common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_paths
+        _paths.CONFIG_PATH = old_paths_cfg
+        _paths._PATH_OVERRIDES = old_overrides
         sys.argv = old_argv
 
 

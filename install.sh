@@ -3,8 +3,11 @@
 # ai-coding-kit 初始化脚本
 #
 # clone 项目后运行一次，完成本地配置初始化：
-#   - 从 env/*.example 模板复制出缺失的本地配置文件
+#   - 从 env/*.example 模板复制出缺失的本地配置（config/backup/review/secrets/user-profile.json）
 #     （幂等：目标已存在则跳过，绝不覆盖你已填好的真实配置）
+#   - 不自动创建 user-profile.md：它是含占位符的「内容模板」，若自动复制会被
+#     sync-user-profile.sh 当成真实画像同步成假的全局用户画像。需要画像时再手动
+#     cp env/user-profile.md.example env/user-profile.md 并填写。
 #   - 提醒填写 env/secrets.json 中的真实 API Keys / Tokens
 #
 # 用法:
@@ -32,6 +35,10 @@ shopt -s nullglob
 created=0
 for src in "$ENV_DIR"/*.example; do
   dst="${src%.example}"
+  # user-profile.md 是含占位符的内容模板，不自动创建（避免假画像被同步）
+  if [[ "$src" == */user-profile.md.example ]]; then
+    continue
+  fi
   if [ ! -e "$dst" ]; then
     cp "$src" "$dst"
     echo_ok "已创建 ${dst#$SCRIPT_DIR/}"
