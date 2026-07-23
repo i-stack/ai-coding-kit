@@ -195,6 +195,7 @@ render_managed_block() {
       print
     }
   ' "${TEMPLATE}" | sed -e "s|{{TOOL_NAME}}|${tool_name}|g" \
+      -e "s|{{IOS_ENGINEER_SKILLS_DIR}}|${skills_dir}|g" \
       -e "s|{{SKILLS_DIR}}|${skills_dir}|g" \
       -e "s|{{COGNITIVE_EXPANSION_SKILLS_DIR}}|${ce_dir}|g" \
       -e "s|{{LOGICAL_REASONING_SKILLS_DIR}}|${lr_dir}|g" \

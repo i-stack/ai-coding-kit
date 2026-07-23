@@ -26,7 +26,7 @@ skill:historical-recall
 - `{{COGNITIVE_EXPANSION_SKILLS_DIR}}SKILL.md`
 - `{{COGNITIVE_EXPANSION_SKILLS_DIR}}references/cognitive_expansion.md`
 
-并按其中 Tier 0 / Tier 3、邻域对照池、跳过条件与迎合自检执行。Tier 2 认知对手见 `{{SKILLS_DIR}}references/cognitive_adversary_mode.md`。
+并按其中 Tier 0 / Tier 3、邻域对照池、跳过条件与迎合自检执行。Tier 2 认知对手见 `{{IOS_ENGINEER_SKILLS_DIR}}references/cognitive_adversary_mode.md`。
 
 # global logical reasoning
 
@@ -57,7 +57,7 @@ skill:historical-recall
 
 {{HISTORICAL_RECALL_BLOCK}}
 
-# global requirements clarity gate
+# global plan-grill requirements clarity gate
 
 problem-analysis 完成后，对每个非平凡构建、修改或方案请求执行 `plan-grill` PG-000 门控。若仍存在无法从代码/文档/当前上下文查明，且不同答案会实质改变交付行为、公共契约、数据、安全性或验收结果的阻塞性决策，必须自动加载并遵循：
 
@@ -79,7 +79,7 @@ problem-analysis 完成后，对每个非平凡构建、修改或方案请求执
 
 执行 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务前，必须先加载并遵循 `ios-engineer` SKILL 规则（SKILL.md + references/rule_index.md 中 `status=active` 的 IR / SYM / ROUTE / OUT 条目）。
 
-SKILL 规则位于 `{{SKILLS_DIR}}`，可直接加载。
+SKILL 规则位于 `{{IOS_ENGINEER_SKILLS_DIR}}`，可直接加载。
 
 # ios-engineer skill audit
 
@@ -102,7 +102,7 @@ evolution-signal: <none | 修正表达 | 新增能力 | 合并重复 | 退役规
 
 可选字段：`session-id: <id>`（默认省略 = null）。
 
-Rule ID 词表取自 `{{SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN / GR-NNN）。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
+Rule ID 词表取自 `{{IOS_ENGINEER_SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN / GR-NNN）。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
 
 **非 iOS 工程任务不输出这个块**：写文档、答 API 问题、通用重构、元工程 / 自进化讨论 / SkillOps 维护本身都跳过。task-type 落不进 12 选 1 时也跳过。
 <!-- managed-block:agent-preamble:end -->
