@@ -185,6 +185,10 @@ bash sync/scripts/optional_mcps.sh disable puppeteer
     "gemini": "/custom/.gemini",
     "codebuddy": "/custom/.codebuddy",
     "cursor": "/custom/.cursor",
+    "cursor_project_roots": [
+      "/path/to/appA",
+      "/path/to/appB"
+    ],
     "cline": "/custom/.cline",
     "continue": "/custom/.continue",
     "qwen": "/custom/.qwen",
@@ -195,6 +199,7 @@ bash sync/scripts/optional_mcps.sh disable puppeteer
 
 - 键名与平台一致；留空字符串 `""` 或删除该键即回退默认路径。
 - 设置后，该平台的所有派生路径（配置、settings、skills、MCP 文件等）都会基于覆盖值解析。
+- `cursor_project_roots` 是额外的 Cursor 项目根列表，用于同步项目内 `.cursor/rules/*.mdc`；也可用 `CURSOR_PROJECT_ROOTS="/path/a:/path/b"` 临时覆盖。
 - Codex 仍优先使用标准环境变量 `CODEX_HOME` / `CODEX_CONFIG`，其次才是此处覆盖。
 - `paths` 不是密钥，不会参与 `${...}` 占位符注入，仅用于路径解析。
 

@@ -4,12 +4,6 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-LOCAL_CONFIG="${SCRIPT_DIR}/config.local.sh"
-if [[ -f "${LOCAL_CONFIG}" ]]; then
-  # shellcheck disable=SC1090
-  source "${LOCAL_CONFIG}"
-fi
-
 # Resolve a platform's install root via the SAME source as the Python sync engine
 # (sync/core/paths.py -> platform_install_root). Honors the top-level `paths`
 # override in env/secrets.json AND platform-specific defaults (e.g. CODEX_HOME for
@@ -41,7 +35,6 @@ CODEX_TARGET="${CODEX_TARGET:-${HOME}/.codex/AGENTS.md}"
 GEMINI_TARGET="${GEMINI_TARGET:-${HOME}/.gemini/GEMINI.md}"
 XCODE_CODEX_TARGET="${XCODE_CODEX_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md}"
 XCODE_CLAUDE_TARGET="${XCODE_CLAUDE_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md}"
-CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
 # Recall-only preamble targets (cline / qwen) and full preamble
 # targets (claude / codex / gemini / xcode / codebuddy) are now discovered from each
 # platform's `preamble` declaration in env/platforms/<platform>.json — see the
@@ -69,6 +62,36 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 RECALL_CLI_PATH="${REPO_ROOT}/skills-engineering/plan-reviews/dist/cli.js"
 SE_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
+resolve_cursor_project_roots() {
+  if [[ -n "${CURSOR_PROJECT_ROOTS:-}" ]]; then
+    printf '%s\n' "${CURSOR_PROJECT_ROOTS}"
+    return
+  fi
+  python3 - "${REPO_ROOT}/env/secrets.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+try:
+    data = json.loads(path.read_text(encoding="utf-8"))
+except (OSError, json.JSONDecodeError):
+    sys.exit(0)
+
+paths = data.get("paths")
+if not isinstance(paths, dict):
+    sys.exit(0)
+
+roots = paths.get("cursor_project_roots")
+if isinstance(roots, str):
+    print(roots)
+elif isinstance(roots, list):
+    print(":".join(str(root) for root in roots if isinstance(root, str) and root.strip()))
+PY
+}
+
+CURSOR_PROJECT_ROOTS="$(resolve_cursor_project_roots)"
+
 DRY_RUN=false
 
 usage() {
@@ -89,7 +112,7 @@ Recall-only targets (historical-recall managed block, no ios-engineer audit):
 
 Cursor project rules (from sync-manifest skill:* lines):
   <repo>/.cursor/rules/<skill>.mdc
-  <CURSOR_PROJECT_ROOTS>/.cursor/rules/<skill>.mdc
+  <env/secrets.json paths.cursor_project_roots>/.cursor/rules/<skill>.mdc
 
 Skill full text is synced by sync-skills.sh to ~/.*/skills/<skill>/ — run
 sync-skill-full.sh or sync-skills.sh before this script.
@@ -546,5 +569,5 @@ if [[ -n "${CURSOR_PROJECT_ROOTS}" ]]; then
     sync_manifest_skill_cursor_rules "${_root}"
   done
 else
-  echo "CURSOR_PROJECT_ROOTS not set; skipping Cursor ios-engineer.mdc on external projects."
+  echo "paths.cursor_project_roots not set in env/secrets.json; skipping Cursor ios-engineer.mdc on external projects."
 fi

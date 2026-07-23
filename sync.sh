@@ -18,6 +18,7 @@
 # 此脚本会：
 #   1. 检查 env/secrets.json 是否存在（不存在则提示创建）
 #   2. 执行 sync/scripts/sync_all.sh 同步配置到各 AI 编码工具
+#      并按 env/user-profile.json 可选同步跨会话用户画像
 # =============================================================================
 set -euo pipefail
 
@@ -89,6 +90,7 @@ run_sync() {
   echo -e "  • Gemini CLI       (~/.gemini/settings.json, ~/.zshrc env)"
   echo -e "  • Continue         (~/.continue/config.yaml)"
   echo -e "  • Qwen Code        (~/.qwen/settings.json, skills)"
+  echo -e "  • User Profile     (~/.ai-coding-kit/USER.md, optional)"
 }
 
 # --- 主流程 ---

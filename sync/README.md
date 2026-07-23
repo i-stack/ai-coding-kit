@@ -144,6 +144,9 @@ skills, MCP files) resolves under the override. Empty string `""` or a missing
 key falls back to the default. For Codex, the standard `CODEX_HOME` /
 `CODEX_CONFIG` env vars still take precedence over this override. See
 [env/README.md](../env/README.md#自定义安装路径paths) for the full key list.
+Cursor project rule sync can also read additional project roots from
+`paths.cursor_project_roots` in `env/secrets.json`; `CURSOR_PROJECT_ROOTS`
+remains available as a one-shot environment override.
 
 | Target | Output |
 |--------|--------|

@@ -2,8 +2,9 @@
 # Sync MCP servers and platform configs to native formats.
 #
 # Sources:
-#   env/mcp/*.json          — MCP server definitions (platform-agnostic)
-#   env/platforms/*.json    — platform-specific configs
+#   env/mcp/*.json              — MCP server definitions (platform-agnostic)
+#   env/platforms/*.json        — platform-specific configs
+#   env/user-profile.json       — optional cross-session user profile sync config
 #
 # Targets:
 #   1) Cursor: generate ~/.cursor/mcp.json with mcpServers.
@@ -43,8 +44,17 @@ fi
 # Auto-backup config before sync (keeps last 10 in the configured backup dir)
 bash "$SCRIPT_DIR/backup-config.sh" backup
 
-echo "[1/1] Sync config to Cursor / CodeBuddy / Codex / Claude / Cline / Xcode"
+echo "[1/2] Sync config to Cursor / CodeBuddy / Codex / Claude / Cline / Xcode"
 python3 "$REPO_ROOT/sync/cli/main.py" sync --target all
+
+echo "[2/2] Sync user profile (optional)"
+if [[ "${SKIP_USER_PROFILE:-false}" != "true" ]]; then
+  if ! bash "$REPO_ROOT/skills-engineering/scripts/sync-user-profile.sh"; then
+    echo "[sync] User profile sync failed; continuing because it is optional." >&2
+  fi
+else
+  echo "  (skipped: SKIP_USER_PROFILE=true)"
+fi
 
 echo "[sync] If env vars were updated, run 'source ~/.zshrc' in your terminal to apply them."
 

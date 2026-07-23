@@ -1,8 +1,5 @@
 .DS_Store
 
-# skills-engineering: local machine sync config (see scripts/config.local.sh.example)
-skills-engineering/scripts/config.local.sh
-
 # env/: only secrets.json is gitignored.
 # env/mcp/*.json and env/platforms/*.json are committed (use ${VAR} references, no real secrets).
 # User only needs to create env/secrets.json from env/secrets.json.example.

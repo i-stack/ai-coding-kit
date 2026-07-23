@@ -5,12 +5,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-LOCAL_CONFIG="${SCRIPT_DIR}/config.local.sh"
-if [[ -f "${LOCAL_CONFIG}" ]]; then
-  # shellcheck disable=SC1090
-  source "${LOCAL_CONFIG}"
-fi
-
 # REPO_ROOT above is skills-engineering/; the real repo root is one level up.
 REPO_ROOT_REAL="$(cd "${REPO_ROOT}/.." && pwd)"
 

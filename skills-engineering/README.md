@@ -67,11 +67,10 @@
 │   ├── bootstrap.sh
 │   ├── sync-skills.sh
 │   ├── sync-agent-preamble.sh
-│   ├── sync-user-profile.sh      # 跨会话用户画像（USER.md → ~/.ai-coding-kit/USER.md → preamble 托管块）
+│   ├── sync-user-profile.sh      # 跨会话用户画像（env/user-profile.md → ~/.ai-coding-kit/USER.md → preamble 托管块）
 │   ├── sync-memory.sh            # 跨会话事件级记忆（MEMORY.md + remember/recall + preamble 托管块）
 │   ├── verify-sync.sh
 │   ├── list-skills.sh
-│   ├── config.local.sh.example
 │   └── templates/
 ├── docs/                      # 各 skill 使用文档（供人类阅读）
 ├── .agents/                   # Agent 调用规范与文档写作规范
@@ -84,7 +83,7 @@
 - `ios-engineer/references/`：按主题拆分的技能规则与参考材料，例如认知对手模式、并发、布局、网络、性能、审查、迁移、测试、可观测性和自进化治理。
 - `ios-engineer/scripts/`：技能演进、校验、提案、验证、晋升、回滚、usage ledger 写入与汇总脚本。
 - `ios-engineer/evolution/`：技能演进数据，包括 `proposals/`、`validations/`、`approvals/`、`history/`、`scenarios/`、`usage/`。
-- `scripts/`：仓库级脚本，负责同步技能、同步 Agent preamble 与同步结果校验；本地机器专属配置放在 `scripts/config.local.sh`（模板为 `scripts/config.local.sh.example`），路径由仓库根 `.gitignore` 排除，会被 sync 脚本自动 source。
+- `scripts/`：仓库级脚本，负责同步技能、同步 Agent preamble 与同步结果校验；本机专属路径配置统一放在仓库根 `env/secrets.json`。
 - `docs/`：各 skill 的独立使用文档，供人类阅读，不参与 Agent 运行时加载。
 - `.agents/`：`invocation.md`（多 skill 并行加载规范）、`composition.md`（多技能同时命中时的块发射顺序与冲突裁决）和 `writing-docs.md`（文档写作规范）。
 - `.claude-plugin/plugin.json`：Claude Code 插件清单，支持一键安装为 Claude 插件。
@@ -214,9 +213,9 @@ SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=0 SYNC_XCODE_CODEX=0 SYNC_XCODE_CLAUDE=1 
 CURSOR_PROJECT_ROOTS="/path/to/appA:/path/to/appB" ./scripts/sync-agent-preamble.sh
 ```
 
-也可以把 `CURSOR_PROJECT_ROOTS` 写进 `scripts/config.local.sh`（从 `scripts/config.local.sh.example` 复制得到；该文件已由仓库根 `.gitignore` 按路径 `skills-engineering/scripts/config.local.sh` 排除），脚本启动时会自动 source，CLI / shell 变量仍然优先。
+也可以把外部 Cursor 项目根写进 `env/secrets.json` 的 `paths.cursor_project_roots`。命令行传入的 `CURSOR_PROJECT_ROOTS` 仍然优先，适合一次性覆盖。
 
-Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 侧由 `CURSOR_PROJECT_ROOTS` 是否设置来决定，不复用 `SYNC_CURSOR`。
+Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 项目规则由 `env/secrets.json` 的 `paths.cursor_project_roots` 或临时 `CURSOR_PROJECT_ROOTS` 决定，不复用 `SYNC_CURSOR`。
 Xcode Codex / Claude 侧分别遵循 `SYNC_XCODE_CODEX` / `SYNC_XCODE_CLAUDE` 门控语义（`1 / 0 / 留空自动探测`），默认写入 `codex/AGENTS.md` 与 `ClaudeAgentConfig/CLAUDE.md`。
 
 脚本只重写 `<!-- managed-block:agent-preamble:begin ... :end -->` 托管块（并兼容迁移旧的 `ios-engineer` 托管块标记），保留文件中的其他内容。
@@ -253,13 +252,13 @@ curl -fsSL https://raw.githubusercontent.com/i-stack/ai-coding-kit/main/skills-e
 - `SKIP_PREAMBLE=true`：跳过 `sync-agent-preamble.sh`
 - `SKIP_USER_PROFILE=true`：跳过 `sync-user-profile.sh`（跨会话用户画像）
 - `SKIP_MEMORY=true`：跳过 `sync-memory.sh`（跨会话事件记忆）
-- `CURSOR_PROJECT_ROOTS`：透传给 `sync-agent-preamble.sh`
+- `CURSOR_PROJECT_ROOTS`：临时覆盖 `env/secrets.json` 的 `paths.cursor_project_roots`，透传给 `sync-agent-preamble.sh`
 
 ### 5. 跨会话记忆（用户画像 + 事件记忆）
 
 对标 Hermes Agent 的持久记忆系统，提供两层互补的长期记忆，均跨会话、跨端共享：
 
-**L0 — 用户画像（`sync-user-profile.sh`）**：用户从仓库根 `USER.md.example` 复制出 `USER.md`（已 gitignore）手动维护稳定偏好 / 角色 / 约束；脚本把画像同步到 `~/.ai-coding-kit/USER.md`，并在各端 preamble 注入独立的 `user-profile` 托管块（与 agent-preamble 块互不干扰）。
+**L0 — 用户画像（`sync-user-profile.sh`）**：用户从 `env/user-profile.md.example` 复制出 `env/user-profile.md`（已 gitignore）手动维护稳定偏好 / 角色 / 约束；`env/user-profile.json` 提供 `auto/on/off` 开关与画像路径配置。脚本把画像同步到 `~/.ai-coding-kit/USER.md`，并在各端 preamble 注入独立的 `user-profile` 托管块（与 agent-preamble 块互不干扰）。
 
 **L1 — 事件级记忆（`sync-memory.sh`）**：交互中累积的纠正、项目约定与决策理由，落在本机 `~/.ai-coding-kit/MEMORY.md`（仓库外，无需 gitignore）。脚本向各端 preamble 注入独立的 `user-memory` 托管块，并把自身复制到 `~/.ai-coding-kit/sync-memory.sh` 作为 Agent 的稳定调用入口：
 
@@ -494,7 +493,7 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/scripts/
 - 提交前运行 `./scripts/sync-skills.sh --dry-run` 和 `bash ios-engineer/scripts/validate_skill_evolution.sh`。
 - 修改托管 preamble 时只改 `scripts/templates/agent-preamble.md.tmpl`，再运行 `./scripts/sync-agent-preamble.sh --dry-run` 检查输出。
 - 推送前（或 `SKILL_BYPASS=1` 推送后）手动跑 `./scripts/verify-sync.sh` 确认各已启用缓存与 preamble 状态一致，避免 Agent 侧加载漂移版本。
-- 本机专属配置（如 `CURSOR_PROJECT_ROOTS`）写进 `scripts/config.local.sh`（由 `scripts/config.local.sh.example` 复制）；该路径在仓库根 `.gitignore` 中已排除，切勿提交进仓库。
+- 本机专属配置（如外部 Cursor 项目根）写进仓库根 `env/secrets.json`；该文件已由仓库根 `.gitignore` 排除，切勿提交进仓库。
 
 ## 变更记录
 
