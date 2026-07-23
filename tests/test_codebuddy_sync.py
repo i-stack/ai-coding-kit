@@ -905,5 +905,32 @@ class MultiSkillCoordinationTests(unittest.TestCase):
         self.assertIn("不得省略或并入其它块", self.CAM)
 
 
+class GlobalSkillValidationScriptTests(unittest.TestCase):
+    """The one-shot validation entrypoint must stay read-only and complete."""
+
+    SCRIPT = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "scripts"
+        / "validate-global-skills.sh"
+    ).read_text(encoding="utf-8")
+
+    def test_global_validation_entrypoint_covers_closure_steps(self) -> None:
+        for marker in (
+            "validate-skill-structure.sh",
+            "validate-skill-behavior.sh",
+            "sync-agent-preamble.sh\" --dry-run",
+            "verify-sync.sh",
+            "validate-skill-integrity.sh\" --check-only",
+            "python3 tests/test_codebuddy_sync.py",
+        ):
+            self.assertIn(marker, self.SCRIPT)
+
+    def test_global_validation_entrypoint_is_read_only(self) -> None:
+        self.assertIn("--dry-run", self.SCRIPT)
+        self.assertIn("--check-only", self.SCRIPT)
+        self.assertNotIn("sync-skills.sh", self.SCRIPT)
+
+
 if __name__ == "__main__":
     unittest.main()

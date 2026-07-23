@@ -424,6 +424,14 @@ bash install-hooks.sh
 
 ### pre-push：推送前强制同步并校验
 
+若只想本地一键跑完整验收闭环，可执行：
+
+```bash
+bash skills-engineering/scripts/validate-global-skills.sh
+```
+
+该脚本串起结构校验、行为一致性、preamble dry-run、同步验证、integrity `--check-only` 与全局协调回归测试；它是只读验收入口，不会刷新 integrity baseline。
+
 [`.githooks/pre-push`](../.githooks/pre-push) 在推送前顺序执行（默认任一失败即中止 push）：
 
 0. `skills-engineering/scripts/validate-skill-structure.sh` —— 推送前校验全部 `SKILL.md` 的机器可识别结构（frontmatter 必填键、行数上限、本地 `references/` 引用存在性、内部链接可解析、无孤儿 reference）；任一技能结构回归即中止 push。
