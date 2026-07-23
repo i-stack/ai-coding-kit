@@ -400,6 +400,19 @@ bash ios-engineer/scripts/summarize_usage_ledger.sh
 
 Ledger schema、脱敏要求和 self-grading 偏差说明见 `ios-engineer/references/usage_ledger.md`。
 
+### 全局协调与 i18n 回归测试
+
+除 `ios-engineer` 自有的演进校验外，仓库级 Python 测试守护「多技能协调条款」与「en-US 镜像」不漂移：
+
+```bash
+python3 tests/test_en_us_mirror_sync.py      # zh 源 ↔ en-US 镜像双向锚点断言
+python3 tests/test_codebuddy_sync.py         # 含多技能协调断言与全局验收入口校验
+```
+
+- `test_en_us_mirror_sync.py`：锁定 `engineering-discipline` / `plan-grill` / `ios-engineer` / `cognitive-expansion` 的协同条款在 zh 源与 en-US 镜像中成对存在，任一侧漏翻即 FAIL。
+- `test_codebuddy_sync.py`：含 `MultiSkillCoordinationTests`（多技能叠加口径）与 `GlobalSkillValidationScriptTests`（校验 `validate-global-skills.sh` 为只读且覆盖完整验收步骤）。
+- 一键只读验收：`bash skills-engineering/scripts/validate-global-skills.sh`（见下方「pre-push」）。
+
 ## 提交与推送守卫
 
 钩子由仓库根目录统一管理（合并入 `ai-coding-kit` 后，整个仓库共享一个 `core.hooksPath`）。在 `ai-coding-kit/` 根执行：
@@ -459,6 +472,7 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/scripts/
 - 修改技能前先读 `ios-engineer/SKILL.md` 和目标 `references/*.md`，避免把规则重复写到多个 owner 文件。
 - 新增或修改规则 ID 时，先更新 `ios-engineer/references/rule_index.md`，再同步 `SKILL.md` 中的 inline ID。
 - 跨文件共享概念变更前先全量搜索相关术语，proposal 中明确覆盖范围。
+- 修改任一技能的 zh 源（`SKILL.md` / `references/*.md`）时，若涉及 en-US 镜像覆盖的协调条款，必须同步更新 `i18n/en-US/`，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL；该测试是 en-US 分发闭环的回归护栏。
 - 提交前运行 `./scripts/sync-skills.sh --dry-run` 和 `bash ios-engineer/scripts/validate_skill_evolution.sh`。
 - 修改托管 preamble 时只改 `scripts/templates/agent-preamble.md.tmpl`，再运行 `./scripts/sync-agent-preamble.sh --dry-run` 检查输出。
 - 推送前（或 `SKILL_BYPASS=1` 推送后）手动跑 `./scripts/verify-sync.sh` 确认各已启用缓存与 preamble 状态一致，避免 Agent 侧加载漂移版本。
@@ -506,3 +520,10 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/scripts/
 - **P2-6 多平台模型路由抽象**：新增 `sync/scripts/list_models.sh`（跨平台 model/provider 配置总览，密钥打码）与 `sync/model_routing.md`（统一 Provider 层设计说明）。
 - **P2-7 子代理并行同步**：`scripts/sync-skills.sh` 支持 `PARALLEL=1`（默认 `MAX_PARALLEL=4`），把 (skill × target) 同步以子代理式后台并行执行。
 - **P2-8 技能校验加固**：新增 `scripts/validate-skill-integrity.sh`（sha256 基线比对，发现 ADDED/MODIFIED/REMOVED；`--verify-bundle` 校验 `skill_bundles` 产物 checksum），基线落在 `skills-engineering/.integrity/`（已 gitignore）。
+
+### 3.0.3 — 2026-07-23
+
+- **多全局技能叠加口径协调（D1-D5）**：`engineering-discipline` GR-002 前置确认被 `plan-grill` PG-000 盘问吸收、GR-006 战略性中断与 GR-002 同 anchor 合并；GR-004 与 `ios-engineer` 认知对手模式（CAM）详规对齐——不重复输出语义但保留 CAM 机械格式（`Step 0–6 + 置信度` 字段原样输出、不得省略或并入其它块）；跨块置信度归一到本轮唯一保留字段；新增多 SKILL 叠加分级读取与预算上限；CAM 激活时抑制 preamble 轻量校准段（Tier0/Tier2 互斥扩展到 preamble 层）。`ios-engineer` 走 `create_skill_proposal` 演进流程（提案 `20260723-173058-cam-fields-preserve-format`）。
+- **en-US 镜像分发闭环**：`engineering-discipline` / `plan-grill` / `ios-engineer` / `cognitive-expansion` 的 en-US 镜像补齐 D1-D5 协同条款英文翻译，与 zh 源口径一致，可安全分发。
+- **回归护栏**：新增 `tests/test_en_us_mirror_sync.py`（zh 源 ↔ en-US 镜像双向锚点断言，防 en-US 静默滞后）与 `skills-engineering/scripts/validate-global-skills.sh`（只读验收入口，串起结构/行为/preamble dry-run/同步验证/integrity `--check-only`/全局协调回归测试）；`tests/test_codebuddy_sync.py` 新增 `GlobalSkillValidationScriptTests` 与多技能协调断言。
+- **演进记录保留策略**：`ios-engineer/evolution/` 仅保留最近 10 份 proposal/validation/approval 记录，超出窗口的旧记录由 pre-commit 钩子自动淘汰。
