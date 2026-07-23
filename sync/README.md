@@ -158,13 +158,14 @@ key falls back to the default. For Codex, the standard `CODEX_HOME` /
 | Continue | Update `mcpServers` + `models` in `~/.continue/config.yaml`, creating it when `~/.continue` exists |
 | Qwen Code | Merge `env` into `~/.qwen/settings.json`, sync skills to `~/.qwen/skills/` |
 
-> **End-to-end recall:** the historical-recall trigger is also wired to Cline
-> (`~/.cline/rules/ai-coding-kit-recall.md`), CodeBuddy
-> (`~/.codebuddy/CODEBUDDY.md`), and Qwen Code (`~/.qwen/QWEN.md`) via
-> `skills-engineering/scripts/sync-agent-preamble.sh`, and to Continue via the
+> **End-to-end recall:** the historical-recall trigger is wired to Cline
+> (`~/.cline/rules/ai-coding-kit-recall.md`) and Qwen Code (`~/.qwen/QWEN.md`)
+> as recall-only preambles, and to CodeBuddy (`~/.codebuddy/CODEBUDDY.md`) as a
+> **full** preamble (which embeds historical-recall) — all three via
+> `skills-engineering/scripts/sync-agent-preamble.sh`. Continue gets it via the
 > `rules` field in `~/.continue/config.yaml` (injected by `sync/platforms/continue.py`).
 > Run **both** `sync.sh` (covers Continue) and `sync-agent-preamble.sh`
-> (covers Cline / CodeBuddy / Qwen) so every platform receives the recall block.
+> (covers Cline / CodeBuddy / Qwen) so every platform receives its preamble.
 
 ## Adding a Platform
 

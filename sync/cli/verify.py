@@ -40,9 +40,10 @@ _FULL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
     ("epistemic-integrity reference", "epistemic-integrity/references/epistemic_integrity.md"),
 ]
 
-# Required content patterns for recall-preamble verification (Cline / CodeBuddy / Qwen).
-# These targets get only the historical-recall managed block, not the full ios-engineer
-# preamble.  Checking content rather than just inode existence catches stale or empty files.
+# Required content patterns for standalone recall-preamble verification (Cline / Qwen,
+# plus any platform explicitly configured with preamble.mode=recall). These targets
+# get only the historical-recall managed block, not the full ios-engineer preamble.
+# Checking content rather than just inode existence catches stale or empty files.
 _RECALL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
     ("managed-block begin marker", "<!-- managed-block:historical-recall:begin"),
     ("historical-recall SKILL path", "historical-recall/SKILL.md"),

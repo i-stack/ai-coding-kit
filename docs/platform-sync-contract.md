@@ -164,7 +164,7 @@ CodeBuddy is the second platform with an explicit `api.enabled` toggle.
   ],
   "preamble": {
     "target": "CODEBUDDY.md",
-    "mode": "recall",
+    "mode": "full",
     "tool": "codebuddy"
   }
 }
@@ -173,16 +173,20 @@ CodeBuddy is the second platform with an explicit `api.enabled` toggle.
 Answers to the platform-addition questions:
 
 1. Target files: `~/.codebuddy/models.json` (`models` + `availableModels`),
-   `~/.codebuddy/mcp.json` (MCP), `~/.codebuddy/CODEBUDDY.md` (recall preamble),
-   `~/.codebuddy/skills/` (skills copied from Claude).
+   `~/.codebuddy/mcp.json` (MCP), `~/.codebuddy/CODEBUDDY.md` (full preamble,
+   rendered by `sync-agent-preamble.sh` and embedding the historical-recall
+   trigger), `~/.codebuddy/skills/` (skills copied from Claude).
 2. API sync fields: `models` and `availableModels` inside
    `~/.codebuddy/models.json`.
 3. Default for `api.enabled`: `true`. CodeBuddy historically always synced its
    models, so a missing `api` block or missing `api.enabled` keeps the old
    always-sync behavior. Only an explicit `false` disables it.
 4. Owned target fields: `~/.codebuddy/models.json` → `models`, `availableModels`
-   (both gated by `api.enabled`); MCP servers; the historical-recall managed
-   block; synced skill directories.
+   (both gated by `api.enabled`); MCP servers; the preamble block — the full
+   preamble (incl. the embedded historical-recall trigger) when
+   `preamble.mode=full`, or the standalone historical-recall managed block when
+   `preamble.mode=recall`, both rendered by `sync-agent-preamble.sh`; synced
+   skill directories.
 5. Cleanup when `api.enabled=false`: set `availableModels` to an empty list
    `[]` rather than removing the key (CodeBuddy special handling — provider
    model definitions stay so they can be re-enabled, but nothing is shown in the

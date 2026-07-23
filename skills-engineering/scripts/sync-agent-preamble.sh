@@ -42,8 +42,8 @@ GEMINI_TARGET="${GEMINI_TARGET:-${HOME}/.gemini/GEMINI.md}"
 XCODE_CODEX_TARGET="${XCODE_CODEX_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/codex/AGENTS.md}"
 XCODE_CLAUDE_TARGET="${XCODE_CLAUDE_TARGET:-${HOME}/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/CLAUDE.md}"
 CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
-# Recall-only preamble targets (cline / codebuddy / qwen) and full preamble
-# targets (claude / codex / gemini / xcode) are now discovered from each
+# Recall-only preamble targets (cline / qwen) and full preamble
+# targets (claude / codex / gemini / xcode / codebuddy) are now discovered from each
 # platform's `preamble` declaration in env/platforms/<platform>.json — see the
 # data-driven loop below. No per-platform hardcoding remains here.
 
@@ -82,7 +82,6 @@ Preamble targets (full ios-engineer block):
 
 Recall-only targets (historical-recall managed block, no ios-engineer audit):
   ~/.cline/rules/ai-coding-kit-recall.md            (Cline global rules)
-  ~/.codebuddy/CODEBUDDY.md                          (CodeBuddy user memory)
   ~/.qwen/QWEN.md                                    (Qwen Code global memory)
   Continue: config.yaml `rules` (injected by sync/platforms/continue.py)
 
@@ -431,6 +430,13 @@ for cfg_file in "${REPO_ROOT}/env/platforms"/*.json; do
   if [[ "$p_mode" == "full" ]]; then
     if sync_enabled "$flag" "$root"; then
       sync_target "$root/$p_target" "$p_tool" "$skills_dir"
+      # Full block already embeds the historical-recall section; drop any
+      # stale recall-only block left by a previous recall-mode sync
+      # (e.g. a platform flipped from recall -> full such as codebuddy).
+      remove_managed_block "$root/$p_target" \
+        "${RECALL_BEGIN_MARKER}" \
+        "${RECALL_END_MARKER}" \
+        "historical-recall"
       if [[ "$name" == "claude" ]]; then
         remove_managed_block "$root/$p_target" \
           "${CLAUDE_ROUTER_BEGIN_MARKER}" \

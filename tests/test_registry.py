@@ -74,7 +74,7 @@ class RegistryDiscoveryTests(unittest.TestCase):
 
     def test_full_preamble_targets_have_correct_verify_flags(self) -> None:
         targets = {t.name: t for t in registry.load_targets()}
-        for name in ("claude", "codex", "gemini"):
+        for name in ("claude", "codex", "gemini", "codebuddy"):
             if name not in targets:
                 continue
             t = targets[name]
@@ -84,7 +84,7 @@ class RegistryDiscoveryTests(unittest.TestCase):
 
     def test_recall_preamble_targets_have_correct_verify_flags(self) -> None:
         targets = {t.name: t for t in registry.load_targets()}
-        for name in ("cline", "codebuddy", "qwen"):
+        for name in ("cline", "qwen"):
             if name not in targets:
                 continue
             t = targets[name]

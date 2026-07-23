@@ -52,6 +52,14 @@ DEFAULT_CODEBUDDY_CFG = {
         "deepseek-v4-pro",
         "deepseek-v4-flash",
     ],
+    # Mirror the real env/platforms/codebuddy.json: CodeBuddy is now a full
+    # preamble target. Recall-mode / none-mode behavior is exercised explicitly
+    # by the tests below, not via this default.
+    "preamble": {
+        "target": "CODEBUDDY.md",
+        "mode": "full",
+        "tool": "codebuddy",
+    },
 }
 
 
@@ -659,15 +667,23 @@ class CodeBuddySyncTests(unittest.TestCase):
             self.assertNotIn(key, result["mcp"], f"Internal key '{key}' leaked into mcp.json")
             self.assertNotIn(key, result["models"], f"Internal key '{key}' leaked into models.json")
 
-    # ── Recall preamble (CODEBUDDY.md) ──────────────────────────────────────
+    # ── Preamble (CODEBUDDY.md) ────────────────────────────────────────────
 
     def _read_codebuddy_md(self) -> str:
         path = self.root / "home" / ".codebuddy" / "CODEBUDDY.md"
         return path.read_text(encoding="utf-8") if path.exists() else ""
 
-    def test_recall_block_synced_to_codebuddy_md(self) -> None:
-        """The historical-recall managed block is rendered into CODEBUDDY.md."""
-        self._run_codebuddy_sync()
+    def _recall_cfg(self) -> dict:
+        """Explicit recall-mode config — keeps recall-path coverage now that the
+        default cfg is mode=full."""
+        return {
+            **self.platform_cfg,
+            "preamble": {"target": "CODEBUDDY.md", "mode": "recall", "tool": "codebuddy"},
+        }
+
+    def test_recall_mode_writes_standalone_recall_block(self) -> None:
+        """preamble.mode=recall renders the standalone historical-recall block."""
+        self._run_codebuddy_sync(self._recall_cfg())
 
         text = self._read_codebuddy_md()
         self.assertIn("managed-block:historical-recall:begin", text)
@@ -685,7 +701,7 @@ class CodeBuddySyncTests(unittest.TestCase):
         cb = self.root / "home" / ".codebuddy" / "CODEBUDDY.md"
         cb.write_text("# my custom header\n\nkeep me\n", encoding="utf-8")
 
-        self._run_codebuddy_sync()
+        self._run_codebuddy_sync(self._recall_cfg())
 
         text = self._read_codebuddy_md()
         self.assertIn("keep me", text)
@@ -693,11 +709,27 @@ class CodeBuddySyncTests(unittest.TestCase):
 
     def test_recall_block_idempotent(self) -> None:
         """Re-running sync does not duplicate the managed block."""
-        self._run_codebuddy_sync()
-        self._run_codebuddy_sync()
+        self._run_codebuddy_sync(self._recall_cfg())
+        self._run_codebuddy_sync(self._recall_cfg())
 
         text = self._read_codebuddy_md()
         self.assertEqual(text.count("managed-block:historical-recall:begin"), 1)
+
+    def test_full_mode_does_not_write_standalone_recall_block(self) -> None:
+        """preamble.mode=full (the default) never writes a standalone recall block;
+        the full preamble incl. historical-recall is rendered by sync-agent-preamble.sh."""
+        # Default cfg is mode=full.
+        self._run_codebuddy_sync()
+        self.assertNotIn("managed-block:historical-recall:begin", self._read_codebuddy_md())
+
+    def test_none_mode_skips_recall_block(self) -> None:
+        """preamble.mode=none writes neither a recall nor a full preamble block."""
+        cfg = {
+            **self.platform_cfg,
+            "preamble": {"target": "CODEBUDDY.md", "mode": "none", "tool": "codebuddy"},
+        }
+        self._run_codebuddy_sync(cfg)
+        self.assertNotIn("managed-block:historical-recall:begin", self._read_codebuddy_md())
 
     def test_recall_block_skipped_when_root_missing(self) -> None:
         """When ~/.codebuddy does not exist, no CODEBUDDY.md is created."""

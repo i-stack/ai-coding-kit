@@ -12,11 +12,10 @@ from core.paths import (
     codebuddy_skills_base,
 )
 
-# ── Global historical recall (end-to-end recall, same mechanism as Claude Code) ──
-# Injected into ~/.codebuddy/CODEBUDDY.md — CodeBuddy's global always-on context
-# file — so every CodeBuddy session gets the managed historical-recall block.
-# Rendered from the SAME template the bash sync-agent-preamble.sh uses for the
-# CodeBuddy recall-only target, so both paths produce byte-identical output.
+# ── Standalone historical recall (used only when preamble.mode=recall) ──
+# CodeBuddy normally receives the full ios-engineer preamble from
+# sync-agent-preamble.sh. This renderer is kept for explicit recall-mode configs
+# and uses the same template as other standalone recall targets.
 _RECALL_BEGIN = "<!-- managed-block:historical-recall:begin"
 _RECALL_END = "<!-- managed-block:historical-recall:end"
 
@@ -234,7 +233,12 @@ def _sync_skills() -> None:
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
-    """Sync MCP servers, models, skills, and the global recall preamble to CodeBuddy."""
+    """Sync MCP servers, models, skills, and CodeBuddy's preamble to CODEBUDDY.md.
+
+    The preamble shape is driven by env/platforms/codebuddy.json `preamble.mode`:
+    recall -> standalone historical-recall block; full -> skipped here (rendered by
+    sync-agent-preamble.sh as the embedded full preamble); none -> skipped.
+    """
     root = codebuddy_root_dir()
     if not root.exists():
         print(f"[codebuddy] CodeBuddy root not found: {root} — skipping (tool not installed).")
@@ -246,16 +250,28 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
 
     # Sync the global historical-recall managed block into the platform's
     # preamble file. Driven by the `preamble` declaration in
-    # env/platforms/codebuddy.json (single source of truth); defaults to recall
-    # mode into CODEBUDDY.md for backward compatibility (no preamble yet).
+    # env/platforms/codebuddy.json (single source of truth).
+    #
+    # - mode == "recall": write the standalone historical-recall block here
+    #   (legacy/explicit recall mode, same standalone block shape as Cline /
+    #   Qwen / Continue).
+    # - mode == "full": the full preamble block (which *embeds* historical-recall)
+    #   is rendered by `sync-agent-preamble.sh` into CODEBUDDY.md; writing a
+    #   separate standalone block here would duplicate it, so we skip.
+    # - mode == "none": nothing is written.
     preamble = cfg.get("preamble") or {}
     recall_mode = preamble.get("mode", "recall")
-    if recall_mode != "none":
+    if recall_mode == "recall":
         recall_target = codebuddy_root_dir() / preamble.get("target", "CODEBUDDY.md")
         block = _render_recall_block(codebuddy_skills_base())
         if block is not None:
             _merge_recall_block(recall_target, block)
         else:
             print("[codebuddy] agent-preamble template not found — skipping CODEBUDDY.md recall sync.")
-    else:
+    elif recall_mode == "none":
         print("[codebuddy] historical-recall preamble disabled via preamble.mode=none.")
+    else:  # full
+        print(
+            "[codebuddy] preamble.mode=full — full preamble (incl. historical-recall) "
+            "is rendered by sync-agent-preamble.sh; skipping standalone recall block here."
+        )
