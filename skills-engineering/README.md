@@ -301,7 +301,7 @@ bash scripts/sync-memory.sh --remove
 
 ## 跨技能协调与 i18n 治理
 
-多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `ios-engineer` 认知对手模式 CAM）。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`）：
+多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `ios-engineer` 认知对手模式（CAM））。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`；块发射顺序与冲突裁决另见 `.agents/composition.md`）：
 
 ### 多技能叠加口径（D1-D5）
 
@@ -313,7 +313,7 @@ bash scripts/sync-memory.sh --remove
 
 ### i18n 镜像治理
 
-- **zh 源 + en-US 镜像**：`SKILL.md` / `references/*.md` 的 zh-CN 为唯一真源；`i18n/en-US/` 是分发改写产物（`sync-skills.sh` 同步全文到各端）。
+- **zh 源 + en-US 镜像**：`SKILL.md` / `references/*.md` 的 zh-CN 为唯一真源；`i18n/en-US/` 是 zh 源的分发镜像（翻译改写产物，`sync-skills.sh` 同步全文到各端）。
 - **同步纪律**：改动任一协调条款的 zh 源，必须同步更新对应 en-US 镜像，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL（zh 源 ↔ en-US 镜像双向锚点断言）。
 - **覆盖校验**：`validate-skill-behavior.sh` 在 pre-push 阶段检查 i18n 镜像覆盖与跨技能硬链提示。
 
