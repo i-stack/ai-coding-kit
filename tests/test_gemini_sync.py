@@ -48,6 +48,12 @@ class GeminiSyncTests(unittest.TestCase):
         self.platform_cfg = json.loads(
             (REPO_ROOT / "env" / "platforms" / "gemini.json").read_text()
         )
+        # api.enabled is a user-configurable local toggle, not a fixed schema
+        # value — pin the fixture baseline to enabled=True so tests don't
+        # silently inherit whatever value happens to be committed in
+        # env/platforms/gemini.json. Tests that need the disabled path set
+        # cfg["api"] = {"enabled": False} explicitly.
+        self.platform_cfg["api"] = {"enabled": True}
         self._write_json(
             self.root / "env" / "mcp" / "sample.json",
             {

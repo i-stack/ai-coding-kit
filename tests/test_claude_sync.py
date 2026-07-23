@@ -64,6 +64,12 @@ class ClaudeSyncTests(unittest.TestCase):
         self.platform_cfg = json.loads(
             (REPO_ROOT / "env" / "platforms" / "claude.json").read_text()
         )
+        # api.enabled is a user-configurable local toggle, not a fixed schema
+        # value — pin the fixture baseline to enabled=True so tests don't
+        # silently inherit whatever value happens to be committed in
+        # env/platforms/claude.json. Tests that need the disabled path set
+        # cfg["api"] = {"enabled": False} explicitly.
+        self.platform_cfg["api"] = {"enabled": True}
 
         # Seed env/mcp/ with a sample server
         self._write_json(
