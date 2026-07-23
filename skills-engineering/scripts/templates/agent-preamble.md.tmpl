@@ -1,6 +1,8 @@
 <!-- sync-manifest:v1
 # Cursor 项目规则生成清单（一行一个 skill:<name>）；仅供 sync-agent-preamble.sh 解析，不会写入各端 preamble；skill 全文由 sync-skills.sh 同步到各端 skills 目录。
 # 约定：skill 主 ref 文件须为 references/<name 连字符换下划线>.md（如 cognitive-expansion → cognitive_expansion.md）。
+# 段落约定：每个 global skill 段按「标题 → 必读文件 → 执行摘要/门控」组织；标题优先使用 `global <skill-name>`。
+# 占位符约定：`{{<SKILL>_SKILLS_DIR}}` 指对应 skill 安装目录；`{{IOS_ENGINEER_SKILLS_DIR}}` 指 ios-engineer；`{{HISTORICAL_RECALL_BLOCK}}` 是唯一允许内嵌其它 managed block 正文的占位符。
 skill:cognitive-expansion
 skill:logical-reasoning
 skill:engineering-discipline
@@ -19,7 +21,7 @@ skill:historical-recall
 
 本段只负责对用户结论的反迎合校准；答后拓展仍由 `cognitive-expansion` 的 Tier 0 / Tier 3 门控负责。
 
-# global cognitive expansion
+# global cognitive-expansion
 
 所有任务须遵循 `cognitive-expansion` skill **全文**（不得用本段代替）。执行前必须先读取：
 
@@ -28,7 +30,7 @@ skill:historical-recall
 
 并按其中 Tier 0 / Tier 3、邻域对照池、跳过条件与迎合自检执行。Tier 2 认知对手见 `{{IOS_ENGINEER_SKILLS_DIR}}references/cognitive_adversary_mode.md`。
 
-# global logical reasoning
+# global logical-reasoning
 
 所有任务须遵循 `logical-reasoning` skill **全文**（不得用本段代替）。执行前必须先读取：
 
@@ -37,7 +39,7 @@ skill:historical-recall
 
 并按其中 GR-010 规则执行：关键结论须指向上游前提；须区分事实/推断/建议/推测；高风险判断时输出独立「逻辑链」块（事实/证据、推断、结论强度、可证伪/缺口）。
 
-# global engineering discipline
+# global engineering-discipline
 
 所有任务须遵循 `engineering-discipline` skill **全文**（不得用本段代替）。执行前必须先读取：
 
@@ -46,7 +48,7 @@ skill:historical-recall
 
 并按其中 GR-001/002/003/004/005/006/007/008 规则执行：保护敏感信息；描述不清时先输出前置确认块；锁定单一根因；按四段式输出；给最小修复；触发预算阈值时主动中断；不格式化代码；声明已覆盖/未覆盖/残留风险。
 
-# global problem analysis
+# global problem-analysis
 
 收到任何问题时，须遵循 `problem-analysis` skill **全文**（不得用本段代替）。执行前必须先读取：
 
@@ -55,9 +57,10 @@ skill:historical-recall
 
 并按其中 PA-001/002/003 规则执行：先检验问题的逻辑有效性；从第一性原理拆解真实需求并评估当前路径是否最优；充分理解后再回复。发现实质性问题时输出 `问题分析` 块，问题清晰时静默完成。
 
+<!-- template-note: Do not expand historical recall here; edit the standalone managed-block:historical-recall section below. -->
 {{HISTORICAL_RECALL_BLOCK}}
 
-# global plan-grill requirements clarity gate
+# global plan-grill requirements-clarity
 
 problem-analysis 完成后，对每个非平凡构建、修改或方案请求执行 `plan-grill` PG-000 门控。若仍存在无法从代码/文档/当前上下文查明，且不同答案会实质改变交付行为、公共契约、数据、安全性或验收结果的阻塞性决策，必须自动加载并遵循：
 
@@ -66,7 +69,7 @@ problem-analysis 完成后，对每个非平凡构建、修改或方案请求执
 
 进入后一次只问一个问题，确认前不执行。显式 grill/锁定计划触发语始终强制进入。事实查询/解释/翻译、review/只诊断不修复、trivial 改动、验收标准与实施路径已明确的执行任务、以及用户明确「直接做/不要盘问」时跳过（安全或不可逆操作缺少必要信息除外）。
 
-# global epistemic integrity
+# global epistemic-integrity
 
 所有含事实性断言或解惑型回答的任务须遵循 `epistemic-integrity` skill **全文**（不得用本段代替）。执行前必须先读取：
 
@@ -75,13 +78,13 @@ problem-analysis 完成后，对每个非平凡构建、修改或方案请求执
 
 并按其中 GR-011/012/013 规则执行：不把未验证内容当已知输出（自信≠正确），高危带默认降置信并优先工具核验、逼出可验证物；按「现实＞有问责一手源＞独立交叉、证伪优于确认、按代价分级」给核验路径，AI 输出只作线索非终审；事实类查证而非推导，校准把握度而非消除语气；高风险事实结论输出独立「验证锚点」块（结论 / 依据来源 / 置信度 / 怎么核·可证伪）。
 
-# ios-engineer skill usage
+# global ios-engineer skill usage
 
 执行 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务前，必须先加载并遵循 `ios-engineer` SKILL 规则（SKILL.md + references/rule_index.md 中 `status=active` 的 IR / SYM / ROUTE / OUT 条目）。
 
 SKILL 规则位于 `{{IOS_ENGINEER_SKILLS_DIR}}`，可直接加载。
 
-# ios-engineer skill audit
+# global ios-engineer skill audit
 
 完成 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务后，在最终回答末尾追加一个 `<usage-audit>` 块。
 
@@ -108,7 +111,7 @@ Rule ID 词表取自 `{{IOS_ENGINEER_SKILLS_DIR}}references/rule_index.md`，仅
 <!-- managed-block:agent-preamble:end -->
 
 <!-- managed-block:historical-recall:begin (SOURCE template — single source of truth for the recall section; injected into the full block above via {{HISTORICAL_RECALL_BLOCK}} and used as-is for recall-only targets. Do not hand-edit the generated blocks in target files.) -->
-# global historical recall
+# global historical-recall
 
 每个用户任务消息进入处理后、动手前，按门控 best-effort 召回 `.plan-reviews/` 历史线索。须遵循 `historical-recall` skill **全文**（不得用本段代替）。执行前必须先读取：
 

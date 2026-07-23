@@ -188,6 +188,7 @@ render_managed_block() {
     index($0, begin) > 0 { inblock = 1; print begin_line; next }
     inblock && index($0, end) > 0 { print end_line; exit }
     inblock {
+      if ($0 ~ /^<!-- template-note:/) next
       if ($0 == "{{HISTORICAL_RECALL_BLOCK}}") {
         while ((getline l < phfile) > 0) print l
         next
