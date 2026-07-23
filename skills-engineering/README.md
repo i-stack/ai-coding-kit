@@ -299,6 +299,24 @@ bash scripts/sync-memory.sh --remove
 - `migration_strategy.md`：重构、灰度、回滚和迁移
 - `self_evolution.md`：技能自进化治理
 
+## 跨技能协调与 i18n 治理
+
+多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `ios-engineer` 认知对手模式 CAM）。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`）：
+
+### 多技能叠加口径（D1-D5）
+
+- **前置确认被盘问吸收（GR-002 ↔ PG-000）**：任务描述不清时，`engineering-discipline` GR-002 的「前置确认」不另起独立块；若 `plan-grill` PG-000 已进入盘问，该确认问题被吸收为盘问首问，按「一次只问一个」推进。
+- **战略性中断同 anchor 合并（GR-006 ↔ GR-002）**：`GR-006` 战略性中断若在盘问/排查期间触发，其「前置确认」块与 GR-002 同 anchor 合并，≥2 战略分支吸收 GR-002 提问，不重复输出。
+- **CAM 机械格式保留（GR-004 ↔ ios-engineer CAM）**：CAM 激活时，其 `Step 0–6 + 置信度` 字段已承载 `逻辑链` / `验证锚点` 的校准语义，二者不另起独立块；但 CAM 字段须按「最终输出格式」原样输出，不得省略或并入其它块。
+- **跨块置信度归一**：同一回复内所有置信 / 强度信号（逻辑链结论强度、验证锚点置信度、CAM 置信度、认知校准不确定）必须同源、写同一值，归一到本轮唯一保留的字段。
+- **分级读取与预算上限**：各 skill「须先读 references 全文」仅在该 skill 详规确被命中时执行；多技能同轮触发时按 `问题分析(输入) → 工程纪律 / 论证 / 真值接地(论证与交付) → 计划盘问(计划锁定) → 平台 specifics` 分配读取与输出预算，避免叠加爆炸触发 GR-006 中断。
+
+### i18n 镜像治理
+
+- **zh 源 + en-US 镜像**：`SKILL.md` / `references/*.md` 的 zh-CN 为唯一真源；`i18n/en-US/` 是分发改写产物（`sync-skills.sh` 同步全文到各端）。
+- **同步纪律**：改动任一协调条款的 zh 源，必须同步更新对应 en-US 镜像，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL（zh 源 ↔ en-US 镜像双向锚点断言）。
+- **覆盖校验**：`validate-skill-behavior.sh` 在 pre-push 阶段检查 i18n 镜像覆盖与跨技能硬链提示。
+
 ## 演进工作流
 
 对 `ios-engineer/SKILL.md` 或 `ios-engineer/references/*.md` 做规则变更时，默认走受控演进流程：
