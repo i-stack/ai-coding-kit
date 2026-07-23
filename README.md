@@ -33,6 +33,12 @@ bash sync.sh
 
 欢迎 Windows 用户在 Windows 上验证并提交 PR。核心同步逻辑已尽量保持跨平台，适配改动预计较小。
 
+---
+
+> **🔒 纯本地同步，API 永不离机。** sync 引擎仅在你的本机文件系统内工作——将 `env/secrets.json` 中的密钥注入 MCP 定义，渲染到各平台本地配置文件。**不会上传任何数据到外部服务器，不会调用任何网络 API。** 你的 API Key 始终只保存在这台机器上。[可查看 sync 源码](sync/) 。
+>
+> **🔒 Local-only sync. Your API keys never leave this machine.** The sync engine works entirely within your local filesystem — it reads secrets from `env/secrets.json`, injects them into MCP definitions, and renders them into each platform's local config files. **No data is uploaded to any external server. No network API is called.** Your API keys stay on this machine, always. [verify in the sync source code](sync/).
+
 ## 模块
 
 各模块有独立的 README，按需深入：
