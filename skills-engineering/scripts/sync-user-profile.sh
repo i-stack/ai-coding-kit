@@ -13,7 +13,7 @@
 #      指示 Agent 读取该画像并按其调整输出
 #   4. 若 USER.md 不存在，则移除所有已注入的托管块（清理）
 #
-# 该托管块与 sync-agent-preamble.sh 的 ios-engineer 块标记不同，互不干扰。
+# 该托管块与 sync-agent-preamble.sh 的 agent-preamble 块标记不同，互不干扰。
 #
 # 用法:
 #   bash scripts/sync-user-profile.sh            # 同步 / 清理

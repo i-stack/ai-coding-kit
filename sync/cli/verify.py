@@ -31,6 +31,7 @@ _STALE_DIRS = frozenset({
 # Required content patterns for full-preamble verification.
 # Each entry: (label_for_error_message, substring_that_must_exist)
 _FULL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
+    ("managed-block begin marker", "<!-- managed-block:agent-preamble:begin"),
     ("tilde-ified skill path", "SKILL 规则位于 `~"),
     ("cognitive-expansion reference", "cognitive-expansion/references/cognitive_expansion.md"),
     ("logical-reasoning reference", "logical-reasoning/references/logical_reasoning.md"),
@@ -42,7 +43,7 @@ _FULL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
 
 # Required content patterns for standalone recall-preamble verification (Cline / Qwen,
 # plus any platform explicitly configured with preamble.mode=recall). These targets
-# get only the historical-recall managed block, not the full ios-engineer preamble.
+# get only the historical-recall managed block, not the full agent-preamble.
 # Checking content rather than just inode existence catches stale or empty files.
 _RECALL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
     ("managed-block begin marker", "<!-- managed-block:historical-recall:begin"),

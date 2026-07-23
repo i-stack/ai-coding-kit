@@ -219,7 +219,7 @@ CURSOR_PROJECT_ROOTS="/path/to/appA:/path/to/appB" ./scripts/sync-agent-preamble
 Claude / Codex 两端同样遵循 `SYNC_CLAUDE` / `SYNC_CODEX` 门控语义（`1 / 0 / 留空自动探测`）；Cursor 侧由 `CURSOR_PROJECT_ROOTS` 是否设置来决定，不复用 `SYNC_CURSOR`。
 Xcode Codex / Claude 侧分别遵循 `SYNC_XCODE_CODEX` / `SYNC_XCODE_CLAUDE` 门控语义（`1 / 0 / 留空自动探测`），默认写入 `codex/AGENTS.md` 与 `ClaudeAgentConfig/CLAUDE.md`。
 
-脚本只重写 `<!-- managed-block:ios-engineer:begin ... :end -->` 托管块，保留文件中的其他内容。
+脚本只重写 `<!-- managed-block:agent-preamble:begin ... :end -->` 托管块（并兼容迁移旧的 `ios-engineer` 托管块标记），保留文件中的其他内容。
 
 ### 3. 校验同步结果
 
@@ -259,7 +259,7 @@ curl -fsSL https://raw.githubusercontent.com/i-stack/ai-coding-kit/main/skills-e
 
 对标 Hermes Agent 的持久记忆系统，提供两层互补的长期记忆，均跨会话、跨端共享：
 
-**L0 — 用户画像（`sync-user-profile.sh`）**：用户从仓库根 `USER.md.example` 复制出 `USER.md`（已 gitignore）手动维护稳定偏好 / 角色 / 约束；脚本把画像同步到 `~/.ai-coding-kit/USER.md`，并在各端 preamble 注入独立的 `user-profile` 托管块（与 ios-engineer 块互不干扰）。
+**L0 — 用户画像（`sync-user-profile.sh`）**：用户从仓库根 `USER.md.example` 复制出 `USER.md`（已 gitignore）手动维护稳定偏好 / 角色 / 约束；脚本把画像同步到 `~/.ai-coding-kit/USER.md`，并在各端 preamble 注入独立的 `user-profile` 托管块（与 agent-preamble 块互不干扰）。
 
 **L1 — 事件级记忆（`sync-memory.sh`）**：交互中累积的纠正、项目约定与决策理由，落在本机 `~/.ai-coding-kit/MEMORY.md`（仓库外，无需 gitignore）。脚本向各端 preamble 注入独立的 `user-memory` 托管块，并把自身复制到 `~/.ai-coding-kit/sync-memory.sh` 作为 Agent 的稳定调用入口：
 
@@ -277,7 +277,7 @@ bash scripts/sync-memory.sh
 bash scripts/sync-memory.sh --remove
 ```
 
-两层记忆与 `user-profile`、`ios-engineer` 托管块标记各自独立，`sync-agent-preamble.sh` 重写 ios-engineer 块时不会破坏它们；`verify-sync.sh` 只校验 ios-engineer 块的 tilde 化，不受新增块影响。
+两层记忆与 `user-profile`、`agent-preamble` 托管块标记各自独立，`sync-agent-preamble.sh` 重写 agent-preamble 块时不会破坏它们；`verify-sync.sh` 校验 agent-preamble 块的标记与关键路径，不受新增块影响。
 
 ## ios-engineer 技能概览
 
@@ -493,7 +493,7 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/scripts/
 - **P0-2 agentskills.io 兼容打包/导入/校验**：新增 `scripts/skill_bundles.sh`（`export` / `validate` / `import` / `list`），把任一 skill 打包成 agentskills.io 兼容产物（`SKILL.md` + `references/` + `bundle.json` 含 sha256），支持从社区 Skills Hub / Hermes 兼容 bundle 导入。导出产物落在 `skills-engineering/.bundles/`（已 gitignore）。
 - **P1-3 定时同步自动化**：新增 `cron/`（launchd 默认、`--cron` 可选 crontab），`run-sync.sh` 复用 `sync.sh` + 技能同步 + preamble + 校验，日志滚动保留 30 份。
 - **P1-4 可选 MCP 服务器目录**：新增 `env/optional-mcps/`（playwright 改名 `puppeteer` 避免与默认 `env/mcp/playwright.json` 冲突；另含 `filesystem-extra`、`wechat-bridge` 示例）与 `sync/scripts/optional_mcps.sh`（`enable` / `disable` / `list` / `sync`）。`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认 `env/mcp/*.json`。
-- **P1-5 跨会话用户画像**：新增仓库根 `USER.md.example` 与 `scripts/sync-user-profile.sh`，把用户画像同步到 `~/.ai-coding-kit/USER.md` 并注入各端 preamble 的 `user-profile` 托管块（与 ios-engineer 块标记独立、互不干扰）；个人 `USER.md` 已 gitignore。现已接入 `sync-skill-full.sh` / `bootstrap.sh`（含 `SKIP_USER_PROFILE`）/ `cron/run-sync.sh`，使该能力真正通电。
+- **P1-5 跨会话用户画像**：新增仓库根 `USER.md.example` 与 `scripts/sync-user-profile.sh`，把用户画像同步到 `~/.ai-coding-kit/USER.md` 并注入各端 preamble 的 `user-profile` 托管块（与 agent-preamble 块标记独立、互不干扰）；个人 `USER.md` 已 gitignore。现已接入 `sync-skill-full.sh` / `bootstrap.sh`（含 `SKIP_USER_PROFILE`）/ `cron/run-sync.sh`，使该能力真正通电。
 - **P1-5b 跨会话事件记忆**：新增 `scripts/sync-memory.sh`，落 `~/.ai-coding-kit/MEMORY.md`（仓库外、跨端共享），提供 `remember "..." [--tag]` / `recall [关键词]` 子命令；向各端 preamble 注入独立的 `user-memory` 托管块，并把脚本自复制到 `~/.ai-coding-kit/sync-memory.sh` 作为 Agent 稳定调用入口。补齐 Hermes 持久记忆中「从交互自动累积」的那一层（user-profile 为静态手维护，memory 为事件级累积，二者互补）。同样接入 `sync-skill-full.sh` / `bootstrap.sh`（`SKIP_MEMORY`）/ `cron/run-sync.sh`。
 - **P2-6 多平台模型路由抽象**：新增 `sync/scripts/list_models.sh`（跨平台 model/provider 配置总览，密钥打码）与 `sync/model_routing.md`（统一 Provider 层设计说明）。
 - **P2-7 子代理并行同步**：`scripts/sync-skills.sh` 支持 `PARALLEL=1`（默认 `MAX_PARALLEL=4`），把 (skill × target) 同步以子代理式后台并行执行。

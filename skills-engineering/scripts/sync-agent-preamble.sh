@@ -47,8 +47,10 @@ CURSOR_PROJECT_ROOTS="${CURSOR_PROJECT_ROOTS:-}"
 # platform's `preamble` declaration in env/platforms/<platform>.json — see the
 # data-driven loop below. No per-platform hardcoding remains here.
 
-BEGIN_MARKER="<!-- managed-block:ios-engineer:begin"
-END_MARKER="<!-- managed-block:ios-engineer:end"
+BEGIN_MARKER="<!-- managed-block:agent-preamble:begin"
+END_MARKER="<!-- managed-block:agent-preamble:end"
+LEGACY_BEGIN_MARKER="<!-- managed-block:ios-engineer:begin"
+LEGACY_END_MARKER="<!-- managed-block:ios-engineer:end"
 CLAUDE_ROUTER_BEGIN_MARKER="<!-- managed-block:claude-router-pro-mode:begin"
 CLAUDE_ROUTER_END_MARKER="<!-- managed-block:claude-router-pro-mode:end"
 RECALL_BEGIN_MARKER="<!-- managed-block:historical-recall:begin"
@@ -77,7 +79,7 @@ Usage:
 Renders scripts/templates/agent-preamble.md.tmpl into preamble managed blocks and
 generates Cursor .mdc rules from skill references (see sync-manifest in tmpl).
 
-Preamble targets (full ios-engineer block):
+Preamble targets (full agent-preamble block):
   ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md, Xcode AGENTS.md / CLAUDE.md
 
 Recall-only targets (historical-recall managed block, no ios-engineer audit):
@@ -164,10 +166,34 @@ render_managed_block() {
   pg_dir="$(sibling_skill_dir "${skills_dir}" "plan-grill")"
   ei_dir="$(sibling_skill_dir "${skills_dir}" "epistemic-integrity")"
   hr_dir="$(sibling_skill_dir "${skills_dir}" "historical-recall")"
-  awk -v begin="${begin_marker}" -v end="${end_marker}" '
-    index($0, begin) > 0 { inblock = 1; print; next }
-    inblock && index($0, end) > 0 { print; exit }
+
+  # The historical-recall section lives in ONE place in this template (the
+  # managed-block:historical-recall block). Full-mode blocks reference it via the
+  # {{HISTORICAL_RECALL_BLOCK}} placeholder so the text is never duplicated,
+  # while recall-only targets use that block as-is.
+  local hr_block_file
+  hr_block_file="$(mktemp)"
+  awk -v begin="${RECALL_BEGIN_MARKER}" -v end="${RECALL_END_MARKER}" '
+    index($0, begin) > 0 { inblock = 1; next }
+    inblock && index($0, end) > 0 { exit }
     inblock { print }
+  ' "${TEMPLATE}" > "${hr_block_file}"
+
+  awk -v begin="${begin_marker}" \
+      -v end="${end_marker}" \
+      -v begin_line="${begin_marker} (auto-generated from scripts/templates/agent-preamble.md.tmpl — do not edit; run scripts/sync-agent-preamble.sh) -->" \
+      -v end_line="${end_marker} -->" \
+      -v phfile="${hr_block_file}" '
+    BEGIN { inblock = 0 }
+    index($0, begin) > 0 { inblock = 1; print begin_line; next }
+    inblock && index($0, end) > 0 { print end_line; exit }
+    inblock {
+      if ($0 == "{{HISTORICAL_RECALL_BLOCK}}") {
+        while ((getline l < phfile) > 0) print l
+        next
+      }
+      print
+    }
   ' "${TEMPLATE}" | sed -e "s|{{TOOL_NAME}}|${tool_name}|g" \
       -e "s|{{SKILLS_DIR}}|${skills_dir}|g" \
       -e "s|{{COGNITIVE_EXPANSION_SKILLS_DIR}}|${ce_dir}|g" \
@@ -178,6 +204,8 @@ render_managed_block() {
       -e "s|{{EPISTEMIC_INTEGRITY_SKILLS_DIR}}|${ei_dir}|g" \
       -e "s|{{HISTORICAL_RECALL_SKILLS_DIR}}|${hr_dir}|g" \
       -e "s|{{RECALL_CLI_PATH}}|${RECALL_CLI_PATH}|g"
+
+  rm -f "${hr_block_file}"
 }
 
 sync_target() {
@@ -206,6 +234,24 @@ sync_target() {
     awk -v rendered_file="${rendered}" \
         -v begin="${begin_marker}" \
         -v end="${end_marker}" '
+      BEGIN { in_block = 0 }
+      {
+        if (!in_block && index($0, begin) > 0) {
+          in_block = 1
+          while ((getline line < rendered_file) > 0) print line
+          next
+        }
+        if (in_block && index($0, end) > 0) {
+          in_block = 0
+          next
+        }
+        if (!in_block) print
+      }
+    ' "${target}" > "${new_content}"
+  elif [[ "${begin_marker}" == "${BEGIN_MARKER}" ]] && grep -Fq "${LEGACY_BEGIN_MARKER}" "${target}"; then
+    awk -v rendered_file="${rendered}" \
+        -v begin="${LEGACY_BEGIN_MARKER}" \
+        -v end="${LEGACY_END_MARKER}" '
       BEGIN { in_block = 0 }
       {
         if (!in_block && index($0, begin) > 0) {

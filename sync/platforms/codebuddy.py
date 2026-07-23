@@ -13,7 +13,7 @@ from core.paths import (
 )
 
 # ── Standalone historical recall (used only when preamble.mode=recall) ──
-# CodeBuddy normally receives the full ios-engineer preamble from
+# CodeBuddy normally receives the full agent-preamble from
 # sync-agent-preamble.sh. This renderer is kept for explicit recall-mode configs
 # and uses the same template as other standalone recall targets.
 _RECALL_BEGIN = "<!-- managed-block:historical-recall:begin"

@@ -16,7 +16,7 @@
 #   4. `recall [关键词]`：打印全部记忆，或按关键词过滤（字面短语匹配：-F 固定字符串，
 #      多词按完整短语而非分词；如 `recall swift async` 搜的是字面量 "swift async"）
 #
-# 该托管块与 user-profile / ios-engineer 块标记互相独立，互不干扰。
+# 该托管块与 user-profile / agent-preamble 块标记互相独立，互不干扰。
 #
 # 用法:
 #   bash scripts/sync-memory.sh                  # 注入托管块 + 自复制（幂等）
