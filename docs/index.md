@@ -64,7 +64,7 @@ npm install -g @i-stack/ai-coding-kit
 | **Cursor** | `.cursor/mcp.json` |
 | **CodeBuddy** | `.codebuddy/mcp.json`, `models.json`, `skills/` |
 | **Claude Code** | `.claude.json`, `settings.json`, `skills/` |
-| **Codex CLI** | `.codex/config.toml`, `mcp.generated.toml` |
+| **Codex CLI** | `.codex/config.toml` |
 | **Gemini CLI** | Environment variables |
 | **Continue** | `.continue/config.yaml` |
 | **Cline** (VSCode) | MCP settings JSON, `skills/` |
@@ -75,7 +75,7 @@ npm install -g @i-stack/ai-coding-kit
 | Module | Description |
 |--------|------------|
 | **skills-engineering/** | Agent Skill content, multi-platform sync, governed evolution |
-| **sync/** | MCP config sync engine — injects secrets, renders to native formats |
+| **sync/** | MCP config sync engine — injects secrets, renders to native formats. See [Platform Sync Contract](/platform-sync-contract) for API sync ownership rules |
 | **env/** | Config data source (secrets + MCP definitions + platform configs) |
 | **hooks/** | Project hooks (xmcp init, etc.) |
 | **.githooks/** | Git commit/push guards (pre-commit + pre-push) |

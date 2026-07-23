@@ -22,6 +22,7 @@ ACR_REFS = ACR_DIR / "references"
 SCRIPTS_DIR = SE_DIR / "scripts"
 TEMPLATES_DIR = SCRIPTS_DIR / "templates"
 CONFIG_LOADER = SCRIPTS_DIR / "load-auto-review-config.py"
+ACR_I18N_EN = ACR_DIR / "i18n" / "en-US" / "references"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -116,9 +117,9 @@ class SkillMdContentTests(unittest.TestCase):
             "SKILL.md should reference references/auto_code_review.md"
         )
 
-    def test_has_all_eight_rules(self):
-        """SKILL.md should define ACR-001 through ACR-008."""
-        for i in range(1, 9):
+    def test_has_all_nine_rules(self):
+        """SKILL.md should define ACR-001 through ACR-009."""
+        for i in range(1, 10):
             rule_id = f"ACR-{i:03d}"
             self.assertIn(
                 rule_id, self.content,
@@ -157,6 +158,14 @@ class SkillMdContentTests(unittest.TestCase):
 
     def test_acr008_single_model_degradation(self):
         self.assertIn("单模型降级", self.content)
+
+    def test_acr009_execution_package_quorum(self):
+        self.assertIn("执行包与 quorum 证明", self.content)
+        self.assertIn("review package", self.content)
+        self.assertIn("selected reviewers", self.content)
+        self.assertIn("Expected reviewer count", self.content)
+        # Finding 4: ACR-009 summary must forbid review-only from declaring gate passed
+        self.assertIn("不得声明 gate", self.content)
 
     def test_has_trigger_section(self):
         self.assertIn("模式", self.content)
@@ -256,6 +265,28 @@ class ReferenceContentTests(unittest.TestCase):
         self.assertIn("WARNING", self.content)
         self.assertIn("单模型自审", self.content)
 
+    def test_acr009_review_package_required_fields(self):
+        self.assertIn("ACR-009", self.content)
+        for item in [
+            "Review mode:",
+            "Review scope:",
+            "Change intent:",
+            "Patch source:",
+            "Tests:",
+            "Selected reviewers:",
+            "Expected reviewer count:",
+            "Sensitive paths excluded:",
+        ]:
+            self.assertIn(item, self.content)
+
+    def test_acr009_quorum_fail_closed_conditions(self):
+        self.assertIn("selected reviewer quorum", self.content)
+        for item in ["timeout", "failed", "invalid-verdict", "Raw:", "Verdict:"]:
+            self.assertIn(item, self.content)
+        self.assertIn("raw 缺失", self.content)
+        self.assertIn("非法 verdict", self.content)
+        self.assertIn("同一轮所有 selected reviewers", self.content)
+
     def test_safety_rules(self):
         self.assertIn("安全与质量自检", self.content)
         self.assertIn("600 秒 timeout", self.content)
@@ -297,8 +328,115 @@ class AgentBriefContentTests(unittest.TestCase):
         self.assertIn("AUTO_REVIEW_REVIEWER", self.content)
         self.assertIn("AUTO_REVIEW_MAX_ROUNDS", self.content)
 
+    def test_has_review_package_and_quorum_brief(self):
+        self.assertIn("review package", self.content)
+        self.assertIn("selected reviewers", self.content)
+        self.assertIn("expected reviewer count", self.content)
+        self.assertIn("raw 路径", self.content)
+        self.assertIn("同一轮所有 selected reviewers", self.content)
+        # Finding 5: lock the quorum-proof key sentence so it cannot be deleted
+        self.assertIn("必须能证明每轮 selected reviewer quorum", self.content)
+        # review-only must not claim gate passed after one round of APPROVED
+        self.assertIn("不因一轮 APPROVED 自动声明实现 gate 已通过", self.content)
+
     def test_has_comparison_with_cross_model_review(self):
         self.assertIn("cross-model-review", self.content)
+
+
+# ═══════════════════════════════════════════════════════════════
+# Docs Content Tests
+# ═══════════════════════════════════════════════════════════════
+
+class DocsContentTests(unittest.TestCase):
+    """Verify docs/auto-code-review.md contains the review package template,
+    quorum conditions, and the review-only gate-pass prohibition (Finding 7)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.content = (SE_DIR / "docs" / "auto-code-review.md").read_text(encoding="utf-8")
+
+    def test_has_review_package_template(self):
+        for item in [
+            "Review mode:",
+            "Review scope:",
+            "Change intent:",
+            "Files:",
+            "Patch source:",
+            "Tests:",
+            "Selected reviewers:",
+            "Expected reviewer count:",
+            "Sensitive paths excluded:",
+        ]:
+            self.assertIn(item, self.content, f"docs missing package field: {item}")
+
+    def test_files_template_is_multiline_list(self):
+        # Must use the structured multi-line Files: list, not the inline form
+        self.assertNotIn("Files: <文件列表>", self.content)
+        self.assertIn("Files:\n-", self.content)
+
+    def test_quorum_condition_present(self):
+        self.assertIn("quorum", self.content)
+        self.assertIn("APPROVED", self.content)
+        self.assertIn("未通过", self.content)
+        self.assertIn("冻结 selected reviewers", self.content)
+
+    def test_review_only_no_gate_pass(self):
+        # Finding 2: review-only must not declare gate passed
+        self.assertIn("通过 gate", self.content)
+        self.assertIn("reviewers approved, no code changes made", self.content)
+
+
+# ═══════════════════════════════════════════════════════════════
+# en-US i18n Mirror Content Tests
+# ═══════════════════════════════════════════════════════════════
+
+class EnUsI18nContentTests(unittest.TestCase):
+    """Verify the en-US i18n mirror stays in sync with the zh-CN source,
+    especially ACR-009 required fields and fail-closed quorum (Finding 1)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.skill = (ACR_I18N_EN / "skill.md").read_text(encoding="utf-8")
+        cls.ref = (ACR_I18N_EN / "auto_code_review.md").read_text(encoding="utf-8")
+        cls.brief = (ACR_I18N_EN / "agent_brief.md").read_text(encoding="utf-8")
+
+    def test_i18n_files_exist(self):
+        for f in ["skill.md", "auto_code_review.md", "agent_brief.md"]:
+            self.assertTrue(
+                (ACR_I18N_EN / f).is_file(),
+                f"en-US i18n reference missing: {f}"
+            )
+
+    def test_acr009_required_fields_present(self):
+        for item in [
+            "Review mode:",
+            "Review scope:",
+            "Change intent:",
+            "Patch source:",
+            "Tests:",
+            "Selected reviewers:",
+            "Expected reviewer count:",
+            "Sensitive paths excluded:",
+        ]:
+            self.assertIn(item, self.ref, f"en-US ref missing ACR-009 field: {item}")
+
+    def test_acr009_quorum_fail_closed_conditions(self):
+        self.assertIn("Selected reviewer quorum", self.ref)
+        for item in ["timeout", "failed", "invalid-verdict", "Raw:", "Verdict:"]:
+            self.assertIn(item, self.ref, f"en-US ref missing quorum token: {item}")
+        self.assertIn("fails the round", self.ref)
+        self.assertIn("every selected reviewer", self.ref)
+
+    def test_review_only_no_gate_pass_in_ref(self):
+        self.assertIn("gate passed", self.ref)
+
+    def test_review_only_no_gate_pass_in_skill(self):
+        # Mirror of SKILL.md ACR-009; keeps entry summary in sync
+        self.assertIn("gate passed", self.skill)
+
+    def test_quorum_proof_in_brief(self):
+        self.assertIn("quorum", self.brief)
+        self.assertIn("selected reviewer", self.brief)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -812,6 +950,13 @@ class VerifySyncIntegrationTests(unittest.TestCase):
         )
         self.assertIn("OK:", result.stdout)
 
+    def test_sync_whitelist_includes_i18n(self):
+        # Regression guard: sync-skills.sh must push the i18n/ mirror so
+        # installed copies don't silently drop en-US translations.
+        sync_script = (SCRIPTS_DIR / "sync-skills.sh").read_text(encoding="utf-8")
+        self.assertIn('/i18n/"', sync_script)
+        self.assertIn('/i18n/**', sync_script)
+
 
 # ═══════════════════════════════════════════════════════════════
 # Workflow Consistency Tests
@@ -840,7 +985,7 @@ class WorkflowConsistencyTests(unittest.TestCase):
         preamble = (SE_DIR / "scripts" / "templates" / "agent-preamble.md.tmpl").read_text(encoding="utf-8")
         self.assertIn("PG-000", pg_skill)
         self.assertIn("条件自动进入", pg_skill)
-        self.assertIn("global requirements clarity gate", preamble)
+        self.assertIn("global plan-grill requirements-clarity", preamble)
         self.assertIn("{{PLAN_GRILL_SKILLS_DIR}}references/plan_grill.md", preamble)
 
     def test_workflow_chain_in_skill_md(self):

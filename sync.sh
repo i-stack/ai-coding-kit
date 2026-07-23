@@ -13,11 +13,12 @@
 #
 # 用户唯一需要配置的文件:
 #   env/secrets.json       — 填写 API Keys / Tokens
-#   （从 env/secrets.json.example 复制并编辑）
+#   （clone 后先运行 bash install.sh 初始化，再编辑 secrets.json）
 #
 # 此脚本会：
-#   1. 检查 env/secrets.json 是否存在（不存在则提示创建）
-#   2. 执行 sync/sync_all.sh 同步配置到各 AI 编码工具
+#   1. 检查 env/secrets.json 是否存在（不存在则提示先运行 install.sh）
+#   2. 执行 sync/scripts/sync_all.sh 同步配置到各 AI 编码工具
+#      并按 env/user-profile.json 可选同步跨会话用户画像
 # =============================================================================
 set -euo pipefail
 
@@ -25,6 +26,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MCP_DIR="$SCRIPT_DIR/env/mcp"
 SECRETS_FILE="$SCRIPT_DIR/env/secrets.json"
 SECRETS_EXAMPLE="$SCRIPT_DIR/env/secrets.json.example"
+CONFIG_FILE="$SCRIPT_DIR/env/config.json"
+CONFIG_EXAMPLE="$SCRIPT_DIR/env/config.json.example"
 
 # --- 颜色输出 ---
 RED='\033[0;31m'
@@ -49,11 +52,20 @@ check_secrets() {
   if [ ! -f "$SECRETS_FILE" ]; then
     echo_error "env/secrets.json 不存在！"
     echo ""
-    echo -e "  ${CYAN}# 这是你唯一需要配置的文件：${NC}"
-    echo -e "  ${CYAN}cp env/secrets.json.example env/secrets.json${NC}"
+    echo -e "  ${CYAN}# 先运行初始化（从 .example 模板创建本地配置）：${NC}"
+    echo -e "  ${CYAN}bash install.sh${NC}"
     echo -e "  ${CYAN}\$EDITOR env/secrets.json${NC}"
     echo ""
-    echo -e "  填入你的 API Keys，然后重新运行 bash sync.sh"
+    echo -e "  填入你的 API Keys / Tokens / URLs，然后重新运行 bash sync.sh"
+    echo -e "  （路径覆盖等可选非密钥配置由 install.sh 一并创建）"
+    exit 1
+  fi
+  # 仍是未改的模板占位符则提示填写，避免把占位值写进各工具配置
+  if diff -q "$SECRETS_FILE" "$SECRETS_EXAMPLE" >/dev/null 2>&1; then
+    echo_error "env/secrets.json 仍是模板占位符，请先填入真实 API Keys / Tokens："
+    echo ""
+    echo -e "  ${CYAN}\$EDITOR env/secrets.json${NC}"
+    echo -e "  填入后重新运行 bash sync.sh"
     exit 1
   fi
 }
@@ -67,13 +79,21 @@ check_mcp() {
   fi
 }
 
+# --- 检查 config.json（可选，非密钥的本地路径覆盖）---
+check_config() {
+  if [ ! -f "$CONFIG_FILE" ]; then
+    echo_warn "env/config.json 不存在（可选）：使用默认安装路径。"
+    echo_warn "如需覆盖各工具安装根目录或配置 Cursor 项目根，可 bash install.sh 后编辑 env/config.json。"
+  fi
+}
+
 # --- 执行同步 ---
 run_sync() {
   echo_step "开始同步配置到各 AI 编码工具..."
   echo ""
 
   # 调用 sync_all.sh 执行全部同步
-  bash "$SCRIPT_DIR/sync/sync_all.sh"
+  bash "$SCRIPT_DIR/sync/scripts/sync_all.sh"
 
   echo ""
   echo_ok "同步完成！"
@@ -85,9 +105,11 @@ run_sync() {
   echo -e "  • Xcode Codex      (~/Library/Developer/Xcode/CodingAssistant/codex/)"
   echo -e "  • Claude Code      (~/.claude.json, settings.json)"
   echo -e "  • Xcode Claude     (~/Library/Developer/Xcode/CodingAssistant/ClaudeAgentConfig/)"
-  echo -e "  • Cline            (VSCode MCP settings)"
-  echo -e "  • Gemini CLI       (环境变量)"
+  echo -e "  • Cline            (~/.cline/data/globalState.json, secrets.json, skills)"
+  echo -e "  • Gemini CLI       (~/.gemini/settings.json, ~/.zshrc env)"
   echo -e "  • Continue         (~/.continue/config.yaml)"
+  echo -e "  • Qwen Code        (~/.qwen/settings.json, skills)"
+  echo -e "  • User Profile     (~/.ai-coding-kit/USER.md, optional)"
 }
 
 # --- 主流程 ---
@@ -99,6 +121,7 @@ echo ""
 
 check_secrets
 check_mcp
+check_config
 
 if [ "$FORCE" = true ]; then
   run_sync

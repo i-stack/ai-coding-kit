@@ -1,0 +1,9 @@
+{
+  "name": "puppeteer",
+  "type": "stdio",
+  "command": "npx",
+  "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+  "env": {},
+  "platforms": ["claude", "codex", "codebuddy", "cursor", "cline", "gemini"],
+  "_comment": "可选 MCP：基于 Puppeteer 的浏览器自动化（与默认 playwright 互补，择一启用）。enable 后由 sync.sh 自动发现。"
+}

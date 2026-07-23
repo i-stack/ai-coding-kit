@@ -23,6 +23,8 @@ For questions with unclear descriptions, insufficient context, or ambiguity, mus
 
 **Principle**: Facts that can be read from engineering or context should be read first, don't make the user repeat input; only ask the minimum questions needed to disambiguate the main assumption; specific follow-up dimensions are completed by the corresponding task's primary read ref.
 
+**Coordination (with PG-000 / GR-006 / PA-003):** If `plan-grill` PG-000 has already entered grilling, this rule's pre-confirmation question is absorbed as the first grill question, and no separate "Pre-confirmation" block is opened. Grilling proceeds per PG-001 "one question at a time"; this rule's "≥1 question" folds into the grill cadence and is not asked again. If `GR-006` strategic interruption triggers during grilling or troubleshooting, its standalone "Pre-confirmation" block merges with this rule at the same anchor — the ≥2 strategic branches the interruption block must contain absorb this rule's question and are not listed separately. This differs from `problem-analysis` PA-003's "Problem Analysis" block: PA-003 addresses the input (the problem) itself and sits before the formal reply, so it is kept independent from this block (see GR-004 Multi-block Merging).
+
 ## GR-003 Single Root Cause Lock
 
 By default, first lock 1 highest-probability root cause or main path, with at most 1 backup supplement; do not expand multiple major branches simultaneously to consume context.
@@ -69,6 +71,25 @@ High-risk tasks often trigger multiple structure blocks simultaneously (`Logic C
 
 **Criterion**: Each fact written only once; "conclusion strength = confidence" written once; outward-specific "how to verify (primary source / tool)" and inward-specific "gaps / assumptions" can each take one line in the merged block, but do not start a separate frame. Without four-section format (pure factual Q&A), `Logic Chain` + `Verification Anchor` merge into a single block.
 
+#### Inclusion of Calibration Layer and iOS-specific Blocks
+
+The above merging covers the trio's (engineering / logic / epistemic) audit blocks. The following structures must coordinate under the same "one reply one audit area, field deduplication" principle to avoid stacking into silos:
+
+- **Cognitive Adversary Mode (CAM / ios-engineer Tier 2):** Its Step 0–6 and `Confidence: X%` field overlap heavily with `Logic Chain` and `Verification Anchor` semantics. Coordination: **do not duplicate output semantics, but preserve the CAM mechanical format** — when CAM is active, `Logic Chain` and `Verification Anchor` do not open as separate blocks (their semantics are already carried by CAM fields); CAM's own fields (Step 0–6 + `Confidence`) are output verbatim per the Cognitive Adversary detail spec, and must not be omitted or merged into other blocks (see that mode's "Relationship with Engineering Skills"); the preamble's lightweight calibration section is also carried by CAM at this point (see global cognitive calibration section). Only when CAM is unavailable does it fall back to a merged `Logic Chain` + `Verification Anchor` block.
+- **iOS-specific blocks:** `Version Baseline` (IR-006), `<usage-audit>` (audit block) do not overlap with four-section / Verification Anchor semantics and stay independent; but they must be declared not to conflict with the audit area — `Version Baseline` belongs to pre-constraints, `<usage-audit>` to the tail; neither crowds the audit area.
+
+#### Cross-block Confidence Coordination
+
+All confidence / strength signals within the same reply must be **co-sourced**: `Logic Chain` "conclusion strength", `Verification Anchor` "confidence", CAM `Confidence`, `Cognitive Calibration` "uncertain" — when they point to the same judgment, they must write the same value / level; there must be no "high strength" + "low confidence" + "unverified" fighting each other. Take the weakest falsifiable evidence as the basis (minimum), appear only once within the merged block, and normalize the caliber to **the single confidence / conclusion-strength field retained this round** (when CAM carries it: `Confidence: X%`; otherwise `Verification Anchor`'s "confidence" or `Logic Chain`'s "conclusion strength").
+
+#### Read and Budget Ceiling when Multiple SKILLs Stack (Mitigate Stack Explosion)
+
+When multiple global skills trigger in the same round, do not each "force full-text read" indiscriminately, exhausting budget and forcing a GR-006 interruption:
+
+- **Graded reading:** Each skill's "must first read references/...md in full" only executes when **that skill's detail spec is genuinely triggered**; an untriggered skill does not load its ref (the preamble section itself is the gate summary, which can be used to judge).
+- **Priority order:** When multiple skills trigger in the same round, allocate read and output budget per `problem-analysis (input) → engineering-discipline / logical-reasoning / epistemic-integrity (argumentation and delivery) → plan-grill (plan locking) → ios-engineer (platform specifics)`; argumentation refs are read first, platform / tool refs only when the task falls on that platform.
+- **Budget declaration:** Within a single reply, the total number of independent output blocks triggered by stacked skills should be controlled; those mergeable by this SOP (audit-class) merge into a single audit area; those not mergeable (problem analysis / residual risk / cognitive footnote / usage-audit) stay independent but concise; if still approaching GR-006's 15-turn / 3-failure threshold, prioritize completing "minimal usable reply + residual risk statement", leaving deep dives to later rounds rather than spreading multiple skill full-texts in parallel.
+
 ## GR-005 Minimal Fix Priority
 
 First give the minimal verifiable fix; do not first propose whole-module rewrites, architecture overhauls, or large-scale refactoring.
@@ -105,6 +126,7 @@ Do not format code unless explicitly asked to format the current code.
 **Execution details**:
 - When any interruption condition is met, AI must proactively announce a **strategic interruption** (interruption is not giving up, but loss containment), and output a standalone "Pre-confirmation" block.
 - In the confirmation block: honestly acknowledge current cognitive limitations, organize the 3 failed paths already tried, point out epistemological vulnerabilities in current reasoning (GR-010/011 intersection), provide user with ≥2 decision branches with strategic turning significance for user adjudication.
+- **Coordination (with GR-002 / PG-000):** If this interruption occurs during `plan-grill` PG-000 grilling, this interruption block **merges with `engineering-discipline` GR-002's "Pre-confirmation" at the same anchor**, without duplicate output; its ≥2 strategic branches absorb GR-002's question, and grilling proceeds per PG-001 "one question at a time" (see GR-002 Coordination clause).
 - Strictly prohibited to use temporary `guards`, `retries`, or irrelevant `logs` to forcibly delay tool consumption.
 
 ## GR-008 Change Coverage Statement

@@ -1,4 +1,8 @@
 {
+    "_comment": "CodeBuddy model configuration synced when CodeBuddy is installed. API model fields sync by default; set api.enabled=false to disable API sync and clear the managed availableModels list.",
+    "api": {
+        "enabled": false
+    },
     "models": [
         {
             "id": "deepseek-v4-pro",
@@ -30,5 +34,10 @@
     "availableModels": [
         "deepseek-v4-pro",
         "deepseek-v4-flash"
-    ]
+    ],
+    "preamble": {
+        "target": "CODEBUDDY.md",
+        "mode": "full",
+        "tool": "codebuddy"
+    }
 }

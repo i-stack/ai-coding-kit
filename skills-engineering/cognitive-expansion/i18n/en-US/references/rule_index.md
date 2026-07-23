@@ -20,7 +20,7 @@
 | CE-003 | active | Blind spot (falsifiable hard criterion): 1 hidden assumption/missed dimension/pitfall, must contain (assumption X) + (observable trigger Y) + (if Y then X is wrong negation condition); if can't write it, skip entire section | Same as above |
 | CE-004 | active | Adjacent domain (mechanism-related): 1 adjacent field comparison, must be mechanism-related to current question, no same-tech-stack word-shuffling repetition of main text | Same as above |
 | CE-005 | active | Takeaway: 1 reusable self-check question or if-then rule, no chicken soup | Same as above |
-| CE-006 | active | Tier 0/Tier 2 mutual exclusion: when Cognitive Adversary (Tier 2) is triggered, output full calibration structure, no separate Tier 0 | Same as above |
+| CE-006 | active | Tier 0/Tier 2 mutual exclusion: when Cognitive Adversary (Tier 2) is triggered, output full calibration structure, no separate Tier 0; this exclusion extends to the preamble lightweight calibration section (carried by CAM when active) | Same as above |
 | CE-007 | active | Deep Dive · Mental Model: model name + 1 sentence on how it applies to this problem | Same as above |
 | CE-008 | active | Deep Dive · Cross-domain Analogy: non-same-tech-stack, mechanism-aligned analogy; must name the mapped mechanism, no cliché/word-shuffle analogies (guardrails see cognitive_expansion.md §Tier 3) | Same as above |
 | CE-009 | active | Deep Dive · Verification Action: 1 specific action doable within 7 days | Same as above |

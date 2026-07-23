@@ -18,7 +18,7 @@ node dist/cli.js sync
 node dist/cli.js merge
 ```
 
-用户显式启动 `auto-code-review` 后，ACR-006 会在审查前执行 `recall`、归档后执行 `sync`+`merge`。`plan-grill` 条件自动或显式进入盘问时也会在第一问前执行 `recall`。普通明确执行任务不会因此进入盘问。
+用户显式启动 `auto-code-review` 后，由全局 `historical-recall` 在动手前 best-effort 执行 `recall`，`auto-code-review` 归档后负责 `sync`+`merge`。`plan-grill` 进入盘问前，历史召回同样由全局 `historical-recall` 统一负责，本 skill 不再内联。普通明确执行任务不会因此进入盘问。
 
 `cosine` 仅表示向量余弦相似度，`lexical` 表示本地词法覆盖分，两者都不是经校准的「命中率」或正确概率。
 

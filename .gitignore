@@ -1,12 +1,13 @@
 .DS_Store
 
-# skills-engineering: local machine sync config (see scripts/config.local.sh.example)
-skills-engineering/scripts/config.local.sh
-
-# env/: only secrets.json is gitignored.
+# env/: secrets.json (keys/tokens/urls) and config.json (path overrides) are gitignored.
 # env/mcp/*.json and env/platforms/*.json are committed (use ${VAR} references, no real secrets).
-# User only needs to create env/secrets.json from env/secrets.json.example.
+# User creates env/secrets.json and (optionally) env/config.json from their .example templates.
 env/secrets.json
+env/config.json
+env/backup.json
+# 可选 MCP 启用状态（本机本地状态，不提交；脚本缺失时自动重建为 {}）
+env/optional_mcps/enabled.json
 
 *__pycache__*/
 .analysis_output/
@@ -23,5 +24,16 @@ docs/.vitepress/.temp/
 
 skills-engineering/ios-engineer/evolution/usage/*
 !skills-engineering/ios-engineer/evolution/usage/usage.jsonl
+# 自动生成的提案去重注册表（由 suggest_skill_proposals.sh 维护）
+skills-engineering/ios-engineer/evolution/.auto_proposal_registry.json
+# skill_bundles.sh 导出的 agentskills.io bundle 产物
+skills-engineering/.bundles/
+# 用户个人画像（从 env/user-profile.md.example 复制，不提交）
+env/user-profile.md
+env/user-profile.json
+# 技能完整性校验基线（由 validate-skill-integrity.sh 生成）
+skills-engineering/.integrity/
 templates/portability-ecosystem.md
 PRD/
+env/review.json
+*__init__.py

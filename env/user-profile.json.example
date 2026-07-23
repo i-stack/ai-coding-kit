@@ -1,0 +1,5 @@
+{
+  "_enabled_options": "enabled 必须是字符串 \"auto\" | \"on\" | \"off\"（不能写布尔值 true/false，否则会被判为无效配置并报错退出）。auto：画像文件存在才同步，不存在则跳过；on：强制同步，画像不存在或为空则报错；off：跳过同步。",
+  "enabled": "auto",
+  "source": "env/user-profile.md"
+}

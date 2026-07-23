@@ -15,14 +15,17 @@ SYNC_DIR = REPO_ROOT / "sync"
 if str(SYNC_DIR) not in sys.path:
     sys.path.insert(0, str(SYNC_DIR))
 
-import sync_config  # noqa: E402
-from platforms import common  # noqa: E402
+from cli import sync_config  # noqa: E402
+from core import common  # noqa: E402
 
 
 @contextlib.contextmanager
 def patched_sync_environment(root: Path):
+    import core.paths as _paths
     old_env = {k: os.environ.get(k) for k in ("HOME", "CODEX_HOME", "CODEX_CONFIG")}
     old_paths = (common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH)
+    old_paths_cfg = _paths.CONFIG_PATH
+    old_overrides = _paths._PATH_OVERRIDES
     old_argv = sys.argv[:]
     try:
         os.environ["HOME"] = str(root / "home")
@@ -31,6 +34,10 @@ def patched_sync_environment(root: Path):
         common.MCP_DIR = root / "env" / "mcp"
         common.PLATFORMS_DIR = root / "env" / "platforms"
         common.SECRETS_PATH = root / "env" / "secrets.json"
+        # Isolate path overrides so a developer's local env/config.json
+        # can't leak into this test (empty config => default paths).
+        _paths.CONFIG_PATH = root / "env" / "config.json"
+        _paths._PATH_OVERRIDES = None
         yield
     finally:
         for key, value in old_env.items():
@@ -39,6 +46,8 @@ def patched_sync_environment(root: Path):
             else:
                 os.environ[key] = value
         common.MCP_DIR, common.PLATFORMS_DIR, common.SECRETS_PATH = old_paths
+        _paths.CONFIG_PATH = old_paths_cfg
+        _paths._PATH_OVERRIDES = old_overrides
         sys.argv = old_argv
 
 
@@ -47,6 +56,12 @@ class CodexSyncTests(unittest.TestCase):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = Path(self.tmp.name)
         self.platform_cfg = json.loads((REPO_ROOT / "env" / "platforms" / "codex.json").read_text())
+        # api.enabled is a user-configurable local toggle, not a fixed schema
+        # value — pin the fixture baseline to enabled=True so tests don't
+        # silently inherit whatever value happens to be committed in
+        # env/platforms/codex.json. Tests that need the disabled path set
+        # cfg["api"] = {"enabled": False} explicitly.
+        self.platform_cfg["api"] = {"enabled": True}
         self._write_json(
             self.root / "env" / "mcp" / "sample.json",
             {
@@ -71,6 +86,7 @@ class CodexSyncTests(unittest.TestCase):
 
     def _run_codex_sync(self, cfg: dict) -> tuple[str, dict]:
         self._write_json(self.root / "env" / "platforms" / "codex.json", cfg)
+        (self.root / "home" / ".codex").mkdir(parents=True, exist_ok=True)
         with patched_sync_environment(self.root):
             sys.argv = ["sync_config.py", "--target", "codex"]
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -111,6 +127,18 @@ class CodexSyncTests(unittest.TestCase):
         self.assertNotIn("model_provider", parsed)
         self.assertEqual(parsed["model_providers"]["dataeyes"]["name"], "dataeyes")
         self.assertEqual(parsed["model_providers"]["dataeyes"]["base_url"], "https://codex.example/v1")
+
+    def test_model_provider_null_is_commented_not_literal_none(self) -> None:
+        # Regression: with no model_provider, the selector must be commented out
+        # — never written as `model_provider = "None"`.
+        cfg = dict(self.platform_cfg)
+        cfg["model_provider"] = None
+
+        config_text, parsed = self._run_codex_sync(cfg)
+
+        self.assertNotIn('model_provider = "None"', config_text)
+        self.assertIn("# model_provider", config_text)
+        self.assertNotIn("model_provider", parsed)
 
     def test_model_provider_empty_syncs_commented_selector_and_provider_table(self) -> None:
         cfg = dict(self.platform_cfg)
@@ -159,55 +187,137 @@ class CodexSyncTests(unittest.TestCase):
         self.assertTrue(zshrc_text.startswith("before\n"))
         self.assertTrue(zshrc_text.endswith("after\n"))
 
+    def test_api_disabled_omits_managed_api_fields(self) -> None:
+        # Per platform-sync-contract cleanup policy, disabling API sync must
+        # DELETE (not comment out) model_provider / preferred_auth_method /
+        # model_providers so re-sync is deterministic.
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+
+        config_text, parsed = self._run_codex_sync(cfg)
+
+        self.assertNotIn("model_provider", config_text)
+        self.assertNotIn("preferred_auth_method", config_text)
+        self.assertNotIn("[model_providers", config_text)
+        self.assertNotIn("model_providers", parsed)
+        # Non-API fields and MCP still sync.
+        self.assertEqual(parsed["model"], "gpt-5.5")
+        self.assertIn("mcp_servers", parsed)
+
+    def test_api_disabled_clears_env_block(self) -> None:
+        cfg = dict(self.platform_cfg)
+        cfg["api"] = {"enabled": False}
+        zshrc = self.root / "home" / ".zshrc"
+        zshrc.parent.mkdir(parents=True, exist_ok=True)
+        zshrc.write_text(
+            "before\n"
+            "# BEGIN CODEX ENV SYNC (from env/platforms/codex.json)\n"
+            "export DATAEYES_API_KEY=old-value\n"
+            "# END CODEX ENV SYNC\n"
+            "after\n",
+            encoding="utf-8",
+        )
+
+        self._run_codex_sync(cfg)
+
+        zshrc_text = zshrc.read_text(encoding="utf-8")
+        self.assertNotIn("DATAEYES_API_KEY", zshrc_text)
+        self.assertTrue(zshrc_text.startswith("before\n"))
+        self.assertTrue(zshrc_text.endswith("after\n"))
+
+    def test_api_re_enable_restores_api_fields(self) -> None:
+        disabled = dict(self.platform_cfg)
+        disabled["api"] = {"enabled": False}
+        self._run_codex_sync(disabled)
+
+        # Re-enable (self.platform_cfg carries api.enabled=true).
+        config_text, parsed = self._run_codex_sync(self.platform_cfg)
+
+        self.assertIn('model_provider = "dataeyes"', config_text)
+        self.assertIn('preferred_auth_method = "apikey"', config_text)
+        self.assertEqual(parsed["model_providers"]["dataeyes"]["base_url"], "https://codex.example/v1")
+
+    def test_api_default_enabled_when_block_missing(self) -> None:
+        cfg = dict(self.platform_cfg)
+        cfg.pop("api", None)
+
+        config_text, parsed = self._run_codex_sync(cfg)
+
+        self.assertIn('model_provider = "dataeyes"', config_text)
+        self.assertEqual(parsed["model_providers"]["dataeyes"]["name"], "dataeyes")
+
+    def test_missing_codex_root_skips_sync_and_env_export(self) -> None:
+        cfg = dict(self.platform_cfg)
+        zshrc = self.root / "home" / ".zshrc"
+        zshrc.parent.mkdir(parents=True, exist_ok=True)
+        zshrc.write_text("export OTHER=value\n", encoding="utf-8")
+        self._write_json(self.root / "env" / "platforms" / "codex.json", cfg)
+
+        with patched_sync_environment(self.root):
+            sys.argv = ["sync_config.py", "--target", "codex"]
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                sync_config.main()
+
+        self.assertFalse((self.root / "home" / ".codex").exists())
+        self.assertEqual(zshrc.read_text(encoding="utf-8"), "export OTHER=value\n")
+
+    def test_missing_xcode_path_skips_xcode_codex_target_only(self) -> None:
+        config_text, parsed = self._run_codex_sync(self.platform_cfg)
+
+        self.assertIn("mcp_servers", parsed)
+        self.assertIn("sample", parsed["mcp_servers"])
+        self.assertIn("# BEGIN MCP SYNC", config_text)
+        self.assertFalse((self.root / "home" / ".codex" / "mcp.generated.toml").exists())
+        self.assertFalse(
+            (
+                self.root
+                / "home"
+                / "Library"
+                / "Developer"
+                / "Xcode"
+                / "CodingAssistant"
+                / "codex"
+            ).exists()
+        )
+
+    def test_xcode_codex_sync_uses_config_toml_without_generated_toml(self) -> None:
+        xcode_root = self.root / "home" / "Library" / "Developer" / "Xcode" / "CodingAssistant"
+        xcode_root.mkdir(parents=True, exist_ok=True)
+
+        self._run_codex_sync(self.platform_cfg)
+
+        xcode_codex = xcode_root / "codex"
+        config_path = xcode_codex / "config.toml"
+        self.assertTrue(config_path.exists())
+        self.assertFalse((xcode_codex / "mcp.generated.toml").exists())
+        parsed = tomllib.loads(config_path.read_text(encoding="utf-8"))
+        self.assertIn("sample", parsed["mcp_servers"])
+
     def test_codex_json_properties_are_mapped_or_excluded_as_expected(self) -> None:
         config_text, parsed = self._run_codex_sync(self.platform_cfg)
 
         covered_keys = {
+            "_comment",
+            "api",
             "model",
-            "personality",
-            "model_provider",
-            "model_reasoning_effort",
-            "model_verbosity",
-            "model_reasoning_summary",
-            "plan_mode_reasoning_effort",
-            "hide_agent_reasoning",
             "sandbox_mode",
             "approval_policy",
             "allow_login_shell",
             "default_permissions",
-            "web_search",
-            "file_opener",
-            "project_doc_max_bytes",
-            "project_doc_fallback_filenames",
-            "model_providers",
-            "history",
             "sandbox_workspace_write",
-            "tools",
-            "shell_environment_policy",
-            "tui",
-            "agents",
-            "memories",
-            "analytics",
-            "feedback",
-            "features",
-            "projects",
+            "model_provider",
+            "model_providers",
             "export_env_to_zshrc",
+            "preamble",
         }
         self.assertEqual(set(self.platform_cfg), covered_keys)
 
         expected_root = {
             "model": "gpt-5.5",
-            "personality": "pragmatic",
-            "model_reasoning_effort": "medium",
-            "model_verbosity": "medium",
-            "model_reasoning_summary": "auto",
-            "plan_mode_reasoning_effort": "medium",
             "sandbox_mode": "workspace-write",
             "approval_policy": "on-request",
             "allow_login_shell": True,
             "default_permissions": ":workspace",
-            "project_doc_max_bytes": 32768,
-            "project_doc_fallback_filenames": ["CODEBUDDY.md", "CLAUDE.md"],
         }
         for key, expected in expected_root.items():
             self.assertEqual(parsed[key], expected, key)
@@ -220,19 +330,6 @@ class CodexSyncTests(unittest.TestCase):
                     "writable_roots": [],
                     "exclude_tmpdir_env_var": False,
                     "exclude_slash_tmp": False,
-                },
-                "features": {
-                    "skills": True,
-                    "multi_agent": True,
-                    "hooks": True,
-                    "shell_snapshot": True,
-                    "unified_exec": True,
-                    "shell_tool": True,
-                    "memories": True,
-                    "personality": True,
-                    "fast_mode": True,
-                    "enable_request_compression": True,
-                    "skill_mcp_dependency_install": True,
                 },
             },
             "parsed",

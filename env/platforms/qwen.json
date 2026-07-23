@@ -1,0 +1,49 @@
+{
+    "_comment": "Qwen Code platform configuration. Mirrors ~/.qwen/settings.json: top-level 'security', 'modelProviders', 'model', and 'env' are synced into settings.json. Model definitions (~/.qwen/models.json) are owned by Qwen itself and are NOT managed here. API fields sync by default; set api.enabled=false to disable API sync (removes the managed env key and the managed security/modelProviders/model fields). '$version' is managed by Qwen itself and is never synced.",
+    "api": {
+        "enabled": true
+    },
+    "security": {
+        "auth": {
+            "selectedType": "openai"
+        }
+    },
+    "env": {
+        "__AUTO__": "${qwen.key}"
+    },
+    "modelProviders": {
+        "openai": [
+            {
+                "id": "deepseek-v4-flash",
+                "name": "deepseek-v4-flash",
+                "baseUrl": "${qwen.url}",
+                "envKey": "__AUTO__",
+                "generationConfig": {
+                    "extra_body": {
+                        "enable_thinking": true
+                    }
+                }
+            },
+            {
+                "id": "deepseek-v4-pro",
+                "name": "deepseek-v4-pro",
+                "baseUrl": "${qwen.url}",
+                "envKey": "__AUTO__",
+                "generationConfig": {
+                    "extra_body": {
+                        "enable_thinking": true
+                    }
+                }
+            }
+        ]
+    },
+    "model": {
+        "name": "deepseek-v4-flash",
+        "baseUrl": "${qwen.url}"
+    },
+    "preamble": {
+        "target": "QWEN.md",
+        "mode": "recall",
+        "tool": "qwen"
+    }
+}

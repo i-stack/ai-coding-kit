@@ -18,12 +18,6 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-LOCAL_CONFIG="${SCRIPT_DIR}/config.local.sh"
-if [[ -f "${LOCAL_CONFIG}" ]]; then
-  # shellcheck disable=SC1090
-  source "${LOCAL_CONFIG}"
-fi
-
 SKILL_NAME="${SKILL_NAME:-ios-engineer}"
 SOURCE_HOOKS_DIR="${SOURCE_HOOKS_DIR:-${REPO_ROOT}/${SKILL_NAME}/hooks}"
 CLAUDE_HOOKS_DIR="${CLAUDE_HOOKS_DIR:-${HOME}/.claude/hooks}"

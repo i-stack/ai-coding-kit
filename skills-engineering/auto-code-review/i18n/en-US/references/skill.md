@@ -15,16 +15,17 @@ When this skill is triggered, you MUST read [references/auto_code_review.md](../
 - Do NOT probe reviewer CLIs, invoke reviewers, or create review archives without explicit authorization in the current request.
 - Runtime prerequisites (not distributed with the skill sync package; must be provided by the host environment): `env/review.json` (template: `env/review.json.example`), in-project `.auto-review-config.json`, and `AUTO_REVIEW_*` environment variables. See `AGENT-BRIEF.md` and `docs/auto-code-review.md` for configuration loading priority and field semantics.
 
-## Eight Core Rules
+## Nine Core Rules
 
 - [ACR-001] **Explicit Authorization Gate**: The skill is entered ONLY when the user explicitly triggers it; completion of code changes is NOT a trigger. Configuration can only control capability availability — it cannot represent authorization for the current request.
 - [ACR-002] **Traceable Scope**: Prefer reviewing changes precisely recorded in the current request. When the boundary cannot be proven, ask the user to choose staged or worktree. Do NOT present `git diff HEAD` as "this round's changes".
 - [ACR-003] **Reviewer Read-Only**: The reviewer ALWAYS runs in read-only mode, outputting review comments without modifying files.
 - [ACR-004] **Layered Write Permissions**: Default is `review-only`; the main agent only triages and reports. Only when the user explicitly specifies `--fix` or "review and fix" may the main agent apply fixes and re-review.
 - [ACR-005] **MAX_ROUNDS=3**: `review-only` runs exactly one round; `review-and-fix` runs at most 3 rounds. On non-convergence, output deadlock — do NOT fake a pass.
-- [ACR-006] **Post-Authorization Closed Loop**: After explicit trigger, execute recall → review → archive → sync → merge. Archives are written to `.plan-reviews/` and belong only to the authorized review session.
+- [ACR-006] **Post-Authorization Closed Loop**: After explicit trigger, execute review → archive → sync → merge. History recall is now handled by the global `historical-recall` skill, so this skill no longer recalls inline. Archives are written to `.plan-reviews/` and belong only to the authorized review session.
 - [ACR-007] **Configurable Reviewer**: Reviewer, rounds, and single-model fallback are all configurable. `AUTO_REVIEW_ENABLED=false` is the capability-level disable switch; `true` does NOT constitute user authorization.
 - [ACR-008] **Single-Model Fallback Requires Explicit Permission**: Same-model self-review is NOT performed by default. Fallback occurs only when explicitly allowed by configuration, and logs must note reduced credibility.
+- [ACR-009] **Execution Package and Quorum Proof**: Before invoking reviewers, create one shared review package. Each round MUST record selected reviewers, expected reviewer count, raw output paths, legal verdicts, and pass/fail reasons. A round passes only when every selected reviewer returns a legal standalone `VERDICT: APPROVED`; missing reviewers, missing raw output, timeout, or invalid verdict all fail closed. In review-only mode, do NOT declare the gate passed; report "reviewers approved, no code changes made" instead.
 
 ## Modes
 

@@ -37,7 +37,7 @@ This skill's contract is carried by the following `CE-NNN` rules, with the sourc
 - [CE-003] Blind spot (falsifiable hard criterion): 1 hidden assumption/missed dimension/pitfall, must contain (assumption X) + (observable trigger Y) + (if Y then X is wrong negation condition); if can't write it, skip entire section.
 - [CE-004] Adjacent domain (mechanism-related): 1 adjacent field comparison, must be mechanism-related to current question, no same-tech-stack word-shuffling repetition of main text.
 - [CE-005] Takeaway: 1 reusable self-check question or if-then rule, no chicken soup.
-- [CE-006] Tier 0/Tier 2 mutual exclusion: when Cognitive Adversary (Tier 2) is triggered, output full calibration structure, no separate Tier 0.
+- [CE-006] Tier 0/Tier 2 mutual exclusion: when Cognitive Adversary (Tier 2) is triggered, output full calibration structure, no separate Tier 0; this exclusion also extends to the preamble lightweight calibration section (carried by CAM when active).
 - [CE-007] Deep Dive · Mental Model: model name + 1 sentence on how it applies to this problem.
 - [CE-008] Deep Dive · Cross-domain Analogy: non-same-tech-stack, mechanism-aligned analogy; must name the mapped mechanism, no cliché/word-shuffle analogies (guardrails see references/cognitive_expansion.md §Tier 3).
 - [CE-009] Deep Dive · Verification Action: 1 specific action doable within 7 days.

@@ -10,7 +10,12 @@
 #                                        ~/.claude/CLAUDE.md, ~/.codex/AGENTS.md,
 #                                        Xcode codex/AGENTS.md,
 #                                        Xcode ClaudeAgentConfig/CLAUDE.md
-#                                        (and optional Cursor project rules)
+#                                        (and optional Cursor project rules),
+#                                        plus the historical-recall block into
+#                                        ~/.cline/rules/,
+#                                        ~/.codebuddy/CODEBUDDY.md,
+#                                        ~/.qwen/QWEN.md
+#                                        (Continue recall is injected by sync.sh)
 #
 # One-liner for a fresh device:
 #   curl -fsSL https://raw.githubusercontent.com/i-stack/ai-coding-kit/main/skills-engineering/scripts/bootstrap.sh | bash
@@ -21,10 +26,12 @@
 #                          the script prompts interactively (Enter = default).
 #                          Default: ~/Desktop/github/ai-coding-kit
 #   REF                    Branch/tag/commit to check out after clone. Default: main
-#   CURSOR_PROJECT_ROOTS   Passthrough to sync-agent-preamble.sh (optional)
+#   CURSOR_PROJECT_ROOTS   One-shot override for env/config.json paths.cursor_project_roots
 #   SKIP_PREAMBLE=true     Skip sync-agent-preamble.sh
 #   SKIP_SKILLS=true       Skip sync-skills.sh
 #   SKIP_CLAUDE_HOOKS=true Skip sync-claude-hooks.sh
+#   SKIP_USER_PROFILE=true Skip sync-user-profile.sh (cross-session user profile)
+#   SKIP_MEMORY=true       Skip sync-memory.sh (cross-session event memory)
 
 set -euo pipefail
 
@@ -97,6 +104,20 @@ if [[ "${SKIP_CLAUDE_HOOKS:-false}" != "true" ]]; then
   "${SCRIPTS_DIR}/sync-claude-hooks.sh"
 fi
 
+if [[ "${SKIP_USER_PROFILE:-false}" != "true" ]]; then
+  echo "---"
+  echo "Running sync-user-profile.sh"
+  if ! "${SCRIPTS_DIR}/sync-user-profile.sh"; then
+    echo "  sync-user-profile.sh FAILED (optional; continuing)" >&2
+  fi
+fi
+
+if [[ "${SKIP_MEMORY:-false}" != "true" ]]; then
+  echo "---"
+  echo "Running sync-memory.sh"
+  "${SCRIPTS_DIR}/sync-memory.sh"
+fi
+
 echo "---"
 echo "Bootstrap complete."
 echo "Source repo: ${CLONE_TARGET}"
@@ -104,3 +125,5 @@ echo "Re-run sync anytime with:"
 echo "  ${SCRIPTS_DIR}/sync-skills.sh"
 echo "  ${SCRIPTS_DIR}/sync-agent-preamble.sh"
 echo "  ${SCRIPTS_DIR}/sync-claude-hooks.sh"
+echo "  ${SCRIPTS_DIR}/sync-user-profile.sh"
+echo "  ${SCRIPTS_DIR}/sync-memory.sh"

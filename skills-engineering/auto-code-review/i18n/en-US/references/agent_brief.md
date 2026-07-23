@@ -16,10 +16,12 @@ User-explicitly-triggered cross-model code review; read-only by default; main ag
 2. Confirm explicit trigger exists in the current session; distinguish `review-only` vs `review-and-fix`.
 3. Load `env/review.json`, `.auto-review-config.json`, `AUTO_REVIEW_*`; configuration does NOT substitute user authorization.
 4. Confirm review scope: precise changes from the current request; otherwise ask the user to choose staged or worktree.
-5. Recall historical reviews first, then invoke the reviewer in read-only mode.
-6. `review-only` only triages, reports, and archives — no code modifications.
-7. `review-and-fix` allows the main agent to fix and re-review, up to 3 rounds.
-8. After archiving, best-effort execute sync + merge.
+5. Create one shared review package; record mode, scope, file list, patch source, test status, selected reviewers, and expected reviewer count.
+6. History recall is handled by the global `historical-recall` skill, so invoke the reviewer directly in read-only mode (no inline recall).
+7. Freeze selected reviewers each round; every reviewer must have status, raw path, and legal verdict records. Missing reviewers, timeouts, missing raw output, or invalid verdicts all fail closed.
+8. `review-only` only triages, reports, and archives — no code modifications, and no implementation gate-pass claim.
+9. `review-and-fix` allows the main agent to fix and re-review, up to 3 rounds; all selected reviewers must APPROVE in the same round to pass.
+10. After archiving, best-effort execute sync + merge.
 
 ## When NOT to Invoke
 
@@ -41,7 +43,7 @@ Priority: `env/review.json` → `.auto-review-config.json` → `AUTO_REVIEW_*`.
 
 Reference template: `env/review.json.example`.
 
-Archive contains `QUESTION.md`, `RESPONSE.md`, `REVIEW-LOG.md`, `diff.patch`, and `raw/`.
+Archive contains `QUESTION.md`, `RESPONSE.md`, `REVIEW-LOG.md`, `diff.patch`, and `raw/`. `REVIEW-LOG.md` must prove selected reviewer quorum for every round.
 
 ## Permission Boundaries
 

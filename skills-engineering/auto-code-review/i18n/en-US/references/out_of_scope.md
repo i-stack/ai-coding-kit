@@ -12,7 +12,7 @@ This skill does **NOT** handle the following scenarios:
 - Pure documentation updates (.md files)
 - Minor configuration tweaks (single-line changes)
 - Typo fixes, formatting adjustments
-- These scenarios skip automatic review.
+- These scenarios are NOT handled by this skill, and review is NOT started automatically.
 
 ## 3. Conversations Without Code Changes
 

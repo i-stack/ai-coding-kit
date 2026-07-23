@@ -1,7 +1,15 @@
 {
-    "_comment": "平台配置模板。复制到 env/platforms/<name>.json，填入该平台配置。敏感值使用 ${platform.field} 占位，同步时从 env/secrets.json 注入。",
+    "_comment": "平台配置模板。复制到 env/platforms/<name>.json，填入该平台配置。敏感值使用 ${platform.field} 占位，同步时从 env/secrets.json 注入。支持第三方 API 的平台可用 api.enabled 控制是否同步 API 字段；Claude 默认开启，设置 api.enabled=false 可关闭并清理同步器管理的 API 字段。",
+    "api": {
+        "enabled": false
+    },
     "env": {
         "YOUR_ENV_VAR": "${your-platform.key}",
         "YOUR_BASE_URL": "${your-platform.url}"
+    },
+    "preamble": {
+        "target": "TOOL.md",
+        "mode": "recall",
+        "tool": "your-platform"
     }
 }
