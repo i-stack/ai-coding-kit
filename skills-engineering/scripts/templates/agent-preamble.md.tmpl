@@ -16,11 +16,19 @@ skill:historical-recall
 -->
 
 <!-- managed-block:agent-preamble:begin (SOURCE template — edit this file; sync-agent-preamble.sh renders these blocks into target preambles. Do not hand-edit the generated blocks in target files.) -->
+# global multi-skill coordination（叠加和谐总纲）
+
+多个 global skill 同轮命中时，目标是**互补增强、而非互斥冗余**。协调总纲见 `engineering-discipline` GR-004「多块合并」及其子节（校准层/CAM 纳入、跨块置信度同源、多 SKILL 叠加读取与预算上限）：
+
+- 各 SKILL preamble 段的「必须先读取 references/...md 全文」仅在**该 skill 详规确被命中**时执行；门控未命中不加载其 ref。
+- 同轮命中多 SKILL 时，独立输出块能用 GR-004 合并 SOP 合并的合并为单一审计区；提问类块按 GR-002 协同条款吸收（PG-000 盘问吸收 GR-002；GR-006 中断与 GR-002 同 anchor 合并）。
+- 认知校准三层（preamble 轻量段 / CAM / 逻辑链+验证锚点）按「CAM 激活则 CAM 承载、否则 逻辑链+验证锚点 合并」去重，不重复输出。
+
 # global cognitive calibration
 
 所有任务中，遇到技术决策、架构取舍、根因归因、review 最终判断、用户强烈确信、或用户显式要求「挑战我 / 不要迎合 / red team」时，必须优先接近真实，而不是维持对话和谐。至少做到：复述核心主张、给出最强反驳、列出隐藏假设、说明失效条件和可证伪条件、做迎合自检；证据不足时说「不确定」，不要把未验证推断写成定论。
 
-本段只负责对用户结论的反迎合校准；答后拓展仍由 `cognitive-expansion` 的 Tier 0 / Tier 3 门控负责。完整认知对手流程仅在 `ios-engineer` skill 已加载或该引用可用时按其详规执行；否则本段作为轻量校准要求，不因链接不可达而中断其它任务。
+本段只负责对用户结论的反迎合校准；答后拓展仍由 `cognitive-expansion` 的 Tier 0 / Tier 3 门控负责。完整认知对手流程仅在 `ios-engineer` skill 已加载或该引用可用时按其详规执行；否则本段作为轻量校准要求，不因链接不可达而中断其它任务。当 `ios-engineer` 认知对手模式（Tier 2 / CAM）已激活时，本轻量段的校准由 CAM 完整结构（Step 0–6 + 置信度）承载，不再单独输出——CE-006 的「Tier 0/Tier 2 互斥」在此扩展到 preamble 层，避免与 CAM 重复校准（见 multi-skill coordination 总纲）。
 
 # global cognitive-expansion
 
@@ -63,7 +71,7 @@ skill:historical-recall
 
 # global plan-grill requirements-clarity
 
-problem-analysis 完成后，对每个非平凡构建、修改或方案请求执行 `plan-grill` PG-000 门控。若任务描述本身不足以理解或无法开始，先走 `engineering-discipline` GR-002 前置确认；任务可理解后，PG-000 只处理会实质改变交付行为、公共契约、数据、安全性或验收结果，且无法从代码/文档/当前上下文查明的阻塞性决策。命中时必须自动加载并遵循：
+problem-analysis 完成后，对每个非平凡构建、修改或方案请求执行 `plan-grill` PG-000 门控。若任务描述本身不足以理解或无法开始，先走 `engineering-discipline` GR-002 前置确认；任务可理解后，PG-000 只处理会实质改变交付行为、公共契约、数据、安全性或验收结果，且无法从代码/文档/当前上下文查明的阻塞性决策。命中时必须自动加载并遵循：盘问（PG-000）激活时，`engineering-discipline` GR-002 的前置确认问题被吸收为盘问首问，不另起独立「前置确认」块（详见 GR-002 协同条款）；`GR-006` 战略性中断若发生在盘问期间，其「前置确认」块与 GR-002 同 anchor 合并，避免重复提问。
 
 - `{{PLAN_GRILL_SKILLS_DIR}}SKILL.md`
 - `{{PLAN_GRILL_SKILLS_DIR}}references/plan_grill.md`

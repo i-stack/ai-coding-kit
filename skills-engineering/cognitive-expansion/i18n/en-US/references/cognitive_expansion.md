@@ -25,7 +25,7 @@ Both can coexist: decision-type goes through Cognitive Adversary (Tier 2) first;
 | **Tier 2** | Technical decisions / architecture / root-cause conclusions / review final judgments / user strong conviction | Full Cognitive Adversary Steps 0–6 (see ios-engineer `cognitive_adversary_mode.md`) |
 | **Tier 3** | User writes `【深潜】` or `【拓展】` | Tier 0 + Mental Model + Cross-domain Analogy + 7-day verifiable action |
 
-When Tier 2 is triggered: use the full Cognitive Adversary structure; **no need to separately write** Tier 0 footnote (avoid duplication).
+When Tier 2 is triggered: use the full Cognitive Adversary structure; **do not separately output** the Tier 0 footnote, and the preamble's lightweight cognitive-calibration section is likewise carried by the CAM structure and not output on its own (see CE-006 and the global cognitive calibration section). The three calibration layers are deduplicated to avoid repetition.
 
 ## Trigger Gate (Whether Tier 0 Is Appended)
 

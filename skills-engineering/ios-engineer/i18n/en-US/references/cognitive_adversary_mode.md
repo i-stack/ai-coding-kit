@@ -144,6 +144,7 @@ The user may prepend any of the following to their message as equivalent to expl
 - When this mode is enabled, engineering output (root cause four-section, version baseline, residual risk, etc.) must still comply with SKILL Iron Rules
 - While challenging the user's conclusions, the AI's own argumentation must satisfy [GR-010] (traceable, well-layered, visible reasoning; full details in `logical-reasoning` skill)
 - Engineering output concatenation order: first output this file's "Final Output Format" cognitive calibration block, then append the corresponding engineering skeleton; do not substitute the engineering skeleton for Steps 0–6, nor omit required engineering delivery fields because Steps 0–6 were already output
+- This mode's cognitive calibration fields (Step 0–6 + `Confidence`) already carry the calibration semantics of `Logic Chain` / `Verification Anchor`; when CAM is active, those two do not open as separate blocks (see engineering-discipline GR-004 "Multi-block Merging"), but this mode's fields must still be output verbatim per the "Final Output Format" and must not be omitted or merged into other blocks
 - Code review scenario: first complete judgment calibration per this mode, then output engineering findings per [review_checklists.md](review_checklists.md) findings-first skeleton
 
 ## Process Safeguards (Beyond a Single Prompt)

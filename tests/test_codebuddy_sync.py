@@ -807,5 +807,103 @@ class AgentPreambleTemplateDedupTests(unittest.TestCase):
         self.assertIn("template-note", full)
 
 
+class MultiSkillCoordinationTests(unittest.TestCase):
+    """Guards for the multi-skill combination-harmony fixes (D1–D5).
+
+    Skills are meant to stack as complementary enhancement, never as
+    contradiction. These tests lock the coordination clauses so a future edit
+    cannot silently regress that invariant (e.g. re-introducing a duplicated
+    calibration block or a contradictory question-count rule).
+    """
+
+    TEMPLATE = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "scripts"
+        / "templates"
+        / "agent-preamble.md.tmpl"
+    ).read_text(encoding="utf-8")
+
+    ENG_DISC = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "engineering-discipline"
+        / "references"
+        / "engineering_discipline.md"
+    ).read_text(encoding="utf-8")
+
+    COG_EXP = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "cognitive-expansion"
+        / "references"
+        / "cognitive_expansion.md"
+    ).read_text(encoding="utf-8")
+
+    CAM = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "ios-engineer"
+        / "references"
+        / "cognitive_adversary_mode.md"
+    ).read_text(encoding="utf-8")
+
+    PLAN_GRILL = (
+        REPO_ROOT
+        / "skills-engineering"
+        / "plan-grill"
+        / "references"
+        / "plan_grill.md"
+    ).read_text(encoding="utf-8")
+
+    def test_preamble_has_multi_skill_coordination_section(self) -> None:
+        # D3: the stacking-harmony overview must exist in the preamble template.
+        self.assertIn("# global multi-skill coordination", self.TEMPLATE)
+
+    def test_preamble_cam_suppresses_lightweight_block(self) -> None:
+        # D1: CAM activation must suppress the standalone preamble calibration block.
+        self.assertIn("CAM 激活", self.TEMPLATE)
+        self.assertIn("不再单独输出", self.TEMPLATE)
+
+    def test_engdisc_gr002_absorbs_grill(self) -> None:
+        # D2: GR-002 must state it is absorbed by PG-000 grilling (no duplicate block).
+        self.assertIn("PG-000 已进入盘问", self.ENG_DISC)
+
+    def test_engdisc_gr006_merges_with_gr002(self) -> None:
+        # D2: GR-006 strategic interruption merges with GR-002 same anchor.
+        self.assertIn("本中断块与 `engineering-discipline` GR-002", self.ENG_DISC)
+
+    def test_gr004_has_coordination_subsections(self) -> None:
+        # D3/D4/D5: GR-004 merge SOP must carry the extended subsections.
+        for marker in (
+            "校准层与 iOS 专属层的纳入",
+            "跨块置信度总协调",
+            "多 SKILL 叠加时的读取与预算上限",
+        ):
+            self.assertIn(marker, self.ENG_DISC)
+
+    def test_gr004_cam_keeps_mechanical_format(self) -> None:
+        # D4: CAM fields must be preserved, not collapsed into 逻辑链/验证锚点.
+        self.assertIn("保留 CAM 机械格式", self.ENG_DISC)
+
+    def test_gr004_confidence_normalizes_to_retained_field(self) -> None:
+        # D5: confidence normalizes to the single retained field, not always 验证锚点.
+        self.assertIn("本轮唯一保留的置信度", self.ENG_DISC)
+
+    def test_cogexp_tier2_excludes_preamble_calibration(self) -> None:
+        # D1: cognitive_expansion.md truth text must exclude preamble lightweight
+        # calibration under Tier 2 (entry and truth text must agree).
+        self.assertIn("轻量认知校准段", self.COG_EXP)
+        self.assertIn("CAM 完整结构承载", self.COG_EXP)
+
+    def test_plan_grill_absorbs_gr002(self) -> None:
+        # D2: plan-grill truth file must state the first grill question absorbs GR-002.
+        self.assertIn("吸收为盘问首问", self.PLAN_GRILL)
+
+    def test_cam_fields_not_collapsed(self) -> None:
+        # D4: CAM detail file keeps its fields intact (no collapse into other blocks).
+        self.assertIn("不得省略或并入其它块", self.CAM)
+
+
 if __name__ == "__main__":
     unittest.main()
