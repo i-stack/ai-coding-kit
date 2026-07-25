@@ -3,7 +3,7 @@
     "api": {
         "enabled": false
     },
-    "model": "gpt-5.5",
+    "model": "gpt-5.6-sol",
     "sandbox_mode": "workspace-write",
     "approval_policy": "on-request",
     "allow_login_shell": true,
