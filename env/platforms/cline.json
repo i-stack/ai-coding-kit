@@ -5,8 +5,8 @@
     },
     "globalState": {
         "openAiBaseUrl": "${cline.url}",
-        "planModeOpenAiModelId": "deepseek-ai/deepseek-v4-pro",
-        "actModeOpenAiModelId": "deepseek-ai/deepseek-v4-flash"
+        "planModeOpenAiModelId": "deepseek-v4-pro",
+        "actModeOpenAiModelId": "deepseek-v4-flash"
     },
     "secrets": {
         "openAiApiKey": "${cline.key}"
