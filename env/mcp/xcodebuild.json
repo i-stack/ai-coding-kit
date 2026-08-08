@@ -12,6 +12,7 @@
     },
     "platforms": [
         "claude",
-        "codex"
+        "codex",
+		"codebuddy"
     ]
 }
