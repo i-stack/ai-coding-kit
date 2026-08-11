@@ -126,6 +126,16 @@ def xcode_gemini_dir() -> Path:
     return xcode_coding_assistant_dir() / "gemini"
 
 
+def xcode_gemini_dotgemini_dir() -> Path:
+    """Xcode Gemini nested .gemini directory (holds GEMINI.md symlink + .env)."""
+    return xcode_gemini_dir() / ".gemini"
+
+
+def xcode_gemini_env_path() -> Path:
+    """Xcode Gemini .env file path inside the nested .gemini directory."""
+    return xcode_gemini_dotgemini_dir() / ".env"
+
+
 # ── Standard tool config paths ───────────────────────────────────────────────
 
 def codex_config_path() -> Path:
