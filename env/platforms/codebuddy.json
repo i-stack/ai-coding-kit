@@ -29,11 +29,22 @@
             "maxOutputTokens": 8192,
             "supportsToolCall": true,
             "supportsImages": false
-        }
+        },
+		{
+			"id": "grok-4.6",
+			"name": "grok-4.6",
+			"vendor": "dataeyes",
+			"url": "${codebuddy.url}",
+			"apiKey": "${codebuddy.key}",
+			"supportsToolCall": true,
+			"supportsImages": true,
+			"supportsReasoning": true
+		}
     ],
     "availableModels": [
         "deepseek-v4-pro",
-        "deepseek-v4-flash"
+        "deepseek-v4-flash",
+		"grok-4.6"
     ],
     "preamble": {
         "target": "CODEBUDDY.md",
