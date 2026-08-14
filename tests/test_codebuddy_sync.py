@@ -277,11 +277,15 @@ class CodeBuddySyncTests(unittest.TestCase):
         self.assertEqual(model_ids[0], "deepseek-v4-pro")
         self.assertEqual(model_ids[1], "deepseek-v4-flash")
         self.assertEqual(model_ids[2], "custom-model")
-        # User's availableModels entry is preserved
-        self.assertIn("custom-model", result["models"]["availableModels"])
+        # availableModels is replaced wholesale from config — user-added ID dropped
+        self.assertNotIn("custom-model", result["models"]["availableModels"])
+        self.assertEqual(
+            result["models"]["availableModels"],
+            ["deepseek-v4-pro", "deepseek-v4-flash"],
+        )
 
-    def test_config_models_update_existing_by_id(self) -> None:
-        """Config-managed models update existing entries with the same id instead of duplicating."""
+    def test_user_owned_entry_with_same_id_is_preserved(self) -> None:
+        """User-owned entries (no _managed_by) with the same id as config are kept untouched."""
         models_path = self.root / "home" / ".codebuddy" / "models.json"
         models_path.parent.mkdir(parents=True, exist_ok=True)
         models_path.write_text(
@@ -306,15 +310,17 @@ class CodeBuddySyncTests(unittest.TestCase):
 
         result = self._run_codebuddy_sync()
 
-        # deepseek-v4-pro is UPDATED (not duplicated), deepseek-v4-flash is ADDED
+        # deepseek-v4-pro is user-owned (no marker) → preserved, NOT overwritten.
+        # deepseek-v4-flash is added from config with marker.
         self.assertEqual(len(result["models"]["models"]), 2)
         model_ids = [m["id"] for m in result["models"]["models"]]
         self.assertEqual(model_ids, ["deepseek-v4-pro", "deepseek-v4-flash"])
-        # Verify the updated model uses config values
+        # Verify the user-owned model is kept as-is
         pro = result["models"]["models"][0]
-        self.assertEqual(pro["name"], "DeepSeek V4 Pro")
-        self.assertEqual(pro["url"], "https://codebuddy.example/v1")
-        self.assertEqual(pro["apiKey"], "sk-test-codebuddy")
+        self.assertEqual(pro["name"], "OLD DeepSeek V4 Pro")
+        self.assertEqual(pro["url"], "https://old.example/v1")
+        self.assertEqual(pro["apiKey"], "sk-old-key")
+        self.assertNotIn("_managed_by", pro)
 
     # ── Skills sync ──────────────────────────────────────────────────────────
 
@@ -413,7 +419,7 @@ class CodeBuddySyncTests(unittest.TestCase):
         self.assertFalse(models_path.exists(), "models.json should not be created without model config")
 
     def test_no_models_config_removes_existing_managed_model_keys(self) -> None:
-        """When model config is absent, previously synced model keys are removed."""
+        """When model config is absent, previously synced (marked) models are removed but user models survive."""
         models_path = self.root / "home" / ".codebuddy" / "models.json"
         self._write_json(
             models_path,
@@ -424,7 +430,13 @@ class CodeBuddySyncTests(unittest.TestCase):
                         "id": "deepseek-v4-pro",
                         "name": "Stale DeepSeek V4 Pro",
                         "vendor": "old",
-                    }
+                        "_managed_by": "ai-coding-kit",
+                    },
+                    {
+                        "id": "user-model",
+                        "name": "User Model",
+                        "vendor": "custom",
+                    },
                 ],
                 "availableModels": ["deepseek-v4-pro"],
             },
@@ -432,10 +444,15 @@ class CodeBuddySyncTests(unittest.TestCase):
 
         result = self._run_codebuddy_sync({})
 
-        self.assertEqual(result["models"], {"meta": {"version": 2}})
+        # Managed (marked) entry removed; user entry and unrelated meta preserved.
+        self.assertEqual(result["models"].get("meta"), {"version": 2})
+        model_ids = [m["id"] for m in result["models"].get("models", [])]
+        self.assertNotIn("deepseek-v4-pro", model_ids)
+        self.assertIn("user-model", model_ids)
+        self.assertNotIn("availableModels", result["models"])
 
     def test_commented_platform_config_removes_existing_managed_model_keys(self) -> None:
-        """A fully commented codebuddy.json parses as absent config and clears managed model keys."""
+        """A fully commented codebuddy.json parses as absent config and clears only marked models."""
         models_path = self.root / "home" / ".codebuddy" / "models.json"
         self._write_json(
             models_path,
@@ -445,7 +462,13 @@ class CodeBuddySyncTests(unittest.TestCase):
                         "id": "deepseek-v4-flash",
                         "name": "Stale DeepSeek V4 Flash",
                         "vendor": "old",
-                    }
+                        "_managed_by": "ai-coding-kit",
+                    },
+                    {
+                        "id": "user-model",
+                        "name": "User Model",
+                        "vendor": "custom",
+                    },
                 ],
                 "availableModels": ["deepseek-v4-flash"],
             },
@@ -467,7 +490,12 @@ class CodeBuddySyncTests(unittest.TestCase):
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
                 sync_config.main()
 
-        self.assertEqual(self._read_json(models_path), {})
+        # Marked model removed; user model preserved (not whole-key wipe).
+        data = self._read_json(models_path)
+        model_ids = [m["id"] for m in data.get("models", [])]
+        self.assertNotIn("deepseek-v4-flash", model_ids)
+        self.assertIn("user-model", model_ids)
+        self.assertNotIn("availableModels", data)
 
     def test_models_only_sync(self) -> None:
         """When config has only 'models' but no 'availableModels', only models are synced."""
@@ -566,6 +594,262 @@ class CodeBuddySyncTests(unittest.TestCase):
         self.assertEqual(result["models"]["availableModels"], [])
         # Disabled sync never writes the models key, so it stays absent.
         self.assertNotIn("models", result["models"])
+
+    # ── Marker-based managed model sync (ai-coding-kit) ──────────────────────
+
+    def test_managed_marker_is_written_on_synced_models(self) -> None:
+        """Every synced model entry carries the _managed_by marker (scenario 1)."""
+        result = self._run_codebuddy_sync()
+
+        for m in result["models"]["models"]:
+            self.assertEqual(m.get("_managed_by"), "ai-coding-kit")
+
+    def test_deleted_config_model_is_pruned_from_target(self) -> None:
+        """Removing a model from config prunes the managed entry but keeps user models (scenario 3)."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    # Previously synced by us — should be removed.
+                    {
+                        "id": "deepseek-v4-pro",
+                        "name": "Stale DeepSeek V4 Pro",
+                        "vendor": "old",
+                        "_managed_by": "ai-coding-kit",
+                    },
+                    # User-added — must survive.
+                    {
+                        "id": "custom-model",
+                        "name": "Custom Model",
+                        "vendor": "custom",
+                    },
+                ],
+                "availableModels": ["deepseek-v4-pro", "custom-model"],
+            },
+        )
+
+        # Config only manages deepseek-v4-flash now (drop deepseek-v4-pro).
+        cfg = {
+            "models": [self.platform_cfg["models"][1]],  # deepseek-v4-flash
+            "availableModels": ["deepseek-v4-flash"],
+        }
+        result = self._run_codebuddy_sync(cfg)
+
+        model_ids = [m["id"] for m in result["models"]["models"]]
+        self.assertEqual(model_ids, ["deepseek-v4-flash", "custom-model"])
+        # The managed (pruned) entry no longer carries stale fields.
+        synced = {m["id"]: m for m in result["models"]["models"]}
+        self.assertNotIn("deepseek-v4-pro", synced)
+        self.assertIn("custom-model", synced)
+        self.assertNotIn("_managed_by", synced["custom-model"])
+
+    def test_modified_config_model_updates_target(self) -> None:
+        """Editing a model in config updates the same managed entry in place (scenario 4)."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    {
+                        "id": "deepseek-v4-flash",
+                        "name": "Old Name",
+                        "vendor": "old",
+                        "_managed_by": "ai-coding-kit",
+                    },
+                    {
+                        "id": "user-model",
+                        "name": "User Model",
+                        "vendor": "custom",
+                    },
+                ],
+            },
+        )
+
+        # Config edits deepseek-v4-flash (name + adds supportsImages).
+        edited = dict(self.platform_cfg["models"][1])
+        edited["name"] = "Renamed Flash"
+        edited["supportsImages"] = True
+        cfg = {"models": [edited]}
+        result = self._run_codebuddy_sync(cfg)
+
+        synced = {m["id"]: m for m in result["models"]["models"]}
+        self.assertEqual(synced["deepseek-v4-flash"]["name"], "Renamed Flash")
+        self.assertTrue(synced["deepseek-v4-flash"]["supportsImages"])
+        self.assertEqual(synced["deepseek-v4-flash"]["_managed_by"], "ai-coding-kit")
+        # User model untouched.
+        self.assertEqual(synced["user-model"]["name"], "User Model")
+
+    def test_user_models_preserved_when_target_non_empty(self) -> None:
+        """Pre-existing user models are preserved alongside synced ones (scenario 2)."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    {"id": "user-only", "name": "User Only", "vendor": "custom"},
+                ],
+            },
+        )
+
+        result = self._run_codebuddy_sync()
+
+        model_ids = [m["id"] for m in result["models"]["models"]]
+        self.assertIn("user-only", model_ids)
+        self.assertIn("deepseek-v4-pro", model_ids)
+        self.assertIn("deepseek-v4-flash", model_ids)
+
+    # ── Legacy (pre-marker) upgrade migration ──────────────────────────────
+
+    def test_legacy_synced_entries_are_claimed_on_upgrade(self) -> None:
+        """Pre-marker entries that are exact config copies are claimed and managed again."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        # Legacy sync output: no _managed_by, exact copy of the resolved config
+        # (same key set, same values, resolved placeholders).
+        legacy = dict(self.platform_cfg["models"][0])
+        legacy["url"] = "https://codebuddy.example/v1"
+        legacy["apiKey"] = "sk-test-codebuddy"
+        self._write_json(
+            models_path,
+            {"models": [legacy], "availableModels": ["deepseek-v4-pro"]},
+        )
+
+        result = self._run_codebuddy_sync()
+
+        # The legacy entry is claimed: gains the marker and stays managed.
+        synced = {m["id"]: m for m in result["models"]["models"]}
+        self.assertEqual(synced["deepseek-v4-pro"]["_managed_by"], "ai-coding-kit")
+        self.assertEqual(len(result["models"]["models"]), 2)
+
+    def test_legacy_entry_shared_credentials_not_claimed(self) -> None:
+        """A user entry sharing provider credentials with config is never claimed.
+
+        Only url/apiKey matched before, so an entry with identical credentials
+        but user-authored fields was wrongly claimed and then overwritten by
+        config. The strict matcher (exact copy) keeps it user-owned.
+        """
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    {
+                        "id": "deepseek-v4-pro",
+                        # Credentials identical to config...
+                        "url": "https://codebuddy.example/v1",
+                        "apiKey": "sk-test-codebuddy",
+                        # ...but the rest is user-authored.
+                        "name": "My Customized DeepSeek",
+                        "vendor": "custom",
+                    },
+                ],
+            },
+        )
+
+        result = self._run_codebuddy_sync()
+
+        # Not claimed: preserved verbatim (no marker), config entry skipped.
+        synced = {m["id"]: m for m in result["models"]["models"]}
+        self.assertEqual(synced["deepseek-v4-pro"]["name"], "My Customized DeepSeek")
+        self.assertEqual(synced["deepseek-v4-pro"]["vendor"], "custom")
+        self.assertNotIn("_managed_by", synced["deepseek-v4-pro"])
+
+    def test_legacy_entry_with_no_comparable_fields_not_claimed(self) -> None:
+        """An entry with no comparable non-None field beyond id is never claimed.
+
+        The old matcher compared url/apiKey, so two entries that both lack
+        credentials matched (None == None) and the user entry got overwritten.
+        With no comparable field at all there is no evidence of a legacy copy,
+        so the entry stays user-owned.
+        """
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(models_path, {"models": [{"id": "local-model"}]})
+
+        result = self._run_codebuddy_sync({"models": [{"id": "local-model"}]})
+
+        synced = {m["id"]: m for m in result["models"]["models"]}
+        self.assertEqual(synced["local-model"], {"id": "local-model"})
+        self.assertNotIn("_managed_by", synced["local-model"])
+
+    def test_legacy_entry_without_credentials_but_matching_fields_is_claimed(self) -> None:
+        """Lacking credentials alone does NOT prevent a claim.
+
+        Both sides have no url/apiKey, but every other field is an exact match
+        (same key set, same values). That is still a strong exact-copy signal,
+        so the legacy entry is claimed and managed again.
+        """
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {"models": [{"id": "local-model", "name": "Local Model", "vendor": "ollama"}]},
+        )
+
+        result = self._run_codebuddy_sync(
+            {"models": [{"id": "local-model", "name": "Local Model", "vendor": "ollama"}]}
+        )
+
+        synced = {m["id"]: m for m in result["models"]["models"]}
+        self.assertEqual(synced["local-model"]["_managed_by"], "ai-coding-kit")
+        self.assertEqual(synced["local-model"]["name"], "Local Model")
+        self.assertEqual(synced["local-model"]["vendor"], "ollama")
+
+    def test_legacy_claim_then_prune_on_next_sync(self) -> None:
+        """Claimed legacy entries are pruned once their id disappears from config.
+
+        Sync 1: the legacy entry (exact config copy, no marker) is claimed and
+        managed again. After the model leaves config, sync 2 prunes the
+        now-marked entry automatically — the documented upgrade workflow.
+        """
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        legacy = dict(self.platform_cfg["models"][0])
+        legacy["url"] = "https://codebuddy.example/v1"
+        legacy["apiKey"] = "sk-test-codebuddy"
+        self._write_json(models_path, {"models": [legacy]})
+
+        # Sync 1: claimed (exact copy) and managed again.
+        result = self._run_codebuddy_sync()
+        synced = {m["id"]: m for m in result["models"]["models"]}
+        self.assertEqual(synced["deepseek-v4-pro"]["_managed_by"], "ai-coding-kit")
+        self.assertEqual(len(result["models"]["models"]), 2)
+
+        # Sync 2: model removed from config -> marked entry pruned automatically.
+        cfg = {"models": [self.platform_cfg["models"][1]]}
+        result = self._run_codebuddy_sync(cfg)
+        model_ids = [m["id"] for m in result["models"]["models"]]
+        self.assertNotIn("deepseek-v4-pro", model_ids)
+        self.assertIn("deepseek-v4-flash", model_ids)
+
+    def test_orphan_legacy_entry_preserved_when_id_gone_from_config(self) -> None:
+        """A legacy entry whose id left config before the upgrade stays untouched.
+
+        No config match -> no identity evidence -> not claimed and never deleted
+        automatically (safe side). The user removes it by hand once; the next
+        sync keeps it gone since nothing writes it back.
+        """
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        legacy = dict(self.platform_cfg["models"][0])
+        legacy["url"] = "https://codebuddy.example/v1"
+        legacy["apiKey"] = "sk-test-codebuddy"
+        self._write_json(models_path, {"models": [legacy]})
+
+        # deepseek-v4-pro was already gone from config before this run, so it
+        # cannot be claimed and is preserved (safe side). User removes it once.
+        cfg = {"models": [self.platform_cfg["models"][1]]}
+        result = self._run_codebuddy_sync(cfg)
+        model_ids = [m["id"] for m in result["models"]["models"]]
+        self.assertIn("deepseek-v4-pro", model_ids)
+        self.assertIn("deepseek-v4-flash", model_ids)
+
+        # Remove the orphan manually — the next sync keeps it gone (id still
+        # absent from config, no marker written back by a config entry).
+        data = self._read_json(models_path)
+        data["models"] = [m for m in data["models"] if m["id"] != "deepseek-v4-pro"]
+        self._write_json(models_path, data)
+
+        result = self._run_codebuddy_sync(cfg)
+        model_ids = [m["id"] for m in result["models"]["models"]]
+        self.assertNotIn("deepseek-v4-pro", model_ids)
+        self.assertIn("deepseek-v4-flash", model_ids)
 
     def test_api_enabled_after_disabled_restores_models(self) -> None:
         """Re-enabling API sync restores availableModels from config."""

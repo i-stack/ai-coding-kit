@@ -158,6 +158,7 @@ CodeBuddy is the second platform with an explicit `api.enabled` toggle.
       "supportsImages": false
     }
   ],
+  "_comment": "Each model synced into ~/.codebuddy/models.json is tagged with \"_managed_by\": \"ai-coding-kit\". The marker is persistent, self-describing, and replaces any sidecar bookkeeping. See the CodeBuddy answers below for the full merge/prune rules.",
   "availableModels": [
     "deepseek-v4-pro",
     "deepseek-v4-flash"
@@ -187,22 +188,64 @@ Answers to the platform-addition questions:
    `preamble.mode=full`, or the standalone historical-recall managed block when
    `preamble.mode=recall`, both rendered by `sync-agent-preamble.sh`; synced
    skill directories.
-5. Cleanup when `api.enabled=false`: set `availableModels` to an empty list
+5. **Managed marker (`_managed_by`)**: every model entry the syncer writes into
+   `models.json` carries a persistent `"_managed_by": "ai-coding-kit"` field.
+   The marker makes each synced entry self-describing — no sidecar file is
+   needed. CodeBuddy reads and rewrites `models.json` while preserving unknown
+   fields (verified on a real IDE), so the marker survives user edits in the UI.
+   Merge rules for `models` by `id`:
+   - Target entry with the same `id` **and** the marker → overwritten by config
+     (config wins; all fields updated).
+   - Target entry with the same `id` **without** the marker → user-owned, kept
+     untouched; the config entry for that `id` is skipped (never overwritten).
+   - Target entry with the marker but `id` no longer in config → pruned
+     (deletion on the next sync).
+   - Target entry without the marker and `id` not in config → preserved as-is.
+   - `availableModels` is replaced wholesale on every sync (no marker
+     protection) — the config is the source of truth for the enabled list.
+   **Legacy upgrade (pre-marker → marker)**: entries written by older sync
+   versions carry no `_managed_by`. On the first sync after upgrading, an
+   unmarked entry is *claimed* — tagged `_managed_by` and managed normally from
+   then on (update/delete work again) — only when it is an **exact copy** of
+   the resolved config entry: the same key set beyond `id` (no extra or missing
+   fields), equal values for every key, and at least one non-`None` comparable
+   value. The matcher is deliberately strict: a claim means config overwrites
+   the entry on this very sync, so a false positive would silently destroy a
+   user-owned entry. Not claimed (stays user-owned, untouched): an entry that
+   merely shares the provider credentials (`url`/`apiKey`) but has user-authored
+   fields, and an entry with no comparable non-`None` field beyond `id` (e.g.
+   only an `id`). Note that lacking credentials alone does NOT prevent a claim:
+   an entry without `url`/`apiKey` on either side but with other matching
+   fields (same key set, same values) is still an exact copy and is claimed.
+   Note: a legacy entry whose `id` was already removed from config before the
+   upgrade has no config match and cannot be claimed — it is preserved (safe
+   side) and must be removed by hand once; the same applies to a legacy entry
+   whose config entry was edited after the last legacy sync (values now differ).
+6. Cleanup when `api.enabled=false`: set `availableModels` to an empty list
    `[]` rather than removing the key (CodeBuddy special handling — provider
    model definitions stay so they can be re-enabled, but nothing is shown in the
    model picker). Config-managed `models` are NOT merged while disabled; existing
-   model definitions are neither synced nor deleted.
-6. Unrelated user fields preserved: any top-level key other than
+   model definitions are neither synced nor deleted. When the model config is
+   fully absent (models and availableModels both missing), only the marked
+   entries are removed from `models.json` — user entries survive.
+7. Unrelated user fields preserved: any top-level key other than
    `models`/`availableModels` in `models.json` (e.g. `meta`, `uiPreference`),
-   user-added model entries, user-added MCP servers, and user content outside
+   user-added model entries (including a same-`id` entry without the marker),
+   user-added MCP servers, and user content outside
    the managed block in `CODEBUDDY.md`.
-7. MCP servers are independent of API sync — they still sync when `api.enabled=false`.
-8. Skills / preamble are independent of API sync — they still sync when
+8. MCP servers are independent of API sync — they still sync when `api.enabled=false`.
+9. Skills / preamble are independent of API sync — they still sync when
    `api.enabled=false`.
-9. No login-bypass field like Claude `primaryApiKey=self`.
-10. Tests live in `tests/test_codebuddy_sync.py` and cover enable-by-default,
-    disable-empty, user-model preservation, idempotent re-sync, and
-    re-enable-restore.
+10. No login-bypass field like Claude `primaryApiKey=self`.
+11. Tests live in `tests/test_codebuddy_sync.py` and cover enable-by-default,
+    disable-empty, user-model preservation, idempotent re-sync,
+    re-enable-restore, marker write, marked-entry pruning (deletion),
+    config-edit update, same-`id` user-owned preservation, legacy claim,
+    legacy non-claim (shared credentials with user-authored fields; no
+    comparable non-`None` field beyond `id`), legacy claim without credentials
+    (matching name/vendor only), orphan legacy preservation, and legacy
+    claim-then-prune (real two-sync flow: claim on sync 1, prune after the
+    model leaves config on sync 2).
 
 ## Gemini Reference
 

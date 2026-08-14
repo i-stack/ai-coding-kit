@@ -2,6 +2,10 @@
 
 ## 2026-08-14
 
+- **CodeBuddy models 同步改为 marker 机制 (`_managed_by`)**: `sync/platforms/codebuddy.py` 的模型合并逻辑不再依赖外部 sidecar，改为把 `"_managed_by": "ai-coding-kit"` 持久写入 `~/.codebuddy/models.json` 的每个同步模型项。按 `id` 的合并规则：带 marker 的同 id 项由配置整条覆盖（所有字段正确同步）；无 marker 的同 id 项视为用户自有、绝不覆盖；带 marker 但 id 不在配置中的项在下次同步时精确删除；无 marker 且不在配置的项原样保留。已实测验证：codebuddy IDE 能正常识别并回写保留 `_managed_by` 字段（重启 VSCodeX 后模型列表正常）。同步契约文档 `docs/platform-sync-contract.md` 的 CodeBuddy Reference 同步更新。
+- **CodeBuddy availableModels 修正为真正整表覆盖**: 文档原声明"整表覆盖"但实现实为"配置优先+保留用户 ID"，二者相反。按用户"保持整列表覆盖"的意图，`_merge_available_models` 改为每次同步直接用配置列表整体替换，用户/UI 添加的 ID 在下次同步时移除。同步契约文档描述与实现现已一致。
+- **CodeBuddy 升级认领（legacy claim）**: 旧版本（pre-marker）同步的条目没有 `_managed_by`，升级后会被误判为用户项而失去更新/删除能力。新增 `_claim_legacy_entries`：无 marker 且与配置解析值一致的条目被认领并打上 marker，恢复管理；用户改动过值的条目不认领、原样保留。已知边界：升级前就已在配置中删除的 legacy 条目无法被认领（无配置可匹配），安全侧保留，需手动删除一次。
+- **修复 legacy claim 误认领（高优先级发现）**: 认领条件从「仅比较 `url`/`apiKey`」收紧为「与配置解析值精确一致」——键集完全一致（无多余/缺失字段）、所有字段值相等、且配置至少有一个非 `None` 可比对字段。修复两类误认领：与配置共享凭据但自定义其他字段的用户条目、除 `id` 外无任何可比对字段（如双方仅 `id`，`None == None`）的用户条目——此前会被错误认领并在本次合并中被配置整条覆盖，违反「无 marker 同 ID 用户项绝不覆盖」的核心保护。注意：仅缺少凭据不会阻止认领，双方无 `url`/`apiKey` 但其余字段精确一致（如 name/vendor 相同）的条目仍按精确副本认领。配套补齐测试：共享凭据不认领、无可比对字段不认领、无凭据但其余字段一致仍认领、真实的 claim-then-prune 两轮同步流程（sync 1 认领 → config 删除模型后 sync 2 自动剪除）、孤儿保留；文档测试清单与实际覆盖一致。
 - 明确 Skill 的正式与实验 locale 契约，并消除英文镜像状态歧义。
 - 增加跨 Agent 黄金场景、只读 CLI runner、独立成功评分与基础设施失败分类。
 - MCP 定义增加权限、副作用、敏感度、并行、降级和验证 capability 契约。
