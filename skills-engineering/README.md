@@ -11,14 +11,17 @@
 | 技能 | 类型 | 描述 |
 |------|------|------|
 | `ios-engineer` | 平台技能 | iOS / Swift / SwiftUI / UIKit / Xcode 工程全生命周期 |
-| `cognitive-expansion` | 全局技能 | 每次回复后的认知拓展，打破知识茧房 |
+| `cognitive-calibration` | 全局技能 | 平台无关认知校准协议（认知对手模式 CAM，Tier 2）；`cognitive-expansion` / `logical-reasoning` / `ios-engineer` 经 `depends_on` 引用。CAM 唯一真值 owner |
+| `cognitive-expansion` | 全局技能 | 判断类回答命中双重门控时追加 Tier 0 拓展；支持显式 Tier 3 深潜 |
 | `engineering-discipline` | 全局技能 | 工程纪律：安全合规、前置确认、四段式输出 |
 | `epistemic-integrity` | 全局技能 | 真值接地：反幻觉、验证方法论、求真边界 |
-| `logical-reasoning` | 全局技能 | 论证纪律：可追溯逻辑链、层级分明 |
-| `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解 |
-| `plan-grill` | 工作流技能 | 需求对齐/盘问锁定计划，产出 PLAN.md（基于 grill-me） |
-| `cross-model-review` | 工作流技能 | 跨模型对抗审查 PLAN.md，自动发现 CLI（基于 grill-me-codex） |
-| `auto-code-review` | 工作流技能 | 用户显式启动的跨模型代码审查；默认只读，可显式授权修复 |
+| `logical-reasoning` | 全局技能 | 论证纪律：可追溯逻辑链、层级分明（GR-010） |
+| `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解（PA-001/002/003） |
+| `historical-recall` | 全局技能 | 每个用户任务动手前 best-effort 召回 `.plan-reviews/` 历史线索，作待验证上下文；`plan-grill` PG-006 与 `auto-code-review` ACR-006 委托于此 |
+| `doc-hygiene` | 全局技能 | 文档卫生纪律：`.md` 正文只陈述最终态事实，禁写过程叙事 |
+| `plan-grill` | 工作流技能 | 需求对齐/盘问锁定计划，产出 PLAN.md（Act 1，基于 grill-me） |
+| `cross-model-review` | 工作流技能 | 跨模型对抗审查 PLAN.md，自动发现 CLI（Act 2，基于 grill-me-codex） |
+| `auto-code-review` | 工作流技能 | 用户显式启动的跨模型代码审查（Act 3）；默认只读，可显式授权修复 |
 
 本仓库同时提供三类能力：
 
@@ -26,7 +29,7 @@
 - 多端同步：把技能同步到 Codex、Claude Code、Cursor、Gemini 的本地 skills 目录，并把托管 preamble 写入对应 Agent 配置。
 - 受控演进：用 proposal、validation、approval、history、usage ledger 管理技能变更，避免直接修改规则后失去验证链路。
 
-当前仅适配 macOS 下的 Codex、Claude Code、Cursor 和 Gemini；欢迎提交 PR 补充 Windows 同步脚本，或补充其他需要同步的 AI 工具。
+当前同步实现面向 macOS，并覆盖 Codex、Claude Code、Cursor、Gemini、Cline、Continue、CodeBuddy、Qwen Code 与 Xcode CodingAssistant。统一配置同步入口为仓库根 `sync.sh` 或 `python3 sync/cli/main.py`；本目录的 `scripts/sync-*.sh` 负责技能内容与 preamble。
 
 ## 当前状态
 
@@ -34,7 +37,7 @@
 - Active 版本：见 `ios-engineer/evolution/active_version.json`
 - 技能入口：`ios-engineer/SKILL.md`
 - 认知对手模式（platform-agnostic）：真值 owner 为 `cognitive-calibration`，详规 `cognitive-calibration/references/cognitive_adversary_mode.md`；`ios-engineer` 经 `depends_on: [cognitive-calibration]` 引用并维护镜像 `ios-engineer/references/cognitive_adversary_mode.md`
-- 认知拓展（打破茧房）：`cognitive-expansion/` skill（与 `ios-engineer` 同构）；`sync-skills.sh` 同步全文到各端；preamble 仅声明加载路径，Cursor `.mdc` 由详规自动生成
+- 认知拓展（打破茧房）：`cognitive-expansion/` skill（`cognitive-calibration` 经 `depends_on` 引用，Tier 0/3 形态，与 CAM 镜像同一真值 owner）；`sync-skills.sh` 同步全文到各端；preamble 仅声明加载路径，Cursor `.mdc` 由详规自动生成
 - 规则索引：`ios-engineer/references/rule_index.md`
 - 使用观测：`ios-engineer/references/usage_ledger.md` 与 `ios-engineer/evolution/usage/usage.jsonl`
 - 回归场景：`ios-engineer/evolution/scenarios/*.json`
@@ -313,9 +316,9 @@ bash scripts/sync-memory.sh --remove
 ### i18n 镜像治理
 
 - **zh 源 + en-US 镜像**：`SKILL.md` / `references/*.md` 的 zh-CN 为唯一真源；`i18n/en-US/` 是 zh 源的分发镜像（翻译改写产物，`sync-skills.sh` 同步全文到各端）。
-- **支持等级政策（过渡态）**：
+- **支持等级政策**：
   - 在 `SKILL.md` frontmatter 正式声明 `supported_locales: [..., en-US]` 的 skill，**必须**提供结构完整的镜像（硬门：源版本 + 规则 ID + 标题/机械锚点 + 源文件 hash）；缺失则 `validate-skill-behavior.sh` WARN 并回退 zh-CN。
-  - 仅含 `i18n/en-US/` 目录但**未**声明 `en-US` 的 skill，其镜像视为 **experimental/generated**，**不对外承诺**；校验器会 WARN 提示声明或移除目录。
+  - `experimental_locales: [en-US]` 表示镜像是实验性翻译产物，不构成运行时支持承诺；校验器检查目录与声明一致。
   - 不以「语义完全一致」作为自动硬门（翻译等价难可靠机械判断）；采用**结构硬门 + 人工审核**（见 `tests/test_en_us_mirror_sync.py` 的锚点/同步断言）。
 - **同步纪律**：改动任一协调条款的 zh 源，必须同步更新对应 en-US 镜像，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL（zh 源 ↔ en-US 镜像双向锚点断言）。
 - **覆盖校验**：`validate-skill-behavior.sh` 在 pre-push 阶段按上述政策支持等级检查 i18n 镜像覆盖与跨技能依赖闭包（`depends_on`）。

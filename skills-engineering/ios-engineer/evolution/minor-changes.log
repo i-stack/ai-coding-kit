@@ -3,3 +3,8 @@ timestamp: 2026-07-10T09:07:23Z
 reason: "pre-commit: commit message unavailable; set MINOR_CHANGE_REASON for audit context"
 files:
   - skills-engineering/ios-engineer/SKILL.md
+---
+timestamp: 2026-08-14T03:52:17Z
+reason: "pre-commit: commit message unavailable; set MINOR_CHANGE_REASON for audit context"
+files:
+  - skills-engineering/ios-engineer/SKILL.md
