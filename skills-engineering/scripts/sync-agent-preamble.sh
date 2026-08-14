@@ -181,13 +181,11 @@ render_managed_block() {
   local end_marker="$2"
   local tool_name="$3"
   local skills_dir="$4"
-  local ce_dir lr_dir ed_dir pa_dir pg_dir ei_dir hr_dir
-  ce_dir="$(sibling_skill_dir "${skills_dir}" "cognitive-expansion")"
-  lr_dir="$(sibling_skill_dir "${skills_dir}" "logical-reasoning")"
+  local cr_dir ed_dir pa_dir pg_dir hr_dir
+  cr_dir="$(sibling_skill_dir "${skills_dir}" "cognitive-reasoning")"
   ed_dir="$(sibling_skill_dir "${skills_dir}" "engineering-discipline")"
   pa_dir="$(sibling_skill_dir "${skills_dir}" "problem-analysis")"
   pg_dir="$(sibling_skill_dir "${skills_dir}" "plan-grill")"
-  ei_dir="$(sibling_skill_dir "${skills_dir}" "epistemic-integrity")"
   hr_dir="$(sibling_skill_dir "${skills_dir}" "historical-recall")"
 
   # The historical-recall section lives in ONE place in this template (the
@@ -221,12 +219,10 @@ render_managed_block() {
   ' "${TEMPLATE}" | sed -e "s|{{TOOL_NAME}}|${tool_name}|g" \
       -e "s|{{IOS_ENGINEER_SKILLS_DIR}}|${skills_dir}|g" \
       -e "s|{{SKILLS_DIR}}|${skills_dir}|g" \
-      -e "s|{{COGNITIVE_EXPANSION_SKILLS_DIR}}|${ce_dir}|g" \
-      -e "s|{{LOGICAL_REASONING_SKILLS_DIR}}|${lr_dir}|g" \
+      -e "s|{{COGNITIVE_REASONING_SKILLS_DIR}}|${cr_dir}|g" \
       -e "s|{{ENGINEERING_DISCIPLINE_SKILLS_DIR}}|${ed_dir}|g" \
       -e "s|{{PROBLEM_ANALYSIS_SKILLS_DIR}}|${pa_dir}|g" \
       -e "s|{{PLAN_GRILL_SKILLS_DIR}}|${pg_dir}|g" \
-      -e "s|{{EPISTEMIC_INTEGRITY_SKILLS_DIR}}|${ei_dir}|g" \
       -e "s|{{HISTORICAL_RECALL_SKILLS_DIR}}|${hr_dir}|g" \
       -e "s|{{RECALL_CLI_PATH}}|${RECALL_CLI_PATH}|g"
 

@@ -33,12 +33,10 @@ _STALE_DIRS = frozenset({
 _FULL_PREAMBLE_PATTERNS: list[tuple[str, str]] = [
     ("managed-block begin marker", "<!-- managed-block:agent-preamble:begin"),
     ("tilde-ified skill path", "SKILL 规则位于 `~"),
-    ("cognitive-expansion reference", "cognitive-expansion/references/cognitive_expansion.md"),
-    ("logical-reasoning reference", "logical-reasoning/references/logical_reasoning.md"),
+    ("cognitive-reasoning reference", "cognitive-reasoning/references/cognitive_reasoning.md"),
     ("engineering-discipline reference", "engineering-discipline/references/engineering_discipline.md"),
     ("problem-analysis reference", "problem-analysis/references/problem_analysis.md"),
     ("plan-grill reference", "plan-grill/references/plan_grill.md"),
-    ("epistemic-integrity reference", "epistemic-integrity/references/epistemic_integrity.md"),
 ]
 
 # Required content patterns for standalone recall-preamble verification (Cline / Qwen,

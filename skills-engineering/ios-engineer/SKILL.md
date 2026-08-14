@@ -4,7 +4,7 @@ description: iOS / iPadOS / macOS (Catalyst) / watchOS / tvOS engineering with S
 locale: zh-CN
 supported_locales: [zh-CN]
 experimental_locales: [en-US]
-depends_on: [cognitive-calibration]
+depends_on: [cognitive-reasoning]
 # i18n/en-US/ 镜像为 experimental/generated（未校验锚点，不对外承诺 en-US 支持）
 # 待补齐 sha256 锚点 + 规则 ID 对齐后再声明 en-US。
 ---
@@ -24,7 +24,7 @@ depends_on: [cognitive-calibration]
 
 ## Cognitive Adversary Mode (Mandatory — Strict Execution)
 
-When the scenario is triggered, **read and strictly follow** [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) in order (role, Steps 0–6, final output format, and forbidden behaviors are all defined there; no skipping steps, no omitting fields, no substituting "first agree then weakly rebut" for the Step 1 strongest counter-argument).
+When the scenario is triggered, **read and strictly follow** [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) in order (role, Steps 0–6, final output format, and forbidden behaviors are all defined there; no skipping steps, no omitting fields, no substituting "first agree then weakly rebut" for the Step 1 strongest counter-argument). The true owner is now `cognitive-reasoning` (see `cognitive-reasoning/references/cognitive_adversary_mode.md`); this file is a downstream mirror.
 
 - **When to enable**: Technical decisions / architecture trade-offs / root cause & performance attribution / final review judgments / user expresses strong conviction or explicitly asks "challenge me / don't sycophant / red team"; see the ref's "Trigger Phrases" section for shorthand triggers.
 - **Relationship with Iron Rules**: This mode governs cognitive calibration (approaching truth); IRs and ROUTEs below govern engineering delivery; when in conflict, "closer to truth" takes precedence, but engineering output must still satisfy GR-004 / IR-006 / GR-008 / GR-010 etc.
@@ -34,7 +34,7 @@ When the scenario is triggered, **read and strictly follow** [cognitive_adversar
 
 - [IR-001] **Response language must match the user's input language.** If the user writes in Chinese, respond in Chinese; if in English, respond in English. Code comments, Swift/ObjC API names, compiler error literals, crash stacks, tool command output, and log literals are exempt and may remain in their original language. Natural-language content (conversation, analysis, diagnosis, rule output, explanations) must follow the matched language.
 - [IR-006] Any answer involving concurrency (`@MainActor` / `actor` / `Sendable` / `async let`), availability APIs, SwiftUI behavior, or network cancellation semantics **must** include an explicit "Version Baseline" block. Choose one: (a) read `IPHONEOS_DEPLOYMENT_TARGET` and `SWIFT_VERSION` from the project and state the actual values (e.g., `iOS 15.0 / Swift 5.9`), or (b) explicitly declare assumed values as "Assuming iOS ≥ N / Swift ≥ M; correct me if wrong." Providing neither or only one is a violation. Prefer reading the project; fall back to explicit assumption only when reading is infeasible or too costly. This skill does not presume a default baseline. See [examples.md](references/examples.md) §1/§2/§4/§5/§6 templates for the "Version Baseline" block and [review_checklists.md](references/review_checklists.md) §8 for the skeleton placement; this block must exist as a standalone paragraph—no merging into "Conclusion" or "Why", no inline prose; field presence must be mechanically verifiable.
-- [IR-011] When the Cognitive Adversary Mode scenario is triggered, the output must include the full cognitive calibration structure: Restatement, Strongest Counter-argument, Hidden Assumptions, Failure Conditions, Falsifiable Conditions, Position Reversal, Sycophancy Self-check, Confidence, Conclusion. Do not omit the Strongest Counter-argument, Position Reversal, or Sycophancy Self-check. See [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) for complete trigger conditions, steps, and forbidden behaviors.
+- [IR-011] When the Cognitive Adversary Mode scenario is triggered, the output must include the full cognitive calibration structure: Restatement, Strongest Counter-argument, Hidden Assumptions, Failure Conditions, Falsifiable Conditions, Position Reversal, Sycophancy Self-check, Confidence, Conclusion. Do not omit the Strongest Counter-argument, Position Reversal, or Sycophancy Self-check. See [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) for complete trigger conditions, steps, and forbidden behaviors. (True owner: `cognitive-reasoning/references/cognitive_adversary_mode.md`.)
 
 ## Task Routing
 

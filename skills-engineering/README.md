@@ -11,11 +11,8 @@
 | 技能 | 类型 | 描述 |
 |------|------|------|
 | `ios-engineer` | 平台技能 | iOS / Swift / SwiftUI / UIKit / Xcode 工程全生命周期 |
-| `cognitive-calibration` | 全局技能 | 平台无关认知校准协议（认知对手模式 CAM，Tier 2）；`cognitive-expansion` / `logical-reasoning` / `ios-engineer` 经 `depends_on` 引用。CAM 唯一真值 owner |
-| `cognitive-expansion` | 全局技能 | 判断类回答命中双重门控时追加 Tier 0 拓展；支持显式 Tier 3 深潜 |
+| `cognitive-reasoning` | 全局技能 | 认知与论证纪律：认知对手模式 CAM（Tier 2）+ 论证质量 GR-010 + 真值接地 GR-011~013 + 认知拓展 CE-001~013（合并自 cognitive-calibration / cognitive-expansion / logical-reasoning / epistemic-integrity） |
 | `engineering-discipline` | 全局技能 | 工程纪律：安全合规、前置确认、四段式输出 |
-| `epistemic-integrity` | 全局技能 | 真值接地：反幻觉、验证方法论、求真边界 |
-| `logical-reasoning` | 全局技能 | 论证纪律：可追溯逻辑链、层级分明（GR-010） |
 | `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解（PA-001/002/003） |
 | `historical-recall` | 全局技能 | 每个用户任务动手前 best-effort 召回 `.plan-reviews/` 历史线索，作待验证上下文；`plan-grill` PG-006 与 `auto-code-review` ACR-006 委托于此 |
 | `doc-hygiene` | 全局技能 | 文档卫生纪律：`.md` 正文只陈述最终态事实，禁写过程叙事 |
@@ -36,8 +33,8 @@
 - 主技能：`ios-engineer`
 - Active 版本：见 `ios-engineer/evolution/active_version.json`
 - 技能入口：`ios-engineer/SKILL.md`
-- 认知对手模式（platform-agnostic）：真值 owner 为 `cognitive-calibration`，详规 `cognitive-calibration/references/cognitive_adversary_mode.md`；`ios-engineer` 经 `depends_on: [cognitive-calibration]` 引用并维护镜像 `ios-engineer/references/cognitive_adversary_mode.md`
-- 认知拓展（打破茧房）：`cognitive-expansion/` skill（`cognitive-calibration` 经 `depends_on` 引用，Tier 0/3 形态，与 CAM 镜像同一真值 owner）；`sync-skills.sh` 同步全文到各端；preamble 仅声明加载路径，Cursor `.mdc` 由详规自动生成
+- 认知对手模式（platform-agnostic）：真值 owner 为 `cognitive-reasoning`，详规 `cognitive-reasoning/references/cognitive_adversary_mode.md`；`ios-engineer` 经 `depends_on: [cognitive-reasoning]` 引用并维护镜像 `ios-engineer/references/cognitive_adversary_mode.md`
+- 认知拓展（打破茧房）：`cognitive-reasoning/` skill（合并自 cognitive-calibration / cognitive-expansion / logical-reasoning / epistemic-integrity，Tier 0/3 形态与 CAM 同一真值 owner）；`sync-skills.sh` 同步全文到各端；preamble 仅声明加载路径，Cursor `.mdc` 由详规自动生成
 - 规则索引：`ios-engineer/references/rule_index.md`
 - 使用观测：`ios-engineer/references/usage_ledger.md` 与 `ios-engineer/evolution/usage/usage.jsonl`
 - 回归场景：`ios-engineer/evolution/scenarios/*.json`
@@ -56,14 +53,12 @@
 │   ├── references/            # 28+ 参考细则文件
 │   ├── scripts/               # 演进治理脚本
 │   └── evolution/             # 变更历史与提案
-├── cognitive-expansion/       # 认知拓展技能
+├── cognitive-reasoning/       # 认知与论证纪律技能（合并自 cognitive-calibration / cognitive-expansion / logical-reasoning / epistemic-integrity）
 │   ├── SKILL.md
 │   ├── AGENT-BRIEF.md
 │   ├── OUT-OF-SCOPE.md
 │   └── references/
 ├── engineering-discipline/    # 工程纪律技能（同构）
-├── epistemic-integrity/       # 真值接地技能（同构）
-├── logical-reasoning/         # 逻辑论证技能（同构）
 ├── problem-analysis/          # 问题分析技能（同构）
 ├── plan-grill/                # 需求盘问锁定计划（Act 1）
 ├── cross-model-review/        # 跨模型对抗审查 PLAN.md（Act 2）
@@ -199,7 +194,7 @@ SYNC_CLAUDE=0 SYNC_CODEX=0 SYNC_CURSOR=0 SYNC_XCODE_CODEX=0 SYNC_XCODE_CLAUDE=1 
 
 托管块包含两段全局认知规则：（1）**认知校准**——技术决策、根因归因、review 最终判断、用户强烈确信时，优先接近真实（最强反驳、隐藏假设、可证伪条件等）；（2）**认知拓展**——每次主答后默认追加简短「认知尾注」（重框 / 盲区 / 邻域 / 带走），打破知识茧房。iOS 工程任务会在此基础上加载完整 `ios-engineer` skill 规则。
 
-`sync-skills.sh` 默认同步 `skills-engineering/` 下所有含 `SKILL.md` 的目录（含 `cognitive-expansion`）。`sync-agent-preamble.sh` 的 `sync-manifest` 中 `skill:<name>` 行用于从 skill 详规生成 Cursor `.mdc`；preamble 托管块要求 Agent **读取 skills 目录中的全文**，不得仅用摘要。
+`sync-skills.sh` 默认同步 `skills-engineering/` 下所有含 `SKILL.md` 的目录（含 `cognitive-reasoning`）。`sync-agent-preamble.sh` 的 `sync-manifest` 中 `skill:<name>` 行用于从 skill 详规生成 Cursor `.mdc`；preamble 托管块要求 Agent **读取 skills 目录中的全文**，不得仅用摘要。
 
 默认写入：
 
@@ -305,13 +300,13 @@ bash scripts/sync-memory.sh --remove
 
 ## 跨技能协调与 i18n 治理
 
-多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `cognitive-calibration` 认知对手模式（CAM））。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`；块发射顺序与冲突裁决另见 `.agents/composition.md`）：
+多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `cognitive-reasoning` 认知对手模式（CAM））。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`；块发射顺序与冲突裁决另见 `.agents/composition.md`）：
 
 ### 多技能叠加口径（D1-D5）
 
 - **前置确认被盘问吸收（GR-002 ↔ PG-000）**：任务描述不清时，`engineering-discipline` GR-002 的「前置确认」不另起独立块；若 `plan-grill` PG-000 已进入盘问，该确认问题被吸收为盘问首问，按「一次只问一个」推进。
 - **战略性中断同 anchor 合并（GR-006 ↔ GR-002）**：`GR-006` 战略性中断若在盘问/排查期间触发，其「前置确认」块与 GR-002 同 anchor 合并，≥2 战略分支吸收 GR-002 提问，不重复输出。
-- **CAM 机械格式保留（GR-004 ↔ cognitive-calibration CAM）**：CAM 激活时，其 `Step 0–6 + 置信度` 字段已承载 `逻辑链` / `验证锚点` 的校准语义，二者不另起独立块；但 CAM 字段须按「最终输出格式」原样输出，不得省略或并入其它块。CAM 真值 owner 为 `cognitive-calibration` skill（platform-agnostic），`ios-engineer` / `logical-reasoning` / `cognitive-expansion` 经 `depends_on` 引用，不再依赖相对路径硬链接。
+- **CAM 机械格式保留（GR-004 ↔ cognitive-reasoning CAM）**：CAM 激活时，其 `Step 0–6 + 置信度` 字段已承载 `逻辑链` / `验证锚点` 的校准语义，二者不另起独立块；但 CAM 字段须按「最终输出格式」原样输出，不得省略或并入其它块。CAM 真值 owner 为 `cognitive-reasoning` skill（platform-agnostic，合并自 cognitive-calibration 等四技能），`ios-engineer` 经 `depends_on: [cognitive-reasoning]` 引用，不再依赖相对路径硬链接。
 - **跨块置信度归一**：同一回复内所有置信 / 强度信号（逻辑链结论强度、验证锚点置信度、CAM 置信度、认知校准不确定）必须同源、写同一值，归一到本轮唯一保留的字段。
 - **分级读取与预算上限**：各 skill「须先读 references 全文」仅在该 skill 详规确被命中时执行；多技能同轮触发时按 `问题分析(输入) → 工程纪律 / 论证 / 真值接地(论证与交付) → 计划盘问(计划锁定) → 平台 specifics` 分配读取与输出预算，避免叠加爆炸触发 GR-006 中断。
 
@@ -435,7 +430,7 @@ python3 tests/test_en_us_mirror_sync.py      # zh 源 ↔ en-US 镜像双向锚�
 python3 tests/test_codebuddy_sync.py         # 含多技能协调断言与全局验收入口校验
 ```
 
-- `test_en_us_mirror_sync.py`：锁定 `engineering-discipline` / `plan-grill` / `ios-engineer` / `cognitive-expansion` 的协同条款在 zh 源与 en-US 镜像中成对存在，任一侧漏翻即 FAIL。
+- `test_en_us_mirror_sync.py`：锁定 `engineering-discipline` / `plan-grill` / `ios-engineer` / `cognitive-reasoning` 的协同条款在 zh 源与 en-US 镜像中成对存在，任一侧漏翻即 FAIL。
 - `test_codebuddy_sync.py`：含 `MultiSkillCoordinationTests`（多技能叠加口径）与 `GlobalSkillValidationScriptTests`（校验 `validate-global-skills.sh` 为只读且覆盖完整验收步骤）。
 - 一键只读验收：`bash skills-engineering/scripts/validate-global-skills.sh`（见下方「pre-push」）。
 

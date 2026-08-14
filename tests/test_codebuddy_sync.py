@@ -844,7 +844,7 @@ class MultiSkillCoordinationTests(unittest.TestCase):
     COG_EXP = (
         REPO_ROOT
         / "skills-engineering"
-        / "cognitive-expansion"
+        / "cognitive-reasoning"
         / "references"
         / "cognitive_expansion.md"
     ).read_text(encoding="utf-8")
@@ -852,7 +852,7 @@ class MultiSkillCoordinationTests(unittest.TestCase):
     CAM = (
         REPO_ROOT
         / "skills-engineering"
-        / "cognitive-calibration"
+        / "cognitive-reasoning"
         / "references"
         / "cognitive_adversary_mode.md"
     ).read_text(encoding="utf-8")

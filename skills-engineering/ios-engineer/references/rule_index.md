@@ -36,12 +36,12 @@ GR-NNN 规则由独立 global skill 承载，跨平台通用（不限 iOS）；i
 | GR-006 | active | 工具调用预算拦截与主动中断机制（同一条路失败 3 次或 15 turns 强阻断） | 同上 |
 | GR-007 | active | 不格式化代码（防 Diff 噪声，限制美化范围，杜绝空行） | 同上 |
 | GR-008 | active | 变更覆盖声明（已覆盖/未覆盖/残留风险三字段，段标题为机械校验 anchor） | 同上 |
-| GR-010 | active | 可追溯逻辑链；高风险场景输出独立「逻辑链」块（事实/证据、推断、结论强度、可证伪/缺口） | [logical-reasoning/references/logical_reasoning.md](../../logical-reasoning/references/logical_reasoning.md) |
-| GR-011 | active | 反幻觉接地（不把未验证当已知；高危带降置信；关键事实给来源/怎么核的把手） | [epistemic-integrity/references/epistemic_integrity.md](../../epistemic-integrity/references/epistemic_integrity.md) |
+| GR-010 | active | 可追溯逻辑链；高风险场景输出独立「逻辑链」块（事实/证据、推断、结论强度、可证伪/缺口） | [cognitive-reasoning/references/logical_reasoning.md](../../cognitive-reasoning/references/logical_reasoning.md) |
+| GR-011 | active | 反幻觉接地（不把未验证当已知；高危带降置信；关键事实给来源/怎么核的把手） | [cognitive-reasoning/references/epistemic_integrity.md](../../cognitive-reasoning/references/epistemic_integrity.md) |
 | GR-012 | active | 验证方法论（现实当裁判＞有问责一手源＞独立交叉；优先证伪而非穷尽确认） | 同上 |
 | GR-013 | active | 求真方法边界（事实类查证不推导；推理类允许第一性原理；校准把握度非去情绪） | 同上 |
 
-> 注：`GR-009` 当前故意未分配（编号可有空洞，见「使用规则」）；`GR-001~008` 由 engineering-discipline 承载，`GR-010` 由 logical-reasoning 承载，`GR-011~013` 由 epistemic-integrity 承载。新增全局规则须在此表登记并同步各 global skill 的 SKILL.md，避免跨 skill ID 冲突。
+> 注：`GR-009` 当前故意未分配（编号可有空洞，见「使用规则」）；`GR-001~008` 由 engineering-discipline 承载，`GR-010` 由 cognitive-reasoning 承载，`GR-011~013` 由 cognitive-reasoning 承载。新增全局规则须在此表登记并同步各 global skill 的 SKILL.md，避免跨 skill ID 冲突。
 
 ## 症状导航 SYM-NNN
 
@@ -140,6 +140,6 @@ GR-NNN 规则由独立 global skill 承载，跨平台通用（不限 iOS）；i
 | 残留风险声明（已覆盖 / 未覆盖 / 残留风险 三字段） | [engineering-discipline/SKILL.md](../../engineering-discipline/SKILL.md) GR-008 | [examples.md](examples.md) 使用规则 + §1/§2/§4/§5/§6 模板末段；[review_checklists.md](review_checklists.md) §8 骨架末段；[code_templates.md](code_templates.md) 使用规则；[scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) SIGNALS["GR-008"] | 改 owner 字段名或字段数必须同步三份引用文件对应段；三字段必须以独立段落字面存在，不得合并进"验证"段或"验证缺口"段；新增/缩减字段须先调整 owner 再批量同步所有引用位置；anchor 字面（"残留风险声明" / "已覆盖" / "未覆盖" / "残留风险"）改名必须同步 lint_hit_rules.sh 的 SIGNALS 表 |
 | 版本前提声明（iOS / Swift 真值或显式假设） | [SKILL.md](../SKILL.md) IR-006 | [examples.md](examples.md) 使用规则 + §1/§2/§4/§5/§6 模板首段；[review_checklists.md](review_checklists.md) §8 骨架首段；[validation_scenarios.md](validation_scenarios.md) 场景 3 通过标准；[scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) SIGNALS["IR-006"] | 改 owner 字面（含二选一表述、触发维度集合）必须同步所有引用；新增模板必须同步插入"版本前提"块；该块作为独立段落字面存在不得合并入"结论"或"为什么"段；段标题"版本前提"是机械校验 anchor，重命名需批量同步全部引用位置（含 lint_hit_rules.sh SIGNALS 表）|
 | 前置确认块（GR-002 在信息不足时的字面化触发） | [engineering-discipline/SKILL.md](../../engineering-discipline/SKILL.md) GR-002 | [root_cause_enforcement.md](root_cause_enforcement.md) §2 取证策略"前置确认问题维度"小节；[scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) SIGNALS["GR-002"] | 改 owner 字面（如触发条件枚举）必须同步 root_cause_enforcement.md 维度示例；新增追问维度示例由对应 ROUTE 主读 ref 承担，不写进 owner，避免 SKILL.md 维度膨胀；段标题"前置确认"是机械校验 anchor，重命名需批量同步全部引用位置（含 lint_hit_rules.sh SIGNALS 表）|
-| 逻辑性（可追溯论证 / 四层区分 / 推理可见） | [logical-reasoning/SKILL.md](../../logical-reasoning/SKILL.md) GR-010 | [logical-reasoning/references/logical_reasoning.md](../../logical-reasoning/references/logical_reasoning.md)；[scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) SIGNALS["GR-010"] | 改通用规则在 logical-reasoning skill 内更新；机械锚点为独立"逻辑链"块 + 四字段 + 至少一步"因为…所以…"或"不确定/缺口"标记；它只能验证最低可审计结构，不能替代人工判断推理质量 |
+| 逻辑性（可追溯论证 / 四层区分 / 推理可见） | [cognitive-reasoning/SKILL.md](../../cognitive-reasoning/SKILL.md) GR-010 | [cognitive-reasoning/references/logical_reasoning.md](../../cognitive-reasoning/references/logical_reasoning.md)；[scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) SIGNALS["GR-010"] | 改通用规则在 cognitive-reasoning skill 内更新；机械锚点为独立"逻辑链"块 + 四字段 + 至少一步"因为…所以…"或"不确定/缺口"标记；它只能验证最低可审计结构，不能替代人工判断推理质量 |
 | 认知对手模式（反迎合 / 最强反驳 / 可证伪 / 迎合自检） | [SKILL.md](../SKILL.md) IR-011 | [cognitive_adversary_mode.md](cognitive_adversary_mode.md); [scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) SIGNALS["IR-011"] | 改 owner 字面必须同步 cognitive_adversary_mode.md 最终输出格式；段标题是机械校验 anchor，重命名需同步 lint_hit_rules.sh |
 | 提案候选信号阈值 | [scripts/summarize_usage_ledger.sh](../scripts/summarize_usage_ledger.sh) L69-L72（4 个 `*_THRESHOLD` 常量） | [usage_ledger.md](usage_ledger.md) 第 8 节阈值表；[scripts/validate_skill_evolution.sh](../scripts/validate_skill_evolution.sh) `[11/13]` 步 | 改任一侧必须同步另一侧；validate_skill_evolution.sh `[11/13]` 步会自动断言不一致；新增第 5 个阈值需同步更新本表 + 文档 + 校验正则 |

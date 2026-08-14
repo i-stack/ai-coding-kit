@@ -64,7 +64,12 @@ if os.path.isfile(invocation_path):
 # MULTILINE is required: `^` must anchor each line, not just the file start
 # (otherwise the frontmatter wins and owned_ids comes back empty, silently
 # skipping the whole check).
-RULE_BULLET = re.compile(r'^\s*-\s+\*?\[([A-Z]+-\d+)\]\*?', re.M)
+# Supports BOTH single ids `- [GR-010]` AND range shorthand
+# `- [CAM-001~005]` / `- [CE-001~013]` (inclusive, same prefix). A range is
+# expanded into every individual id so each one is validated separately — this
+# is what makes the gate actually check all 22 ids instead of just the 4 that
+# happened to be written out long-form.
+RULE_BULLET = re.compile(r'^\s*-\s+\*?\[([A-Z]+-\d+(?:~\d+)?)\]\*?', re.M)
 # A rule id is "defined" only by a STRUCTURED anchor in THIS skill's own
 # references/*.md — never by a bare substring, and never by ios-engineer's
 # references (which must not backstop another skill's ids). Supported anchors:
@@ -123,6 +128,18 @@ for skill_dir in skills:
     # backstopped). Result: a skill that declares `[GR-999]` in SKILL.md but never
     # defines it in references/ now correctly FAILs.
     owned_ids = RULE_BULLET.findall(skill_text)
+    # Expand any range shorthand `PREFIX-START~END` into individual ids so the
+    # bidirectional check validates every id, not just the long-form ones.
+    expanded_ids = []
+    for m in owned_ids:
+        if '~' in m:
+            prefix, rest = m.split('-', 1)
+            start_s, end_s = rest.split('~')
+            for n in range(int(start_s), int(end_s) + 1):
+                expanded_ids.append(f"{prefix}-{n:03d}")
+        else:
+            expanded_ids.append(m)
+    owned_ids = expanded_ids
     if owned_ids:
         defined = set()               # structured anchors: heading / bracket / ACTIVE table row
         defined_active_table = set()  # active table rows (redundant with `defined`, kept for clarity)

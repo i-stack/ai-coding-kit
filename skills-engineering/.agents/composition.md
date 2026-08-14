@@ -2,7 +2,7 @@
 
 本文件定义：当 `.agents/invocation.md` 中多个 skill 在同一轮回复里**同时命中**时，结构化输出块（block）的发射顺序与冲突裁决规则。它解决"多个全局技能都要求输出自己的块"时的歧义，是对 invocation.md"正交约束层可同时生效"的落地补充。
 
-**机械判据（machine-resolvable）**：块发射顺序（L0–L5）与冲突裁决（安全 > 真相 > 问题 > 结构）为确定性协议；但具体规则（如 GR-010 / GR-011 / CAM-003）的字段级归属由各自 `references/rule_index.md` 的多维元数据裁定——`owner / scope / phase / precedence / field_owner`，而非单 precedence 数字（安全/时序/格式所有权是不同维度）。校验器应基于这些元数据证明语义合并正确，而非仅检查锚点存在。详见 `cognitive-calibration/references/rule_index.md` 的字段说明。
+**机械判据（machine-resolvable）**：块发射顺序（L0–L5）与冲突裁决（安全 > 真相 > 问题 > 结构）为确定性协议；但具体规则（如 GR-010 / GR-011 / CAM-003）的字段级归属由各自 `references/rule_index.md` 的多维元数据裁定——`owner / scope / phase / precedence / field_owner`，而非单 precedence 数字（安全/时序/格式所有权是不同维度）。校验器应基于这些元数据证明语义合并正确，而非仅检查锚点存在。详见 `cognitive-reasoning/references/rule_index.md` 的字段说明。
 
 ## 1. 技能分层与角色
 
@@ -10,11 +10,11 @@
 |----|------|------|-----------|
 | L0 问题前 | `problem-analysis` | 先审问题本身是否合理/需求是否真实 | `问题分析` 块（仅在发现偏差时） |
 | L1 平台/领域 | `ios-engineer` 等平台 skill | 领域知识与具体修法 | 领域结构化输出 |
-| L2 论证 | `logical-reasoning` (GR-010) | 自身回复的论证质量 | `逻辑链` 块（高风险判断时） |
-| L3 求真 | `epistemic-integrity` (GR-011~013) | 与外部真实的接地 | `验证锚点` 块（高风险事实时） |
+| L2 论证 | `cognitive-reasoning` (GR-010) | 自身回复的论证质量 | `逻辑链` 块（高风险判断时） |
+| L3 求真 | `cognitive-reasoning` (GR-011~013) | 与外部真实的接地 | `验证锚点` 块（高风险事实时） |
 | L4 结构 | `engineering-discipline` (GR-001~008) | 输出结构与工程纪律 | 四段式 / `前置确认` / `残留风险声明` 块 |
-| L5 回答后 | `cognitive-expansion` (Tier 0/3) | 打破茧房的可带走增量 | `认知尾注` 块（门控命中后） |
-| 校准 | `cognitive-calibration` 认知对手模式 (Tier 2) | 反迎合/挑战用户结论 | 完整认知校准结构（见 `cognitive-calibration` `cognitive_adversary_mode.md`；platform-agnostic owner，由 `logical-reasoning`/`cognitive-expansion` 经 `depends_on` 引用） |
+| L5 回答后 | `cognitive-reasoning` (CE-001~013, Tier 0/3) | 打破茧房的可带走增量 | `认知尾注` 块（门控命中后） |
+| 校准 | `cognitive-reasoning` 认知对手模式 (Tier 2, CAM-001~005) | 反迎合/挑战用户结论 | 完整认知校准结构（见 `cognitive-reasoning` `cognitive_adversary_mode.md`；platform-agnostic owner） |
 
 ## 2. 块发射顺序
 
@@ -29,8 +29,8 @@
 认知尾注              (L5，Tier 0 门控命中后，附于主答末尾)
 ```
 
-- `cognitive-expansion` 的 `认知尾注` **永远最后一个**，且独立于主答结构（属于"回答后"层）。
-- 认知对手模式（Tier 2）与 `认知尾注`（Tier 0）**互斥不叠加**：Tier 2 命中时输出完整校准结构，不再单独写 Tier 0（避免重复，见 `cognitive-expansion` 详规）。
+- `cognitive-reasoning` 的 `认知尾注` **永远最后一个**，且独立于主答结构（属于"回答后"层）。
+- 认知对手模式（Tier 2）与 `认知尾注`（Tier 0）**互斥不叠加**：Tier 2 命中时输出完整校准结构，不再单独写 Tier 0（避免重复，见 `cognitive-reasoning` 详规）。
 - 纯执行/纯机械任务：只输出主答案，不强制任何块（L0~L4 的门控未命中即静默）。
 
 ## 3. 冲突裁决

@@ -79,12 +79,13 @@ class EnUsMirrorSyncTests(unittest.TestCase):
         )
 
     def test_ios_engineer_cam(self):
-        # CAM true source now lives in cognitive-calibration (platform-agnostic owner).
-        # The zh source and en-US mirror are tracked there; ios-engineer is a down-stream
-        # mirror and no longer the source of truth.
+        # CAM true source now lives in cognitive-reasoning (platform-agnostic owner,
+        # merged from cognitive-calibration + cognitive-expansion + logical-reasoning
+        # + epistemic-integrity). The zh source and en-US mirror are tracked there;
+        # ios-engineer is a down-stream mirror and no longer the source of truth.
         self._assert_pairs(
-            "cognitive-calibration/references/cognitive_adversary_mode.md",
-            "cognitive-calibration/i18n/en-US/references/cognitive_adversary_mode.md",
+            "cognitive-reasoning/references/cognitive_adversary_mode.md",
+            "cognitive-reasoning/i18n/en-US/references/cognitive_adversary_mode.md",
             [
                 (
                     "不得省略或并入其它块",
@@ -96,8 +97,8 @@ class EnUsMirrorSyncTests(unittest.TestCase):
 
     def test_cognitive_expansion(self):
         self._assert_pairs(
-            "cognitive-expansion/SKILL.md",
-            "cognitive-expansion/i18n/en-US/references/skill.md",
+            "cognitive-reasoning/SKILL.md",
+            "cognitive-reasoning/i18n/en-US/references/skill.md",
             [
                 (
                     "该互斥同时扩展到 preamble 轻量校准段",

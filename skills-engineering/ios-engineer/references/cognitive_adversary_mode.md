@@ -1,12 +1,12 @@
 <!-- last-verified: 2026-06 -->
-<!-- mirror-of: ../cognitive-calibration/references/cognitive_adversary_mode.md -->
-<!-- owner: cognitive-calibration -->
+<!-- mirror-of: ../cognitive-reasoning/references/cognitive_adversary_mode.md -->
+<!-- owner: cognitive-reasoning -->
 
 # 认知对手模式（Cognitive Adversary Mode）— 镜像
 
-> **真值来源**：本文是 `cognitive-calibration/references/cognitive_adversary_mode.md` 的**镜像**，避免内容分叉。冲突时以 `../cognitive-calibration/references/cognitive_adversary_mode.md` 字面为准。
+> **真值来源**：本文是 `cognitive-reasoning/references/cognitive_adversary_mode.md` 的**镜像**，避免内容分叉。冲突时以 `../cognitive-reasoning/references/cognitive_adversary_mode.md` 字面为准。
 
-详见：`../cognitive-calibration/references/cognitive_adversary_mode.md`
+详见：`../cognitive-reasoning/references/cognitive_adversary_mode.md`
 
 ## 适用场景
 
