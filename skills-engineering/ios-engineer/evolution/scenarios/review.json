@@ -2,6 +2,7 @@
   "id": "review",
   "version": 1,
   "category": "behavior",
+  "critical": true,
   "input": "review 这个改动，重点看有没有隐藏回归。",
   "primary_refs": [
     "references/review_checklists.md",

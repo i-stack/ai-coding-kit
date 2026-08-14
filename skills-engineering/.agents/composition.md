@@ -2,6 +2,8 @@
 
 本文件定义：当 `.agents/invocation.md` 中多个 skill 在同一轮回复里**同时命中**时，结构化输出块（block）的发射顺序与冲突裁决规则。它解决"多个全局技能都要求输出自己的块"时的歧义，是对 invocation.md"正交约束层可同时生效"的落地补充。
 
+**机械判据（machine-resolvable）**：块发射顺序（L0–L5）与冲突裁决（安全 > 真相 > 问题 > 结构）为确定性协议；但具体规则（如 GR-010 / GR-011 / CAM-003）的字段级归属由各自 `references/rule_index.md` 的多维元数据裁定——`owner / scope / phase / precedence / field_owner`，而非单 precedence 数字（安全/时序/格式所有权是不同维度）。校验器应基于这些元数据证明语义合并正确，而非仅检查锚点存在。详见 `cognitive-calibration/references/rule_index.md` 的字段说明。
+
 ## 1. 技能分层与角色
 
 | 层 | 技能 | 角色 | 典型产出块 |
@@ -12,7 +14,7 @@
 | L3 求真 | `epistemic-integrity` (GR-011~013) | 与外部真实的接地 | `验证锚点` 块（高风险事实时） |
 | L4 结构 | `engineering-discipline` (GR-001~008) | 输出结构与工程纪律 | 四段式 / `前置确认` / `残留风险声明` 块 |
 | L5 回答后 | `cognitive-expansion` (Tier 0/3) | 打破茧房的可带走增量 | `认知尾注` 块（门控命中后） |
-| 校准 | `ios-engineer` 认知对手模式 (Tier 2) | 反迎合/挑战用户结论 | 完整认知校准结构（见 ios-engineer `cognitive_adversary_mode.md`） |
+| 校准 | `cognitive-calibration` 认知对手模式 (Tier 2) | 反迎合/挑战用户结论 | 完整认知校准结构（见 `cognitive-calibration` `cognitive_adversary_mode.md`；platform-agnostic owner，由 `logical-reasoning`/`cognitive-expansion` 经 `depends_on` 引用） |
 
 ## 2. 块发射顺序
 

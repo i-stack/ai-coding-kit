@@ -2,7 +2,9 @@
 name: auto-code-review
 description: 用户显式触发的跨模型代码审查工作流。仅当用户明确说 `/auto-review`、`使用 auto-code-review`、`启动跨模型代码审查`，或明确要求“审查并修复”时使用；普通代码生成、修改完成或含糊的“看看代码”不自动触发。默认只读审查，只有用户明确要求 `--fix` 或“审查并修复”才允许主 agent 修改代码。
 locale: auto
-supported_locales: [zh-CN, en-US]
+supported_locales: [zh-CN]
+# i18n/en-US/ 镜像为 experimental/generated（未校验锚点，不对外承诺 en-US 支持）
+# 待补齐 sha256 锚点 + 规则 ID 对齐后再声明 en-US。
 ---
 
 # Auto Code Review

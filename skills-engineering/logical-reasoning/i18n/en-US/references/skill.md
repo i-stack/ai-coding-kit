@@ -18,7 +18,7 @@ supported_locales: [zh-CN, en-US]
 When this skill is triggered, you **must first read in full** [references/logical_reasoning.md](references/logical_reasoning.md) and execute according to its terms.
 
 - Do not substitute the full text with preamble, Cursor rule summaries, or other secondary summaries.
-- Sync dependency: This skill references `../ios-engineer/references/cognitive_adversary_mode.md` via relative path in "Division of Labor with Cognitive Adversary Mode"; when syncing to each platform, ensure `ios-engineer` skill is also synced to the same-level skills directory (e.g., `~/.claude/skills/ios-engineer`), otherwise that link breaks. **Conditional**: That link is only reachable when ios-engineer is synced to the same-level skills directory; in non-iOS environments (ios-engineer not synced), this skill's GR-010 constraint itself remains complete, only the "division of labor with Cognitive Adversary Mode" jump link fails, not affecting core argumentation discipline.
+- Sync dependency: This skill references `../cognitive-calibration/references/cognitive_adversary_mode.md` (platform-agnostic owner of CAM) via relative path in "Division of Labor with Cognitive Adversary Mode"; `ios-engineer` references the same truth via `depends_on: [cognitive-calibration]` and maintains a mirror. When syncing to each platform, ensure `cognitive-calibration` skill is also synced to the same-level skills directory, otherwise that link breaks. **Conditional**: That link is only reachable when cognitive-calibration is synced to the same-level skills directory; in environments where it is not synced, this skill's GR-010 constraint itself remains complete, only the "division of labor with Cognitive Adversary Mode" jump link fails, not affecting core argumentation discipline.
 
 ## GR-010 Core Rule
 
@@ -34,5 +34,5 @@ When this skill is triggered, you **must first read in full** [references/logica
 
 | Role | Goal | Typical Trigger |
 |------|------|-----------------|
-| [Cognitive Adversary Mode](../ios-engineer/references/cognitive_adversary_mode.md) (ios-engineer) | Calibration: challenge user conclusion's logic and assumptions | Technical decisions, strong conviction, explicit red team |
+| [Cognitive Adversary Mode](../cognitive-calibration/references/cognitive_adversary_mode.md) (cognitive-calibration) | Calibration: challenge user conclusion's logic and assumptions | Technical decisions, strong conviction, explicit red team |
 | **This skill (GR-010)** | Constraint: AI's own argumentation quality | All responses containing judgment components |

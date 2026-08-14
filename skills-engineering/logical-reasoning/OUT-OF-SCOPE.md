@@ -6,7 +6,7 @@
 
 - **用户提问的逻辑检验**：由 `problem-analysis`（PA-001）负责。
 - **结论与外部世界的接地**：由 `epistemic-integrity`（GR-011/012）负责。
-- **认知对手模式**：由 `ios-engineer/references/cognitive_adversary_mode.md` 负责（挑战用户结论）。
+- **认知对手模式**：由 `cognitive-calibration`（platform-agnostic owner）负责（挑战用户结论）；`ios-engineer/references/cognitive_adversary_mode.md` 仅为指向该真值的镜像。
 - **工程输出结构**：由 `engineering-discipline`（GR-004 四段式）负责。
 
 ## 边界说明

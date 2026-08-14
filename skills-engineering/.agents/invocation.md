@@ -35,7 +35,9 @@
 | iOS / Swift / SwiftUI / Xcode / CocoaPods | ios-engineer | P0 |
 | 卡顿 / 崩溃 / 内存泄漏 / 布局错位 | ios-engineer | P0 |
 | 校准 / 真实 / 不确定 / 核验路径 | epistemic-integrity | P1 |
+| 挑战我 / 不要迎合 / red team / 反迎合 | cognitive-calibration | P1（作为 logical-reasoning / cognitive-expansion 的 depends_on 依赖，Tier 2 校准） |
 | 逻辑 / 推断 / 因果 / 论证 | logical-reasoning | P1 |
+| 写/改文档 / 文档卫生 / 禁过程叙事 | doc-hygiene | P1（writing-docs.md 强制 depends_on） |
 | 根因 / 修复 / 安全 / 敏感信息 | engineering-discipline | P1 |
 | 第一性原理 / 深层需求 / 问题偏差 | problem-analysis | P1 |
 | 锁定计划 / 盘问 / grill me / 先别写代码 | plan-grill | P1（条件自动 + 显式；产出 PLAN.md 供 cross-model-review 接力） |

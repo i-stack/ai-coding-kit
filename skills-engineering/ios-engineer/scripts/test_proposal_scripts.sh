@@ -111,3 +111,18 @@ echo "Failed: ${fail}"
 if [ "$fail" -ne 0 ]; then
   exit 1
 fi
+
+# ---- GC invariant regression (promote→validate→GC→rollback data invariants) ----
+# 独立 fixture，不污染真实 evolution/ 树。
+if bash scripts/test_gc_invariant.sh; then
+  pass=$((pass+1))
+else
+  fail=$((fail+1))
+fi
+
+echo "---"
+echo "Passed (incl. GC): ${pass}"
+echo "Failed (incl. GC): ${fail}"
+if [ "$fail" -ne 0 ]; then
+  exit 1
+fi

@@ -6,13 +6,26 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
 if [ $# -lt 1 ]; then
-  echo "Usage: bash scripts/extract_usage_audit.sh <transcript-file>"
+  echo "Usage: bash scripts/extract_usage_audit.sh <transcript-file> [--evidence-class <observed|structurally_checked|independently_replayed>]"
   echo "Parses all <usage-audit>...</usage-audit> blocks and appends them to evolution/usage/usage.jsonl."
   echo "Resilient: valid blocks are written; any invalid block is skipped with a warning (ledger never poisoned)."
+  echo "evidence_class defaults to 'observed' (model self-grading); pass 'independently_replayed' for independent replay ingestion."
   exit 1
 fi
 
 input="$1"
+evidence_class="observed"
+while [ $# -gt 1 ]; do
+  case "$2" in
+    --evidence-class) evidence_class="$3"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+
+case "$evidence_class" in
+  observed|structurally_checked|independently_replayed) ;;
+  *) echo "Invalid --evidence-class: ${evidence_class}"; exit 1 ;;
+esac
 
 if [ ! -f "$input" ]; then
   echo "Input file not found: ${input}"
@@ -41,8 +54,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
-ruby -rjson - "$input" "$LEDGER_FILE" <<'RUBY'
-input_path, ledger_path = ARGV
+ruby -rjson - "$input" "$LEDGER_FILE" "$evidence_class" <<'RUBY'
+input_path, ledger_path, default_evidence_class = ARGV
 text = File.read(input_path)
 index_path = "references/rule_index.md"
 
@@ -66,6 +79,7 @@ if blocks.empty?
 end
 
 REQUIRED_KEYS = %w[tool task-type prompt-summary expected-rules hit-rules outcome evolution-signal].freeze
+ALLOWED_EVIDENCE = %w[observed structurally_checked independently_replayed].freeze
 
 valid = []
 skipped = []  # [block_no, reason]
@@ -96,6 +110,12 @@ blocks.each_with_index do |body, idx|
   errs << "task-type '#{data['task-type']}' not in #{ALLOWED_TASK_TYPES.inspect}" unless ALLOWED_TASK_TYPES.include?(data["task-type"])
   errs << "outcome '#{data['outcome']}' not in #{ALLOWED_OUTCOMES.inspect}" unless ALLOWED_OUTCOMES.include?(data["outcome"])
   errs << "evolution-signal '#{data['evolution-signal']}' not in #{ALLOWED_SIGNALS.inspect}" unless ALLOWED_SIGNALS.include?(data["evolution-signal"])
+  # evidence-class is optional in the block; block value overrides the CLI default.
+  block_evidence = data["evidence-class"]
+  if block_evidence && !ALLOWED_EVIDENCE.include?(block_evidence)
+    errs << "evidence-class '#{block_evidence}' not in #{ALLOWED_EVIDENCE.inspect}"
+  end
+  eff_evidence = block_evidence || default_evidence_class
 
   ps = data["prompt-summary"]
   unless ps.length.between?(5, 200)
@@ -129,7 +149,8 @@ blocks.each_with_index do |body, idx|
       "missed_rules" => expected.reject { |r| hit.include?(r) },
       "deviations" => deviations,
       "outcome" => data["outcome"],
-      "evolution_signal" => data["evolution-signal"]
+      "evolution_signal" => data["evolution-signal"],
+      "evidence_class" => eff_evidence
     }
   else
     skipped << [block_no, errs.join("; ")]

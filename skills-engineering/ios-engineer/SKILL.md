@@ -2,7 +2,10 @@
 name: ios-engineer
 description: iOS / iPadOS / macOS (Catalyst) / watchOS / tvOS engineering with Swift, SwiftUI, UIKit, Objective-C, Objective-C++, Combine, async/await, Xcode, CocoaPods, SPM, Carthage, WidgetKit, App Extensions, TestFlight, App Store. Covers architecture, concurrency (actor / Sendable / @MainActor), networking, performance (卡顿 / 启动慢 / 内存上涨 / 能耗异常), crash debugging (崩溃 / 闪退 / 野指针 / EXC_BAD_ACCESS / 断言), UI & layout (布局错位 / 约束冲突 / 列表跳动 / 复用错乱 / 无障碍), code review (代码审查 / PR Review), refactoring (重构), migration (迁移 / 架构升级), testing. 设计、实现与生产风险控制。
 locale: auto
-supported_locales: [zh-CN, en-US]
+supported_locales: [zh-CN]
+depends_on: [cognitive-calibration]
+# i18n/en-US/ 镜像为 experimental/generated（未校验锚点，不对外承诺 en-US 支持）
+# 待补齐 sha256 锚点 + 规则 ID 对齐后再声明 en-US。
 ---
 
 # iOS Engineer

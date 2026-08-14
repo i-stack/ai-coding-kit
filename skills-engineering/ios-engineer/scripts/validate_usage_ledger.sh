@@ -35,8 +35,10 @@ TIME_FORMAT = /\A\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}([+-]\d{4}|Z)\z/
 REQUIRED_FIELDS = %w[
   time tool session_id prompt_summary task_type
   expected_rules hit_rules missed_rules deviations
-  outcome evolution_signal
+  outcome evolution_signal evidence_class
 ].freeze
+
+ALLOWED_EVIDENCE = %w[observed structurally_checked independently_replayed].freeze
 
 active_ids = Set.new
 File.foreach(index_path) do |line|
@@ -79,6 +81,11 @@ File.foreach(ledger_path).with_index(1) do |raw, lineno|
   # tool
   unless ALLOWED_TOOLS.include?(entry["tool"])
     violations << "line #{lineno}: tool '#{entry['tool']}' not in #{ALLOWED_TOOLS.to_a.inspect}"
+  end
+
+  # evidence_class (usage_ledger.md §7b)
+  unless ALLOWED_EVIDENCE.include?(entry["evidence_class"])
+    violations << "line #{lineno}: evidence_class '#{entry['evidence_class']}' not in #{ALLOWED_EVIDENCE.inspect}"
   end
 
   # session_id

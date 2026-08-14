@@ -2,7 +2,7 @@
 
 ## 概述
 
-`cognitive-expansion` 是全局认知拓展技能，在每次含真实判断的回答后追加认知尾注，打破 AI 的"知识茧房"效应。与 `ios-engineer` 的认知对手模式互补。
+`cognitive-expansion` 是全局认知拓展技能，在每次含真实判断的回答后追加认知尾注，打破 AI 的"知识茧房"效应。与 `cognitive-calibration` 的认知对手模式互补。
 
 ## 核心能力
 
@@ -24,7 +24,7 @@
 | Tier | 职责 | 负责 Skill |
 |------|------|-----------|
 | Tier 0 | 认知尾注（重框/盲区/邻域/带走） | cognitive-expansion |
-| Tier 2 | 认知对手（反迎合/挑战/red team） | ios-engineer (cognitive_adversary_mode) |
+| Tier 2 | 认知对手（反迎合/挑战/red team） | cognitive-calibration (cognitive_adversary_mode) |
 | Tier 3 | 深潜/拓展 | cognitive-expansion |
 
 ## 跳过条件

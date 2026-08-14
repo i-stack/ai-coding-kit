@@ -179,6 +179,23 @@ Step 4 的 summarize 脚本会按 `tool` 字段分桶，让不同工具间的 se
 
 **轻量 self-grading 校验**：[scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) 对 audit 块声明的 `hit-rules` 与响应正文做模板字段对账，覆盖 IR-001 / GR-002 / GR-004 / IR-006 / GR-008 / GR-010——这些规则都有稳定文本锚点（前置确认 / 版本前提 / 残留风险声明 / 四段式 / findings-first 骨架 / 逻辑链块）。脚本输出每条 PASS / FAIL / UNSUPPORTED，FAIL > 0 非零退出；UNSUPPORTED 不计失败。本脚本是 ledger 入账前的一道前置过滤，不替代 validation_scenarios 回放——后者仍是命中率的最终权威。
 
+## 7b. 证据分级与晋升门禁（evidence_class）
+
+为缓解 self-grading 偏差，每条 ledger 条目携带 `evidence_class` 字段（由 `append_usage_entry.sh --evidence-class` 写入，默认 `observed`）：
+
+| evidence_class | 含义 | 来源 |
+|----------------|------|------|
+| `observed` | 模型执行任务时自评命中（有偏草稿） | 自动采集 / 模型自评 |
+| `structurally_checked` | 经 `lint_hit_rules.sh` 等模板锚点对账通过，但未独立回放 | 机械过滤后 |
+| `independently_replayed` | 由独立回放（不同模型/人工）在 validation_scenarios 确认 | 独立验证 |
+
+**晋升门禁（Promotion Gate）**：规则能否晋升（promote）只取决于独立回放证据，不取决于 observed 占比：
+
+- 拟晋升的每条规则 ID，必须至少有 **N=3** 条 `independently_replayed` 条目覆盖（N 由 `check_skill_promotion_readiness.sh` 读常量）。
+- 该规则关联的所有**关键场景**（`evolution/scenarios/*.json` 中 `critical: true`）回放须全通过。
+- `observed` 数据量持续增长会自然拉低其占比，**不要求 observed 占固定比例**——避免日常数据淹没真实信号；门禁只看独立回放密度与关键场景通过率。
+- `structurally_checked` 可作辅助信号，但**不能单独**推动晋升。
+
 ## 8. 提案候选信号阈值
 
 [scripts/summarize_usage_ledger.sh](../scripts/summarize_usage_ledger.sh) L69-L72 硬编码 4 个阈值常量，超过即在 summarize 输出中作为提案候选信号浮出。本节是这 4 个常量的文档化镜像：

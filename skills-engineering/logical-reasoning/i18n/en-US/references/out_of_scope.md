@@ -10,7 +10,7 @@ This skill constrains the argumentation quality of AI's **own responses** (inwar
 
 - **User question logic testing**: Handled by `problem-analysis` (PA-001).
 - **Conclusion grounding with external world**: Handled by `epistemic-integrity` (GR-011/012).
-- **Cognitive Adversary Mode**: Handled by `ios-engineer/references/cognitive_adversary_mode.md` (challenging user conclusions).
+- **Cognitive Adversary Mode**: Handled by `cognitive-calibration/references/cognitive_adversary_mode.md` (platform-agnostic owner; challenging user conclusions). `ios-engineer` maintains a mirror.
 - **Engineering output structure**: Handled by `engineering-discipline` (GR-004 four-section).
 
 ## Boundary Explanation

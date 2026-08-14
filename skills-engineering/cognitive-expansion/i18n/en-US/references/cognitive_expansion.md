@@ -10,12 +10,12 @@
 
 | Mode | Goal | Typical Trigger |
 |------|------|-----------------|
-| [Cognitive Adversary Mode](../../ios-engineer/references/cognitive_adversary_mode.md) | Calibration: approach truth, challenge false certainty | Technical decisions, architecture, root-cause conclusions, review judgments, strong conviction |
+| [Cognitive Adversary Mode](../../cognitive-calibration/references/cognitive_adversary_mode.md) | Calibration: approach truth, challenge false certainty | Technical decisions, architecture, root-cause conclusions, review judgments, strong conviction |
 | **Cognitive Expansion (this file)** | Expansion: break filter bubbles, portable capabilities | Appended when Tier 0 gate hits; deepened with `【深潜】` |
 
 Both can coexist: decision-type goes through Cognitive Adversary (Tier 2) first; other responses only append Tier 0 footnotes when the gate is hit, otherwise stay silent.
 
-> **Link conditionality**: The link to Cognitive Adversary Mode `../../ios-engineer/references/cognitive_adversary_mode.md` in the table above is only reachable when ios-engineer skill has been synced to the same-level skills directory. In non-iOS environments (ios-engineer not synced), this skill only provides Tier 0 / Tier 3; Tier 2 requires the user to explicitly load ios-engineer. Link unavailability does not block Tier 0/3.
+> **Link conditionality**: The link to Cognitive Adversary Mode `../../cognitive-calibration/references/cognitive_adversary_mode.md` in the table above is only reachable when the cognitive-calibration skill has been synced to the same-level skills directory. `ios-engineer` references this truth via `depends_on: [cognitive-calibration]` and maintains a mirror; link unavailability does not block Tier 0/3.
 
 ## Three-Tier Division
 

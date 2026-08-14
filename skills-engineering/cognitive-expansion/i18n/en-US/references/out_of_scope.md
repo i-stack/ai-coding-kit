@@ -9,7 +9,7 @@ This skill is responsible for **post-response cognitive expansion** (breaking kn
 ## What Is Not Handled
 
 - **Main response content**: This skill appends cognitive footnotes after the main response is complete; it does not participate in generating the main response.
-- **Cognitive Adversary Mode**: Anti-sycophancy/challenge in technical decisions/architecture trade-offs is handled by `ios-engineer/references/cognitive_adversary_mode.md` (Tier 2); this skill manages Tier 0 (footnotes) and Tier 3 (deep dive/expansion).
+- **Cognitive Adversary Mode**: Anti-sycophancy/challenge in technical decisions/architecture trade-offs is owned by `cognitive-calibration/references/cognitive_adversary_mode.md` (Tier 2); ios-engineer only maintains a mirror/dependency. This skill manages Tier 0 (footnotes) and Tier 3 (deep dive/expansion).
 - **Pure factual recitation**: Pure information queries without judgment/trade-offs/attribution/design choices do not require cognitive expansion.
 
 ## Trigger Gate

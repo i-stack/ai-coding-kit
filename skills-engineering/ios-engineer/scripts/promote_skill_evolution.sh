@@ -73,6 +73,16 @@ fi
 
 SKIP_SNAPSHOT_CONSISTENCY=1 bash scripts/validate_skill_evolution.sh
 
+# Evidence-class promotion gate (usage_ledger.md §7b): a rule may only be
+# promoted on independently_replayed evidence, not observed ratio. If a proposal
+# file is supplied, run the gate; a FAIL (non-zero) aborts promotion.
+if [ -n "$proposal_file" ]; then
+  if ! bash scripts/check_skill_promotion_readiness.sh "$proposal_file"; then
+    echo "Promotion BLOCKED by evidence_class gate (need >=3 independently_replayed entries per affected rule + critical scenarios)."
+    exit 1
+  fi
+fi
+
 mkdir -p "$snapshot_dir"
 cp SKILL.md "${snapshot_dir}/SKILL.md"
 cp -R agents "${snapshot_dir}/agents"

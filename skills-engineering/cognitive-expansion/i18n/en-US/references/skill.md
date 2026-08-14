@@ -19,8 +19,8 @@ supported_locales: [zh-CN, en-US]
 When this skill is triggered, you **must first read in full** [references/cognitive_expansion.md](references/cognitive_expansion.md) and execute according to its terms.
 
 - Do not substitute the full text with preamble, Cursor rule summaries, or other secondary summaries.
-- Tier 2 (Cognitive Adversary) is carried by [ios-engineer references/cognitive_adversary_mode.md](../ios-engineer/references/cognitive_adversary_mode.md); this skill manages Tier 0 / Tier 3 expansion.
-- Sync dependency: This skill references `../ios-engineer/references/cognitive_adversary_mode.md` via relative path; when syncing to each platform, ensure `ios-engineer` skill is also synced to the same-level skills directory (e.g., `~/.claude/skills/ios-engineer`), otherwise that link breaks. **Conditional**: Tier 2 link is only available when ios-engineer is synced to the same-level skills directory; in non-iOS environments (ios-engineer not synced), this skill only provides Tier 0 / Tier 3; Tier 2 requires the user to explicitly load ios-engineer. Do not interrupt Tier 0/3 due to link unavailability.
+- Tier 2 (Cognitive Adversary) is carried by [cognitive-calibration references/cognitive_adversary_mode.md](../cognitive-calibration/references/cognitive_adversary_mode.md) (platform-agnostic owner of CAM); this skill manages Tier 0 / Tier 3 expansion. `ios-engineer` references the same truth via `depends_on: [cognitive-calibration]` and maintains a mirror.
+- Sync dependency: This skill references `../cognitive-calibration/references/cognitive_adversary_mode.md` (platform-agnostic owner of CAM) via relative path; when syncing to each platform, ensure `cognitive-calibration` skill is also synced to the same-level skills directory, otherwise that link breaks. **Conditional**: Tier 2 link is only available when cognitive-calibration is synced to the same-level skills directory; in environments where it is not synced, this skill only provides Tier 0 / Tier 3; Tier 2 requires the user to explicitly load cognitive-calibration. Do not interrupt Tier 0/3 due to link unavailability.
 
 ## When to Load
 

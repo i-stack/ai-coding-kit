@@ -33,7 +33,7 @@
 - 主技能：`ios-engineer`
 - Active 版本：见 `ios-engineer/evolution/active_version.json`
 - 技能入口：`ios-engineer/SKILL.md`
-- 认知对手模式：`ios-engineer/SKILL.md` 顶部全局强制；详规 `ios-engineer/references/cognitive_adversary_mode.md`
+- 认知对手模式（platform-agnostic）：真值 owner 为 `cognitive-calibration`，详规 `cognitive-calibration/references/cognitive_adversary_mode.md`；`ios-engineer` 经 `depends_on: [cognitive-calibration]` 引用并维护镜像 `ios-engineer/references/cognitive_adversary_mode.md`
 - 认知拓展（打破茧房）：`cognitive-expansion/` skill（与 `ios-engineer` 同构）；`sync-skills.sh` 同步全文到各端；preamble 仅声明加载路径，Cursor `.mdc` 由详规自动生成
 - 规则索引：`ios-engineer/references/rule_index.md`
 - 使用观测：`ios-engineer/references/usage_ledger.md` 与 `ios-engineer/evolution/usage/usage.jsonl`
@@ -300,21 +300,25 @@ bash scripts/sync-memory.sh --remove
 
 ## 跨技能协调与 i18n 治理
 
-多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `ios-engineer` 认知对手模式（CAM））。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`；块发射顺序与冲突裁决另见 `.agents/composition.md`）：
+多个全局技能会在同一轮命中（如 `engineering-discipline` + `plan-grill` + `cognitive-calibration` 认知对手模式（CAM））。为避免块堆叠、口径打架与读取预算爆炸，约定如下协调契约（详见各 skill 的 `references/`；块发射顺序与冲突裁决另见 `.agents/composition.md`）：
 
 ### 多技能叠加口径（D1-D5）
 
 - **前置确认被盘问吸收（GR-002 ↔ PG-000）**：任务描述不清时，`engineering-discipline` GR-002 的「前置确认」不另起独立块；若 `plan-grill` PG-000 已进入盘问，该确认问题被吸收为盘问首问，按「一次只问一个」推进。
 - **战略性中断同 anchor 合并（GR-006 ↔ GR-002）**：`GR-006` 战略性中断若在盘问/排查期间触发，其「前置确认」块与 GR-002 同 anchor 合并，≥2 战略分支吸收 GR-002 提问，不重复输出。
-- **CAM 机械格式保留（GR-004 ↔ ios-engineer CAM）**：CAM 激活时，其 `Step 0–6 + 置信度` 字段已承载 `逻辑链` / `验证锚点` 的校准语义，二者不另起独立块；但 CAM 字段须按「最终输出格式」原样输出，不得省略或并入其它块。
+- **CAM 机械格式保留（GR-004 ↔ cognitive-calibration CAM）**：CAM 激活时，其 `Step 0–6 + 置信度` 字段已承载 `逻辑链` / `验证锚点` 的校准语义，二者不另起独立块；但 CAM 字段须按「最终输出格式」原样输出，不得省略或并入其它块。CAM 真值 owner 为 `cognitive-calibration` skill（platform-agnostic），`ios-engineer` / `logical-reasoning` / `cognitive-expansion` 经 `depends_on` 引用，不再依赖相对路径硬链接。
 - **跨块置信度归一**：同一回复内所有置信 / 强度信号（逻辑链结论强度、验证锚点置信度、CAM 置信度、认知校准不确定）必须同源、写同一值，归一到本轮唯一保留的字段。
 - **分级读取与预算上限**：各 skill「须先读 references 全文」仅在该 skill 详规确被命中时执行；多技能同轮触发时按 `问题分析(输入) → 工程纪律 / 论证 / 真值接地(论证与交付) → 计划盘问(计划锁定) → 平台 specifics` 分配读取与输出预算，避免叠加爆炸触发 GR-006 中断。
 
 ### i18n 镜像治理
 
 - **zh 源 + en-US 镜像**：`SKILL.md` / `references/*.md` 的 zh-CN 为唯一真源；`i18n/en-US/` 是 zh 源的分发镜像（翻译改写产物，`sync-skills.sh` 同步全文到各端）。
+- **支持等级政策（过渡态）**：
+  - 在 `SKILL.md` frontmatter 正式声明 `supported_locales: [..., en-US]` 的 skill，**必须**提供结构完整的镜像（硬门：源版本 + 规则 ID + 标题/机械锚点 + 源文件 hash）；缺失则 `validate-skill-behavior.sh` WARN 并回退 zh-CN。
+  - 仅含 `i18n/en-US/` 目录但**未**声明 `en-US` 的 skill，其镜像视为 **experimental/generated**，**不对外承诺**；校验器会 WARN 提示声明或移除目录。
+  - 不以「语义完全一致」作为自动硬门（翻译等价难可靠机械判断）；采用**结构硬门 + 人工审核**（见 `tests/test_en_us_mirror_sync.py` 的锚点/同步断言）。
 - **同步纪律**：改动任一协调条款的 zh 源，必须同步更新对应 en-US 镜像，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL（zh 源 ↔ en-US 镜像双向锚点断言）。
-- **覆盖校验**：`validate-skill-behavior.sh` 在 pre-push 阶段检查 i18n 镜像覆盖与跨技能硬链提示。
+- **覆盖校验**：`validate-skill-behavior.sh` 在 pre-push 阶段按上述政策支持等级检查 i18n 镜像覆盖与跨技能依赖闭包（`depends_on`）。
 
 ## 演进工作流
 

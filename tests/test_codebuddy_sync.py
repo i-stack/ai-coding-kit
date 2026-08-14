@@ -852,7 +852,7 @@ class MultiSkillCoordinationTests(unittest.TestCase):
     CAM = (
         REPO_ROOT
         / "skills-engineering"
-        / "ios-engineer"
+        / "cognitive-calibration"
         / "references"
         / "cognitive_adversary_mode.md"
     ).read_text(encoding="utf-8")

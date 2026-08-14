@@ -5,7 +5,7 @@
 ## 不处理的内容
 
 - **回答的主体内容**：本 skill 在主体回答完成后追加认知尾注，不参与主体回答的生成。
-- **认知对手模式**：技术决策/架构取舍中的反迎合/挑战由 `ios-engineer/references/cognitive_adversary_mode.md` 负责（Tier 2），本 skill 管 Tier 0（尾注）和 Tier 3（深潜/拓展）。
+- **认知对手模式**：技术决策/架构取舍中的反迎合/挑战由 `cognitive-calibration`（platform-agnostic owner）负责（Tier 2），`ios-engineer/references/cognitive_adversary_mode.md` 仅为其镜像；本 skill 管 Tier 0（尾注）和 Tier 3（深潜/拓展）。
 - **纯事实复述**：不含判断/取舍/归因/设计选择的纯信息查询不需要认知拓展。
 
 ## 触发门控

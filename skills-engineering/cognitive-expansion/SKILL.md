@@ -5,6 +5,7 @@ description: >-
   认知对手模式互补。全局适用，不限于 iOS 工程。
 locale: zh-CN
 supported_locales: [zh-CN]
+depends_on: [cognitive-calibration]
 ---
 
 # Cognitive Expansion
@@ -14,8 +15,8 @@ supported_locales: [zh-CN]
 命中本 skill 时，**必须先完整阅读** [references/cognitive_expansion.md](references/cognitive_expansion.md) 并按其中条款执行。
 
 - 不得以 preamble、Cursor 规则摘要或其它二次摘要代替该文件全文。
-- Tier 2（认知对手）由 [ios-engineer references/cognitive_adversary_mode.md](../ios-engineer/references/cognitive_adversary_mode.md) 承载；本 skill 管 Tier 0 / Tier 3 拓展。
-- 同步依赖：本 skill 通过相对路径引用 `../ios-engineer/references/cognitive_adversary_mode.md`；同步到各端时，需确保 `ios-engineer` skill 也同步到同层 skills 目录（如 `~/.claude/skills/ios-engineer`），否则该链接失效。**条件性**：仅当 ios-engineer 已同步到同层 skills 目录时，Tier 2 链接可用；非 iOS 环境（未同步 ios-engineer）下，本 skill 仅提供 Tier 0 / Tier 3，Tier 2 需用户显式加载 ios-engineer，不得因链接不可达而中断 Tier 0/3。
+- Tier 2（认知对手）由 [cognitive-calibration references/cognitive_adversary_mode.md](../cognitive-calibration/references/cognitive_adversary_mode.md) 承载（platform-agnostic owner）；本 skill 管 Tier 0 / Tier 3 拓展。
+- 依赖闭包：本 skill 通过 `depends_on: [cognitive-calibration]` 声明对 CAM 的依赖；CAM 真值承载于 `cognitive-calibration` skill（`cognitive-calibration/references/cognitive_adversary_mode.md`，platform-agnostic owner），`ios-engineer` 仅维护指向该真值的镜像。`cognitive-calibration` 与 `ios-engineer` 均同步到同层 skills 目录即可，否则 Tier 2 链接失效。**条件性**：仅当依赖 skill 已同步到同层 skills 目录时，Tier 2 链接可用；非 iOS 环境（未同步 ios-engineer）下，本 skill 仅提供 Tier 0 / Tier 3，Tier 2 需用户显式加载 cognitive-calibration，不得因链接不可达而中断 Tier 0/3。
 
 ## 何时加载
 

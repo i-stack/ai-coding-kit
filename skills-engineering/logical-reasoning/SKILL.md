@@ -3,6 +3,7 @@ name: logical-reasoning
 description: 全局论证纪律——可追溯逻辑链、层级分明、因果克制、逻辑链输出块（GR-010）。适用所有工程任务，不限平台。
 locale: zh-CN
 supported_locales: [zh-CN]
+depends_on: [cognitive-calibration]
 ---
 
 # Logical Reasoning
@@ -12,7 +13,7 @@ supported_locales: [zh-CN]
 命中本 skill 时，**必须先完整阅读** [references/logical_reasoning.md](references/logical_reasoning.md) 并按其中条款执行。
 
 - 不得以 preamble、Cursor 规则摘要或其它二次摘要代替该文件全文。
-- 同步依赖：本 skill 在「与认知对手模式的分工」中通过相对路径引用 `../ios-engineer/references/cognitive_adversary_mode.md`；同步到各端时，需确保 `ios-engineer` skill 也同步到同层 skills 目录（如 `~/.claude/skills/ios-engineer`），否则该链接失效。**条件性**：该链接仅在 ios-engineer 已同步到同层 skills 目录时可达；非 iOS 环境（未同步 ios-engineer）下，本 skill 的 GR-010 约束本身完整可用，仅"与认知对手模式分工"的跳转链接失效，不影响核心论证纪律。
+- 依赖闭包：本 skill 通过 `depends_on: [cognitive-calibration]` 声明对认知对手模式（CAM）的依赖；CAM 真值承载于 `cognitive-calibration` skill（`cognitive-calibration/references/cognitive_adversary_mode.md`，platform-agnostic owner），`ios-engineer` 仅维护指向该真值的镜像。同步到各端时，需确保 `cognitive-calibration`（及 `ios-engineer`）skill 同步到同层 skills 目录，否则 Tier 2 跳转链接失效。**条件性**：该链接仅在依赖 skill 已同步到同层 skills 目录时可达；非 iOS 环境（未同步 ios-engineer）下，本 skill 的 GR-010 约束本身完整可用，仅"与认知对手模式分工"的 Tier 2 跳转失效，不影响核心论证纪律。
 
 ## GR-010 核心规则
 
@@ -28,5 +29,5 @@ supported_locales: [zh-CN]
 
 | 角色 | 目标 | 典型触发 |
 |------|------|----------|
-| [认知对手模式](../ios-engineer/references/cognitive_adversary_mode.md)（ios-engineer） | 校准：挑战用户结论的逻辑与假设 | 技术决策、强确信、显式 red team |
+| [认知对手模式](../cognitive-calibration/references/cognitive_adversary_mode.md)（cognitive-calibration） | 校准：挑战用户结论的逻辑与假设 | 技术决策、强确信、显式 red team |
 | **本 skill（GR-010）** | 约束：AI 自身的论证质量 | 所有含判断成分的回复 |
