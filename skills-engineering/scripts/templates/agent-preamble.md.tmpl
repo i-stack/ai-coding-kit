@@ -15,6 +15,8 @@ skill:ios-engineer
 -->
 
 <!-- managed-block:agent-preamble:begin (SOURCE template — edit this file; sync-agent-preamble.sh renders these blocks into target preambles. Do not hand-edit the generated blocks in target files.) -->
+SKILL 规则位于 `{{SKILLS_DIR}}`（路径已 tilde 化，避免绝对路径泄露到多机环境）；各 SKILL 全文由 sync-skills.sh 同步，触发条件以各 SKILL.md 为准。
+
 # global multi-skill coordination（叠加和谐总纲）
 
 多个 global skill 同轮命中时，目标是**互补增强、而非互斥冗余**。协调总纲见 `engineering-discipline` GR-004「多块合并」及其子节（校准层/CAM 纳入、跨块置信度同源、多 SKILL 叠加读取与预算上限）：
