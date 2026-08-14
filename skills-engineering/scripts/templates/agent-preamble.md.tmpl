@@ -11,6 +11,7 @@ skill:plan-grill
 skill:cross-model-review
 skill:auto-code-review
 skill:historical-recall
+skill:ios-engineer
 -->
 
 <!-- managed-block:agent-preamble:begin (SOURCE template — edit this file; sync-agent-preamble.sh renders these blocks into target preambles. Do not hand-edit the generated blocks in target files.) -->
@@ -70,36 +71,15 @@ problem-analysis 完成后，对每个非平凡构建、修改或方案请求执
 
 进入后一次只问一个问题，确认前不执行。显式 grill/锁定计划触发语始终强制进入。事实查询/解释/翻译、review/只诊断不修复、trivial 改动、验收标准与实施路径已明确的执行任务、以及用户明确「直接做/不要盘问」时跳过（安全或不可逆操作缺少必要信息除外）。
 
-# global ios-engineer skill usage
+# global platform skills（按需，不内联平台规则）
 
-执行 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务前，必须先加载并遵循 `ios-engineer` SKILL 规则（SKILL.md + references/rule_index.md 中 `status=active` 的 IR / SYM / ROUTE / OUT 条目）。
+本文件是**用户级通用纪律**载体，只承载与语言/平台无关的规则。iOS / Android / Web / 后端等平台专属技能**不在此内联**，改由对应 SKILL 的门控按需加载：
 
-SKILL 规则位于 `{{IOS_ENGINEER_SKILLS_DIR}}`，可直接加载。
+- 遇到 iOS / Swift / SwiftUI / UIKit / Xcode 任务 → 加载 `ios-engineer` SKILL（SKILL.md + references/rule_index.md 中 `status=active` 的 IR / SYM / ROUTE / OUT 条目）。
+- Android / Web / 后端等同理，由各自 SKILL.md 门控触发。
 
-# global ios-engineer skill audit
+平台专属全文（含使用规则、审计块等重内容）只在该技能**确被命中**时展开，不进用户级 preamble，避免无关平台文本污染所有项目。项目级 `.cursor/rules/<skill>.mdc` 由 `sync-agent-preamble.sh` 按探测到的项目类型生成，做到「iOS 项目才含 ios-engineer，web 项目才含 web-engineer」。
 
-完成 iOS / Swift / SwiftUI / UIKit / Xcode 工程任务后，在最终回答末尾追加一个 `<usage-audit>` 块。
-
-格式（K-V 标签，固定 kebab-case）：
-
-```
-<usage-audit>
-tool: {{TOOL_NAME}}
-task-type: <layout | parameter-pass-through | concurrency | review | migration | mcp-control | notifications | privacy | persistence | storekit | extensions | other>
-prompt-summary: <5-200 字符脱敏摘要，禁贴原始 prompt / 源码片段 / 可识别项目名>
-expected-rules: <逗号分隔，如 ROUTE-007, SYM-003>
-hit-rules: <逗号分隔；不确定就留空，绝不凭印象猜>
-deviations: <分号分隔；没有就留空>
-outcome: <pass | partial | fail>
-evolution-signal: <none | 修正表达 | 新增能力 | 合并重复 | 退役规则>
-</usage-audit>
-```
-
-可选字段：`session-id: <id>`（默认省略 = null）。
-
-Rule ID 词表取自 `{{IOS_ENGINEER_SKILLS_DIR}}references/rule_index.md`，仅使用 `status=active` 的 ID（IR-NNN / SYM-NNN / ROUTE-NNN / OUT-NNN / GR-NNN）。完整 schema、写入协议、self-grading 偏差告示见同目录下 `usage_ledger.md` §1-§7。
-
-**非 iOS 工程任务不输出这个块**：写文档、答 API 问题、通用重构、元工程 / 自进化讨论 / SkillOps 维护本身都跳过。task-type 落不进 12 选 1 时也跳过。
 <!-- managed-block:agent-preamble:end -->
 
 <!-- managed-block:historical-recall:begin (SOURCE template — single source of truth for the recall section; injected into the full block above via {{HISTORICAL_RECALL_BLOCK}} and used as-is for recall-only targets. Do not hand-edit the generated blocks in target files.) -->
