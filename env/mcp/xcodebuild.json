@@ -10,6 +10,7 @@
     "env": {
         "XCODEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging,device"
     },
+    "capabilities": {"authority": "local-write", "reversible": true, "data_sensitivity": "internal", "parallel_safe": false, "fallback": "invoke xcodebuild or simctl directly", "verification": "check exit status and inspect build, test, or simulator artifacts"},
     "platforms": [
         "claude",
         "codex",

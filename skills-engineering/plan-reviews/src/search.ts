@@ -51,7 +51,10 @@ export class SearchEngine {
 				limit: query.limit ?? 5,
 				planId: query.planId,
 				scoreThreshold: 0.35,
-			}).map((hit) => ({ ...hit, matchType: "semantic" as const }));
+			}).map((hit) => {
+				const chunk = this.store.getChunk(hit.chunkId);
+				return { ...hit, matchType: "semantic" as const, promptInjectionSuspected: chunk?.promptInjectionSuspected, promptInjectionSignals: chunk?.promptInjectionSignals };
+			});
 		} catch (err) {
 			console.warn(`[plan-reviews] Semantic search failed: ${(err as Error).message}`);
 			return this.keywordSearch(query);
@@ -70,6 +73,8 @@ export class SearchEngine {
 			score,
 			matchType: "keyword" as const,
 			matchedTerms,
+			promptInjectionSuspected: chunk.promptInjectionSuspected,
+			promptInjectionSignals: chunk.promptInjectionSignals,
 		}));
 	}
 
@@ -91,6 +96,8 @@ export class SearchEngine {
 				score: Math.max(...memberHits.map((hit) => hit.score)),
 				matchType: "merged" as const,
 				sourcePlanIds: point.planIds,
+				promptInjectionSuspected: memberHits.some((hit) => hit.promptInjectionSuspected),
+				promptInjectionSignals: [...new Set(memberHits.flatMap((hit) => hit.promptInjectionSignals ?? []))],
 			};
 		});
 		return [...mergedHits, ...hits.filter((hit) => !consumedPlans.has(hit.planId))];
@@ -149,7 +156,8 @@ export class SearchEngine {
 					: hit.matchType === "merged"
 						? `(merged-score=${hit.score.toFixed(2)}, sources=${hit.sourcePlanIds?.join(",") ?? ""})`
 						: `(lexical=${hit.score.toFixed(2)})`;
-				lines.push(`- ${scoreLabel}${planLabel}: ${truncate(hit.text, 200)}`);
+				const trustLabel = hit.promptInjectionSuspected ? ` [PROMPT-INJECTION-SUSPECTED:${hit.promptInjectionSignals?.join(",")}]` : " [UNTRUSTED-HISTORY]";
+				lines.push(`- ${scoreLabel}${planLabel}${trustLabel}: ${truncate(hit.text, 200)}`);
 			}
 			lines.push("");
 		}

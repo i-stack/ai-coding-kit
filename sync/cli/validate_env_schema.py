@@ -27,6 +27,14 @@ MCP_VALID_TYPES = {"stdio", "sse"}
 MCP_KNOWN_FIELDS = {
     "name", "type", "command", "args", "env", "url", "headers",
     "platforms", "_comment",
+    "capabilities",
+}
+
+MCP_AUTHORITIES = {"read", "local-write", "external-write"}
+MCP_SENSITIVITY = {"public", "internal", "secret"}
+MCP_CAPABILITY_FIELDS = {
+    "authority", "reversible", "data_sensitivity", "parallel_safe",
+    "fallback", "verification",
 }
 
 
@@ -68,6 +76,24 @@ def validate_mcp_file(path: Path) -> list[str]:
     platforms = data.get("platforms")
     if platforms is not None and not isinstance(platforms, list):
         errors.append(f"{path.name}: 'platforms' must be a list")
+
+    capabilities = data.get("capabilities")
+    if not isinstance(capabilities, dict):
+        errors.append(f"{path.name}: 'capabilities' must be an object")
+    else:
+        unknown_capabilities = set(capabilities) - MCP_CAPABILITY_FIELDS
+        if unknown_capabilities:
+            errors.append(f"{path.name}: unknown capability fields: {', '.join(sorted(unknown_capabilities))}")
+        if capabilities.get("authority") not in MCP_AUTHORITIES:
+            errors.append(f"{path.name}: capabilities.authority must be one of {sorted(MCP_AUTHORITIES)}")
+        if capabilities.get("data_sensitivity") not in MCP_SENSITIVITY:
+            errors.append(f"{path.name}: capabilities.data_sensitivity must be one of {sorted(MCP_SENSITIVITY)}")
+        for field in ("reversible", "parallel_safe"):
+            if not isinstance(capabilities.get(field), bool):
+                errors.append(f"{path.name}: capabilities.{field} must be a boolean")
+        for field in ("fallback", "verification"):
+            if not isinstance(capabilities.get(field), str) or not capabilities[field].strip():
+                errors.append(f"{path.name}: capabilities.{field} must be a non-empty string")
 
     # Warn about unknown fields
     unknown = set(data.keys()) - MCP_KNOWN_FIELDS

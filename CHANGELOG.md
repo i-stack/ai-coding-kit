@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-08-14
+
+- 明确 Skill 的正式与实验 locale 契约，并消除英文镜像状态歧义。
+- 增加跨 Agent 黄金场景、只读 CLI runner、独立成功评分与基础设施失败分类。
+- MCP 定义增加权限、副作用、敏感度、并行、降级和验证 capability 契约。
+- 增加仓库级 Skill 真值 manifest 与 reference freshness 门禁。
+- Usage Ledger 增加 task/session 关联键与覆盖率，并按证据等级分层统计结果。
+- plan-reviews 索引增加逐版本 migration、provenance/trust、prompt-injection signals 及完整同步事务锁。
+
 All notable changes to ai-coding-kit will be documented in this file.
 
 ---

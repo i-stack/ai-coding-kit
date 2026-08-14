@@ -8,6 +8,14 @@
         "<package-name>"
     ],
     "env": {},
+    "capabilities": {
+        "authority": "read",
+        "reversible": true,
+        "data_sensitivity": "internal",
+        "parallel_safe": true,
+        "fallback": "local read-only inspection",
+        "verification": "compare the returned resource with the authoritative source"
+    },
     "platforms": [
         "claude",
         "codex",

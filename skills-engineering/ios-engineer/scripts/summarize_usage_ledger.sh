@@ -128,6 +128,7 @@ end
 # --- Aggregations ---
 by_tool = Hash.new { |h, k| h[k] = { "entries" => 0, "pass" => 0, "partial" => 0, "fail" => 0 } }
 by_task_type = Hash.new { |h, k| h[k] = { "entries" => 0, "pass" => 0 } }
+by_evidence_class = Hash.new { |h, k| h[k] = { "entries" => 0, "pass" => 0, "partial" => 0, "fail" => 0 } }
 rule_stats = Hash.new { |h, k| h[k] = { "expected" => 0, "hit" => 0, "miss" => 0 } }
 deviation_counts = Hash.new(0)
 tool_rule_hit = Hash.new { |h, k| h[k] = Hash.new { |hh, kk| hh[kk] = { "expected" => 0, "hit" => 0 } } }
@@ -139,6 +140,10 @@ entries.each do |e|
 
   by_task_type[e["task_type"]]["entries"] += 1
   by_task_type[e["task_type"]]["pass"] += 1 if e["outcome"] == "pass"
+
+  evidence_class = e["evidence_class"] || "observed"
+  by_evidence_class[evidence_class]["entries"] += 1
+  by_evidence_class[evidence_class][e["outcome"]] += 1 if %w[pass partial fail].include?(e["outcome"])
 
   expected = e["expected_rules"] || []
   hit = e["hit_rules"] || []
@@ -237,6 +242,8 @@ end
 
 # --- Time window summary ---
 times = entries.map { |e| Date.parse(e["time"]) rescue nil }.compact.sort
+linked_task_ids = entries.map { |e| e["task_id"] }.compact.reject(&:empty?).uniq
+linked_session_ids = entries.map { |e| e["session_id"] }.compact.reject(&:empty?).uniq
 window_from = times.first&.to_s || "?"
 window_to = times.last&.to_s || "?"
 
@@ -246,6 +253,9 @@ summary = {
   "tool_filter" => tool_filter.empty? ? "all" : tool_filter,
   "since_filter" => since_str.empty? ? "*" : since_str,
   "total_entries" => entries.length,
+  "linked_tasks" => linked_task_ids.length,
+  "linked_sessions" => linked_session_ids.length,
+  "task_link_coverage" => entries.empty? ? 0.0 : entries.count { |e| e["task_id"] && !e["task_id"].empty? }.to_f / entries.length,
   "malformed_lines" => malformed,
   "thresholds" => {
     "missed_rule" => MISSED_RULE_THRESHOLD,
@@ -256,6 +266,7 @@ summary = {
   },
   "by_tool" => by_tool.sort_by { |_, v| -v["entries"] }.to_h,
   "by_task_type" => by_task_type.sort_by { |_, v| -v["entries"] }.to_h,
+  "by_evidence_class" => by_evidence_class.sort_by { |_, v| -v["entries"] }.to_h,
   "rule_stats" => rule_stats.sort_by { |_, v| -v["expected"] }.to_h,
   "top_missed" => missed_freq.map { |rid, v| { "rule_id" => rid, "summary" => rule_summary[rid] || "(unknown)", "miss_count" => v["miss"] } },
   "top_deviations" => hot_deviations.map { |t, c| { "text" => t, "count" => c } },
@@ -277,7 +288,17 @@ else
   lines << "- 时间过滤：#{summary['since_filter']}"
   lines << "- 工具过滤：#{summary['tool_filter']}"
   lines << "- 总条目：#{summary['total_entries']}"
+  lines << "- 关联任务：#{summary['linked_tasks']}；关联会话：#{summary['linked_sessions']}；task_id 覆盖率：#{(summary['task_link_coverage'] * 100).round(0)}%"
   lines << "- 跳过非法行：#{summary['malformed_lines']}" if summary["malformed_lines"] > 0
+  lines << ""
+
+  lines << "## 按证据等级"
+  lines << ""
+  lines << "| evidence_class | entries | pass% | partial% | fail% |"
+  lines << "|----------------|---------|-------|----------|-------|"
+  summary["by_evidence_class"].each do |klass, v|
+    lines << "| #{klass} | #{v['entries']} | #{pct(v['pass'], v['entries'])} | #{pct(v['partial'], v['entries'])} | #{pct(v['fail'], v['entries'])} |"
+  end
   lines << ""
 
   lines << "## 按工具"

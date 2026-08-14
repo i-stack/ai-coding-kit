@@ -138,10 +138,13 @@ blocks.each_with_index do |body, idx|
     deviations = (data["deviations"] || "").split(";").map(&:strip).reject(&:empty?)
     session_id_raw = data["session-id"]
     session_id = (session_id_raw.nil? || session_id_raw.strip.empty?) ? nil : session_id_raw.strip
+    task_id_raw = data["task-id"]
+    task_id = (task_id_raw.nil? || task_id_raw.strip.empty?) ? nil : task_id_raw.strip
 
     valid << {
       "tool" => data["tool"],
       "session_id" => session_id,
+      "task_id" => task_id,
       "prompt_summary" => ps,
       "task_type" => data["task-type"],
       "expected_rules" => expected,

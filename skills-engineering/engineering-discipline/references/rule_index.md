@@ -1,3 +1,4 @@
+<!-- last-verified: 2026-08 -->
 # 规则真值索引（engineering-discipline）
 
 > 本文件是 `engineering-discipline` skill 规则 ID 的**元数据真值索引**（条文真值在 `engineering_discipline.md`）。

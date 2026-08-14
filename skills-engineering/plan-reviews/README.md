@@ -22,6 +22,8 @@ node dist/cli.js merge
 
 `cosine` 仅表示向量余弦相似度，`lexical` 表示本地词法覆盖分，两者都不是经校准的「命中率」或正确概率。
 
+索引缓存由 `CURRENT_SCHEMA_VERSION` 与逐版本 migration 管理：无版本索引按 v0 迁移，未知未来版本拒绝加载。每个 chunk 记录来源、`untrusted-history` 边界和启发式 prompt-injection signals；召回结果逐条显示 `UNTRUSTED-HISTORY` 或 `PROMPT-INJECTION-SUSPECTED`。同步事务使用跨进程目录锁，读取、增量计算与原子写入处于同一临界区；`.plan-reviews/` Markdown 始终是可重建的权威数据源。
+
 核心思路：`.plan-reviews` 存储的是高度结构化的 PLAN.md / code-review 归档文件，数据量小（几十到几百个 plan），通过内存余弦相似度（有 Embedding 时）或本地关键词检索（无 Embedding 时）+ 单 JSON 缓存文件即可实现召回和知识图谱，完全不需要重型基础设施。
 
 ## 快速开始

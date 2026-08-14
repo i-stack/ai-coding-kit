@@ -7,6 +7,7 @@
         "@modelcontextprotocol/server-filesystem",
         "~/Desktop/"
     ],
+    "capabilities": {"authority": "local-write", "reversible": false, "data_sensitivity": "internal", "parallel_safe": false, "fallback": "use sandboxed local filesystem tools", "verification": "inspect the resolved target path after each mutation"},
     "platforms": [
         "claude",
         "codex",

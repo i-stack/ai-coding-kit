@@ -92,6 +92,9 @@ File.foreach(ledger_path).with_index(1) do |raw, lineno|
   unless entry["session_id"].nil? || entry["session_id"].is_a?(String)
     violations << "line #{lineno}: session_id must be string or null"
   end
+  unless !entry.key?("task_id") || entry["task_id"].nil? || (entry["task_id"].is_a?(String) && !entry["task_id"].empty?)
+    violations << "line #{lineno}: task_id must be non-empty string or null"
+  end
 
   # prompt_summary
   ps = entry["prompt_summary"]

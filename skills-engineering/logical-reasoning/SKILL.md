@@ -3,6 +3,7 @@ name: logical-reasoning
 description: 全局论证纪律——可追溯逻辑链、层级分明、因果克制、逻辑链输出块（GR-010）。适用所有工程任务，不限平台。
 locale: zh-CN
 supported_locales: [zh-CN]
+experimental_locales: [en-US]
 depends_on: [cognitive-calibration]
 ---
 

@@ -4,6 +4,7 @@
   "command": "npx",
   "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
   "env": {},
+  "capabilities": {"authority": "external-write", "reversible": false, "data_sensitivity": "internal", "parallel_safe": false, "fallback": "use Playwright or read-only HTTP inspection", "verification": "observe the final page state and relevant network response"},
   "platforms": ["claude", "codex", "codebuddy", "cursor", "cline", "gemini"],
   "_comment": "可选 MCP：基于 Puppeteer 的浏览器自动化（与默认 playwright 互补，择一启用）。enable 后由 sync.sh 自动发现。"
 }

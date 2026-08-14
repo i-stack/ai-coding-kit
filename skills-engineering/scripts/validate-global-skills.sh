@@ -36,6 +36,12 @@ run_step "skill structure" \
 run_step "skill behavior" \
   bash "${SCRIPT_DIR}/validate-skill-behavior.sh"
 
+run_step "source-of-truth and freshness" \
+  python3 "${SCRIPT_DIR}/validate-source-freshness.py"
+
+run_step "behavior eval contract tests" \
+  python3 -m unittest discover -s "${SCRIPT_DIR}/../behavior-evals" -p "test_*.py"
+
 run_step "preamble sync dry-run" \
   bash "${SCRIPT_DIR}/sync-agent-preamble.sh" --dry-run
 

@@ -1,3 +1,4 @@
+<!-- last-verified: 2026-08 -->
 # 规则真值索引（cognitive-calibration）
 
 > 本文件是 `cognitive-calibration` skill 规则 ID 的**唯一真值索引**。SKILL.md 声明的 ID 必须在此定义；此处 active 行必须被 SKILL.md 声明（双向一致，由 `validate_rule_ids.sh` 校验）。

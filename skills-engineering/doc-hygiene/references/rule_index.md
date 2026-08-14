@@ -1,3 +1,4 @@
+<!-- last-verified: 2026-08 -->
 # 规则真值索引（doc-hygiene）
 
 > 本文件是 `doc-hygiene` skill 规则 ID 的**元数据真值索引**（条文真值在 `doc_hygiene.md`）。

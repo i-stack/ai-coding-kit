@@ -6,6 +6,7 @@
   "env": {
     "WECHAT_TOKEN": "${wechat.token}"
   },
+  "capabilities": {"authority": "external-write", "reversible": false, "data_sensitivity": "secret", "parallel_safe": false, "fallback": "prepare content without sending it", "verification": "read the delivered message identifier from the service"},
   "platforms": ["claude", "codex", "codebuddy"],
   "_comment": "可选 MCP：企业微信 / 个人微信桥接示例。需在 env/secrets.json 增加 \"wechat\": { \"token\": \"...\" }。enable 后同步。"
 }

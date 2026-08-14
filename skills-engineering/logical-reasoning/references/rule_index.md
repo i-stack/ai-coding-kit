@@ -1,3 +1,4 @@
+<!-- last-verified: 2026-08 -->
 # 规则真值索引（logical-reasoning）
 
 > 本文件是 `logical-reasoning` skill 规则 ID 的**元数据真值索引**（条文真值在 `logical_reasoning.md`）。

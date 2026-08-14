@@ -41,6 +41,8 @@
 - 规则索引：`ios-engineer/references/rule_index.md`
 - 使用观测：`ios-engineer/references/usage_ledger.md` 与 `ios-engineer/evolution/usage/usage.jsonl`
 - 回归场景：`ios-engineer/evolution/scenarios/*.json`
+- Skill 真值清单：`source-truth.json`；`validate-source-freshness.py` 校验 Skill 集合、canonical `SKILL.md` 入口和所有 canonical reference 的 `last-verified` 时效。
+- 跨 Agent 行为评测：`behavior-evals/scenarios.json`、`run.py`、`evaluate.py`；CLI 基础设施失败与模型行为失败分别统计。
 
 ## 目录结构
 

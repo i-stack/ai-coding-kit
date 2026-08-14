@@ -6,6 +6,7 @@ description: >-
   cognitive-expansion 等 skill 的 depends_on 依赖，承载 Tier 2 校准结构。
 locale: zh-CN
 supported_locales: [zh-CN]
+experimental_locales: [en-US]
 depends_on: []
 owner: cognitive-calibration
 scope: global

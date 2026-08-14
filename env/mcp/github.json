@@ -5,6 +5,7 @@
     "headers": {
         "Authorization": "Bearer ${github.token}"
     },
+    "capabilities": {"authority": "external-write", "reversible": false, "data_sensitivity": "secret", "parallel_safe": false, "fallback": "use read-only git metadata or the gh CLI when authorized", "verification": "read the resulting GitHub resource from the API"},
     "platforms": [
         "claude",
         "codex",

@@ -125,6 +125,11 @@ export interface PlanChunk {
 /** A chunk with its embedding vector persisted. */
 export interface EmbeddedChunk extends PlanChunk {
 	embedding: number[];
+	/** Source artifact path and trust boundary used during retrieval. */
+	sourcePath?: string;
+	trustLevel?: "untrusted-history" | "curated";
+	promptInjectionSuspected?: boolean;
+	promptInjectionSignals?: string[];
 }
 
 // ─── Search types ────────────────────────────────────────────────────
@@ -151,6 +156,8 @@ export interface SemanticHit {
 	matchType?: "semantic" | "keyword" | "merged";
 	matchedTerms?: string[];
 	sourcePlanIds?: string[];
+	promptInjectionSuspected?: boolean;
+	promptInjectionSignals?: string[];
 }
 
 /** Unified search response. */
@@ -179,6 +186,8 @@ export interface SyncStats {
 
 /** Complete in-memory knowledge base state persisted to .kb-index.json. */
 export interface KbIndexData {
+	/** Persisted schema; upgrades are handled one version at a time. */
+	schemaVersion: number;
 	plans: KbPlan[];
 	entities: PlanEntity[];
 	relations: PlanRelation[];

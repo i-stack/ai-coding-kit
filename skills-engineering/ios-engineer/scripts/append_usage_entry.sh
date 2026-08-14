@@ -22,6 +22,7 @@ Usage: bash scripts/append_usage_entry.sh \
   [--evolution-signal <none|修正表达|新增能力|合并重复|退役规则>] \
   [--evidence-class <observed|structurally_checked|independently_replayed>] \
   [--session-id <id>]
+  [--task-id <stable task id>]
 USAGE
   exit 1
 }
@@ -36,6 +37,7 @@ outcome="pass"
 evolution_signal="none"
 evidence_class="observed"
 session_id=""
+task_id=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -49,6 +51,7 @@ while [ $# -gt 0 ]; do
     --evolution-signal) evolution_signal="$2"; shift 2 ;;
     --evidence-class) evidence_class="$2"; shift 2 ;;
     --session-id) session_id="$2"; shift 2 ;;
+    --task-id) task_id="$2"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "Unknown arg: $1"; usage ;;
   esac
@@ -81,9 +84,9 @@ trap cleanup EXIT
 
 now="$(date '+%Y-%m-%dT%H:%M:%S%z')"
 
-ruby -rjson - "$tool" "$task_type" "$prompt_summary" "$expected_rules_raw" "$hit_rules_raw" "$deviations_raw" "$outcome" "$evolution_signal" "$session_id" "$now" "$evidence_class" "$RULE_INDEX_FILE" "$LEDGER_FILE" <<'RUBY'
+ruby -rjson - "$tool" "$task_type" "$prompt_summary" "$expected_rules_raw" "$hit_rules_raw" "$deviations_raw" "$outcome" "$evolution_signal" "$session_id" "$task_id" "$now" "$evidence_class" "$RULE_INDEX_FILE" "$LEDGER_FILE" <<'RUBY'
 tool, task_type, prompt_summary, expected_raw, hit_raw, deviations_raw,
-outcome, evolution_signal, session_id, now, evidence_class, rule_index_path, ledger_path = ARGV
+outcome, evolution_signal, session_id, task_id, now, evidence_class, rule_index_path, ledger_path = ARGV
 
 ALLOWED_TOOLS = %w[codex claude-code cursor manual other].freeze
 ALLOWED_TASK_TYPES = %w[layout parameter-pass-through concurrency review migration mcp-control notifications privacy persistence storekit extensions other].freeze
@@ -135,6 +138,7 @@ entry = {
   "time" => now,
   "tool" => tool,
   "session_id" => session_id.empty? ? nil : session_id,
+  "task_id" => task_id.empty? ? nil : task_id,
   "prompt_summary" => prompt_summary,
   "task_type" => task_type,
   "expected_rules" => expected_rules,

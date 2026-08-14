@@ -76,6 +76,14 @@ Each `env/mcp/<name>.json`:
   "command": "npx",
   "args": ["-y", "my-mcp-package"],
   "env": {},
+  "capabilities": {
+    "authority": "read",
+    "reversible": true,
+    "data_sensitivity": "internal",
+    "parallel_safe": true,
+    "fallback": "local read-only inspection",
+    "verification": "compare with the authoritative source"
+  },
   "platforms": ["claude", "codex", "codebuddy"]
 }
 ```
@@ -83,6 +91,7 @@ Each `env/mcp/<name>.json`:
 - `type`: `"stdio"` (requires `command`/`args`) or `"sse"` (requires `url`/`headers`)
 - `platforms`: optional filter — omit to sync to all platforms, or list specific platforms
 - `env`: environment variables passed to the MCP server process
+- `capabilities`: required execution contract covering authority, reversibility, data sensitivity, parallel safety, fallback, and verification
 - Secrets: use `${platform.field}` syntax, resolved from nested `env/secrets.json` at sync time
 
 ## Platform Config Files

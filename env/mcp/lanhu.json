@@ -10,6 +10,7 @@
         "LANHU_USER_NAME": "寒江孤影",
         "LANHU_USER_ROLE": "Developer"
     },
+    "capabilities": {"authority": "read", "reversible": true, "data_sensitivity": "internal", "parallel_safe": true, "fallback": "request an exported design artifact", "verification": "compare identifiers and timestamps with the Lanhu source"},
     "platforms": [
         "claude",
         "codex",

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "max_age_months": 12,
+  "skills": {
+    "auto-code-review": "auto-code-review/SKILL.md",
+    "cognitive-calibration": "cognitive-calibration/SKILL.md",
+    "cognitive-expansion": "cognitive-expansion/SKILL.md",
+    "cross-model-review": "cross-model-review/SKILL.md",
+    "doc-hygiene": "doc-hygiene/SKILL.md",
+    "engineering-discipline": "engineering-discipline/SKILL.md",
+    "epistemic-integrity": "epistemic-integrity/SKILL.md",
+    "historical-recall": "historical-recall/SKILL.md",
+    "ios-engineer": "ios-engineer/SKILL.md",
+    "logical-reasoning": "logical-reasoning/SKILL.md",
+    "plan-grill": "plan-grill/SKILL.md",
+    "problem-analysis": "problem-analysis/SKILL.md"
+  }
+}

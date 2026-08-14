@@ -5,6 +5,7 @@ description: >-
   认知对手模式互补。全局适用，不限于 iOS 工程。
 locale: zh-CN
 supported_locales: [zh-CN]
+experimental_locales: [en-US]
 depends_on: [cognitive-calibration]
 ---
 

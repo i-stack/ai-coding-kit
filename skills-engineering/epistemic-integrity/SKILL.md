@@ -3,6 +3,7 @@ name: epistemic-integrity
 description: 全局真值接地纪律——不把未验证内容说成已知、自信≠正确、逼出可验证物、验证方法论与求真方法边界（GR-011/012/013）。适用所有含事实性断言或解惑型回答的任务，不限平台。
 locale: zh-CN
 supported_locales: [zh-CN]
+experimental_locales: [en-US]
 ---
 
 # Epistemic Integrity

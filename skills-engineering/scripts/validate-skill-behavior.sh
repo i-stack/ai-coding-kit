@@ -239,6 +239,8 @@ for skill_dir in skills:
     #    We only flag if the directory exists yet the declared source hash is absent.
     m = re.search(r'supported_locales:\s*(.+)', skill_text)
     declares_en = bool(m and "en-US" in m.group(1))
+    experimental_match = re.search(r'experimental_locales:\s*(.+)', skill_text)
+    experimental_en = bool(experimental_match and "en-US" in experimental_match.group(1))
     en_dir = os.path.join(skill_dir, "i18n", "en-US", "references")
     has_en_dir = os.path.isdir(en_dir)
     if declares_en:
@@ -282,6 +284,8 @@ for skill_dir in skills:
             fails += 1
         else:
             print(f"  [ok] en-US mirror structural gate passed ({len(ref_md_files)} reference(s))")
+    elif has_en_dir and experimental_en:
+        print("  [ok] en-US mirror explicitly marked experimental (not promised)")
     elif has_en_dir:
         print(f"  WARN: i18n/en-US/ present but en-US NOT in supported_locales — "
               f"treat mirror as experimental/generated (not promised); declare "

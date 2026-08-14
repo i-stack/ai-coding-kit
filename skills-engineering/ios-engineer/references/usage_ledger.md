@@ -3,7 +3,7 @@
 
 ## 用途
 - 把每次真实 iOS 工程任务结束后的「期望命中 / 实际命中 / 偏差 / 结果」结构化追加到 [evolution/usage/usage.jsonl](../evolution/usage/usage.jsonl)。
-- 是 Step 4 summarize / 提案聚类的数据源；本文件只定义 schema 与写入协议，**不实现统计**。
+- 是 summarize / 提案聚类的数据源；汇总按工具、任务类型、规则和证据等级分别报告结果，避免把模型自评与独立复验混为同一证据强度。
 - 维护人/工具：写入靠 [scripts/append_usage_entry.sh](../scripts/append_usage_entry.sh)；批量从 audit 块灌入靠 [scripts/extract_usage_audit.sh](../scripts/extract_usage_audit.sh)；合法性由 [scripts/validate_usage_ledger.sh](../scripts/validate_usage_ledger.sh) 把守。
 
 ## 1. JSONL Schema（一行一条）
@@ -13,6 +13,7 @@
   "time": "2026-05-08T14:30:00+0800",
   "tool": "claude-code",
   "session_id": null,
+  "task_id": "task-2026-05-08-search-race",
   "prompt_summary": "搜索页快速输入结果串线",
   "task_type": "concurrency",
   "expected_rules": ["GR-005", "ROUTE-007", "SYM-003"],
@@ -29,6 +30,7 @@
 | `time` | string | 是 | ISO8601 含时区，如 `2026-05-08T14:30:00+0800` |
 | `tool` | string | 是 | 枚举：`codex` / `claude-code` / `cursor` / `manual` / `other` |
 | `session_id` | string \| null | 是 | 三端可填会话 ID 便于回溯；不需要时填 `null` |
+| `task_id` | string \| null | 否 | 同一真实任务的稳定关联键；独立复验与原始任务使用相同值 |
 | `prompt_summary` | string | 是 | **摘要**，5-200 字符；禁贴原始 prompt、源码片段、可识别项目名 |
 | `task_type` | string | 是 | 枚举：`layout` / `parameter-pass-through` / `concurrency` / `review` / `migration` / `mcp-control` / `notifications` / `privacy` / `persistence` / `storekit` / `extensions` / `other` |
 | `expected_rules` | string[] | 是 | 元素必须是 [rule_index.md](rule_index.md) 中 `status=active` 的 ID（如 `GR-005`） |

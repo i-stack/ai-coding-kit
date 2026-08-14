@@ -1,3 +1,4 @@
+<!-- last-verified: 2026-08 -->
 # 文档卫生细则（Doc Hygiene）
 
 > 真值 owner：`doc-hygiene`。本文是 DH-* 规则的条文。SKILL.md 仅路由。
