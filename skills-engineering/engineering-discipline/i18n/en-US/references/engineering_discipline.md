@@ -56,7 +56,7 @@ High-risk tasks often trigger multiple structure blocks simultaneously (`Logic C
 
 - `Problem Analysis` (PA): Talks about **input (the problem)**, positioned **before** the formal reply → keep independent.
 - `Residual Risk Statement` (GR-008): Mechanical verification anchor, its own rules require literal independence → do not merge into any block.
-- Cognitive expansion footnote (cognitive-expansion): Already self-gated and is a footnote → keep independent.
+- Cognitive expansion footnote (cognitive-reasoning / CE-*): Already self-gated and is a footnote → keep independent.
 
 **Merge (same position, overlapping "evidence-inference-strength-falsification" fields):**
 
@@ -75,7 +75,7 @@ High-risk tasks often trigger multiple structure blocks simultaneously (`Logic C
 
 The above merging covers the trio's (engineering / logic / epistemic) audit blocks. The following structures must coordinate under the same "one reply one audit area, field deduplication" principle to avoid stacking into silos:
 
-- **Cognitive Adversary Mode (CAM / cognitive-calibration Tier 2):** Its Step 0–6 and `Confidence: X%` field overlap heavily with `Logic Chain` and `Verification Anchor` semantics. Coordination: **do not duplicate output semantics, but preserve the CAM mechanical format** — when CAM is active, `Logic Chain` and `Verification Anchor` do not open as separate blocks (their semantics are already carried by CAM fields); CAM's own fields (Step 0–6 + `Confidence`) are output verbatim per the Cognitive Adversary detail spec, and must not be omitted or merged into other blocks (see that mode's "Relationship with Engineering Skills"); the preamble's lightweight calibration section is also carried by CAM at this point (see global cognitive calibration section). Only when CAM is unavailable does it fall back to a merged `Logic Chain` + `Verification Anchor` block.
+- **Cognitive Adversary Mode (CAM / cognitive-reasoning Tier 2):** Its Step 0–6 and `Confidence: X%` field overlap heavily with `Logic Chain` and `Verification Anchor` semantics. Coordination: **do not duplicate output semantics, but preserve the CAM mechanical format** — when CAM is active, `Logic Chain` and `Verification Anchor` do not open as separate blocks (their semantics are already carried by CAM fields); CAM's own fields (Step 0–6 + `Confidence`) are output verbatim per the Cognitive Adversary detail spec, and must not be omitted or merged into other blocks (see that mode's "Relationship with Engineering Skills"); the preamble's lightweight calibration section is also carried by CAM at this point (see global cognitive calibration section). Only when CAM is unavailable does it fall back to a merged `Logic Chain` + `Verification Anchor` block.
 - **iOS-specific blocks:** `Version Baseline` (IR-006), `<usage-audit>` (audit block) do not overlap with four-section / Verification Anchor semantics and stay independent; but they must be declared not to conflict with the audit area — `Version Baseline` belongs to pre-constraints, `<usage-audit>` to the tail; neither crowds the audit area.
 
 #### Cross-block Confidence Coordination
@@ -87,7 +87,7 @@ All confidence / strength signals within the same reply must be **co-sourced**: 
 When multiple global skills trigger in the same round, do not each "force full-text read" indiscriminately, exhausting budget and forcing a GR-006 interruption:
 
 - **Graded reading:** Each skill's "must first read references/...md in full" only executes when **that skill's detail spec is genuinely triggered**; an untriggered skill does not load its ref (the preamble section itself is the gate summary, which can be used to judge).
-- **Priority order:** When multiple skills trigger in the same round, allocate read and output budget per `problem-analysis (input) → engineering-discipline / logical-reasoning / epistemic-integrity (argumentation and delivery) → plan-grill (plan locking) → ios-engineer (platform specifics)`; argumentation refs are read first, platform / tool refs only when the task falls on that platform.
+- **Priority order:** When multiple skills trigger in the same round, allocate read and output budget per `problem-analysis (input) → engineering-discipline / cognitive-reasoning (argumentation and delivery) → plan-grill (plan locking) → ios-engineer (platform specifics)`; argumentation refs are read first, platform / tool refs only when the task falls on that platform.
 - **Budget declaration:** Within a single reply, the total number of independent output blocks triggered by stacked skills should be controlled; those mergeable by this SOP (audit-class) merge into a single audit area; those not mergeable (problem analysis / residual risk / cognitive footnote / usage-audit) stay independent but concise; if still approaching GR-006's 15-turn / 3-failure threshold, prioritize completing "minimal usable reply + residual risk statement", leaving deep dives to later rounds rather than spreading multiple skill full-texts in parallel.
 
 ## GR-005 Minimal Fix Priority

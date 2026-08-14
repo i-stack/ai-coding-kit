@@ -30,8 +30,8 @@
 | Skill | 动作时机 | 关注点 |
 |-------|---------|--------|
 | problem-analysis | 回答**之前** | 问题的合理性 |
-| logical-reasoning | 回答**之中** | 自身论证质量 |
-| epistemic-integrity | 回答**之后** | 结论的外部验证 |
+| cognitive-reasoning (GR-010) | 回答**之中** | 自身论证质量 |
+| cognitive-reasoning (GR-011~013) | 回答**之后** | 结论的外部验证 |
 | engineering-discipline | 全流程 | 输出结构纪律 |
 
 ## 加载方式

@@ -37,6 +37,6 @@ Details in [references/problem_analysis.md](references/problem_analysis.md).
 | Skill | Division |
 |-------|------|
 | **problem-analysis (this skill)** | Analyze **the problem itself**'s validity and real requirements |
-| `logical-reasoning` (GR-010) | Constrain AI **own response**'s argumentation quality |
+| `cognitive-reasoning` (GR-010) | Constrain AI **own response**'s argumentation quality |
 | `engineering-discipline` (GR-002) | Pre-confirmation when problem **description is unclear** |
-| `cognitive-expansion` (Tier 0/3) | **Post-response** cognitive expansion |
+| `cognitive-reasoning` (CE-*, Tier 0/3) | **Post-response** cognitive expansion |

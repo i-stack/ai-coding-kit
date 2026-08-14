@@ -31,7 +31,7 @@ scope: global
 | DH-002 | doc-hygiene | global | structure | 500 | [] | [] | {} |
 | DH-003 | doc-hygiene | global | structure | 500 | [] | [] | {} |
 
-（条文见 [references/doc_hygiene.md](references/doc_hygiene.md)；元数据语义见 `cognitive-calibration/references/rule_index.md`）
+（条文见 [references/doc_hygiene.md](references/doc_hygiene.md)；元数据语义见 `cognitive-reasoning/references/rule_index.md`）
 
 ## 何时加载
 

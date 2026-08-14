@@ -32,6 +32,6 @@ experimental_locales: [en-US]
 | Skill | 分工 |
 |-------|------|
 | **problem-analysis（本 skill）** | 分析**问题本身**的合理性与真实需求 |
-| `logical-reasoning`（GR-010） | 约束 AI **自身回复**的论证质量 |
+| `cognitive-reasoning`（GR-010） | 约束 AI **自身回复**的论证质量 |
 | `engineering-discipline`（GR-002） | 问题**描述不清**时前置确认 |
-| `cognitive-expansion`（Tier 0/3） | **回复后**的认知拓展 |
+| `cognitive-reasoning`（CE-*，Tier 0/3） | **回复后**的认知拓展 |

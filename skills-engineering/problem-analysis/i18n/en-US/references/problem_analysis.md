@@ -6,7 +6,7 @@
 
 ## Applicable Scenarios
 
-This file is the source of truth for `problem-analysis` skill **[PA-001/002/003]**. Applicable to all tasks containing judgment, solution discussion, or implementation requests. **Execute before constructing a response**; different from `logical-reasoning` (constraining AI's own argumentation) and `engineering-discipline` (pre-confirmation when problem description is unclear) in target.
+This file is the source of truth for `problem-analysis` skill **[PA-001/002/003]**. Applicable to all tasks containing judgment, solution discussion, or implementation requests. **Execute before constructing a response**; different from `cognitive-reasoning` (constraining AI's own argumentation, GR-010) and `engineering-discipline` (pre-confirmation when problem description is unclear) in target.
 
 ---
 
@@ -124,7 +124,7 @@ Block immediately followed by formal response, no extra explanation of the block
 | Discipline | Trigger Point | Division |
 |------------|---------------|----------|
 | **PA-001/002/003 (this rule)** | When receiving a problem | Analyze **the problem itself**'s validity and real requirements |
-| GR-010 (logical-reasoning) | When constructing response | Constrain AI's own response's **argumentation quality** |
+| GR-010 (cognitive-reasoning) | When constructing response | Constrain AI's own response's **argumentation quality** |
 | GR-002 (engineering-discipline) | When description unclear | **Pre-confirmation** to fill in missing information |
 | Cognitive Adversary Mode (ios-engineer) | Technical decisions/strong conviction | **Challenge user**'s conclusions and assumptions |
 

@@ -66,7 +66,7 @@ SIGNALS = {
   },
   "GR-010" => {
     check: LR_BLOCK_CHECK,
-    desc: "独立「逻辑链」块 + 事实/证据、推断、结论强度、可证伪/缺口四字段 + 推理或不确定性标记（global logical-reasoning）"
+    desc: "独立「逻辑链」块 + 事实/证据、推断、结论强度、可证伪/缺口四字段 + 推理或不确定性标记（global cognitive-reasoning）"
   },
   "IR-011" => {
     check: ->(t) {

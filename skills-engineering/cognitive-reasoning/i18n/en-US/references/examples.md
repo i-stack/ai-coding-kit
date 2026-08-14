@@ -28,4 +28,4 @@ Tier 0 + Tier 3:
 - ❌ Blind spot "watch out for edge cases, might have problems" — no falsifiability (violates CE-003, omit entire note).
 - ❌ Neighbor "like tidying a room by sorting first, state management also sorts first" — synonym restatement of main (violates CE-004).
 - ❌ Takeaway "keep learning, think more" — broth, not actionable (violates CE-005).
-- ❌ Blind spot restates main answer's "mid-size apps usually don't need Redux" — no new dimension (violates CE-013 if logical-reasoning block already emitted same turn).
+- ❌ Blind spot restates main answer's "mid-size apps usually don't need Redux" — no new dimension (violates CE-013 if cognitive-reasoning block already emitted same turn).

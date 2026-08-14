@@ -9,7 +9,7 @@
 
 > **适用范围与自动化边界**：DH-001/002 对**所有**上述 `.md` 生效（契约层面覆盖全部 references）。但 `validate-doc-hygiene.sh` 的自动扫描聚焦于「运行期会被 Agent 加载运行的入口/约定类文档」（SKILL.md / AGENT-BRIEF / OUT-OF-SCOPE / rule_index / README / .agents/*），**普通 `references/*.md` 技术细则不在自动扫描内**——因其常含合法的「迁移期间」等工程叙述，靠 DH-002 的高特异词表 + 写时 self-check 覆盖，而非盲目 CI 扫全仓。规则定义文件 `doc-hygiene/references/doc_hygiene.md` 自身永远排除（它必须列举禁用词来定义规则）。自动扫描的边界不削弱 DH-001 对 references 的契约效力。
 
-**允许的**：事实性指向（如「CAM 真值 owner 为 cognitive-calibration（platform-agnostic），其 references 为认知对手模式详规；ios-engineer 维护指向该真值的镜像，经 depends_on 引用 cognitive-calibration」）——这是运行期 Agent 需要的可达性事实。
+**允许的**：事实性指向（如「CAM 真值 owner 为 cognitive-reasoning（platform-agnostic），其 references 为认知对手模式详规；ios-engineer 维护指向该真值的镜像，经 depends_on 引用 cognitive-reasoning」）——这是运行期 Agent 需要的可达性事实。
 **禁止的**：迁移叙事（如「此前承载于 ios-engineer，属抽象归属倒置」「待真值文件平移至本 skill后」「迁移期 CAM 仍置于…」）——这是变更过程，不是现状。
 
 ## DH-002：禁止过程叙事关键词
@@ -42,8 +42,8 @@
 
 | ❌ 过程叙事（禁止） | ✅ 最终态事实（允许） |
 |---------------------|----------------------|
-| 此前承载于 ios-engineer，属抽象归属倒置；现由 cognitive-calibration 作为唯一真值 owner 承载。 | cognitive-calibration 是认知对手模式的 platform-agnostic 真值 owner。 |
-| 迁移期 CAM 真值仍置于 ios-engineer，待平移后反向依赖。 | CAM 真值文件置于 cognitive-calibration/references/cognitive_adversary_mode.md（platform-agnostic owner）；ios-engineer 维护其镜像并经 depends_on 引用 cognitive-calibration。 |
+| 此前承载于 ios-engineer，属抽象归属倒置；现由 cognitive-reasoning 作为唯一真值 owner 承载。 | cognitive-reasoning 是认知对手模式的 platform-agnostic 真值 owner。 |
+| 迁移期 CAM 真值仍置于 ios-engineer，待平移后反向依赖。 | CAM 真值文件置于 cognitive-reasoning/references/cognitive_adversary_mode.md（platform-agnostic owner）；ios-engineer 维护其镜像并经 depends_on 引用 cognitive-reasoning。 |
 | 我们本轮把 GR-010 的规则元数据补进了 rule_index。 | GR-010 的 owner/scope/phase 元数据登记在 engineering-discipline/references/rule_index.md（由 composition.md 引用裁决）。 |
 
 ## 执行检查（self-check）

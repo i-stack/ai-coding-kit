@@ -34,4 +34,4 @@ Unique rule IDs owned by this skill. Mechanical check (validate-skill-behavior.s
 - [CE-010] flattery self-check
 - [CE-011] skip conditions
 - [CE-012] neighboring-domain pool
-- [CE-013] dedup vs logical-reasoning
+- [CE-013] dedup vs cognitive-reasoning logical chain (GR-010)

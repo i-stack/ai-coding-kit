@@ -44,6 +44,6 @@
 - [CE-010] 迎合自检：写完过三问（邻域非换词 / 带走非鸡汤 / 盲区可证伪）。
 - [CE-011] 跳过条件：用户「只要答案/不要延伸」或门控未命中即不写 Tier 0。
 - [CE-012] 邻域对照池：从对照池任选 1 条且须与机制相关。
-- [CE-013] 去重：Tier 0 尾注不得与同轮 logical-reasoning 逻辑链重复维度。
+- [CE-013] 去重：Tier 0 尾注不得与同轮 cognitive-reasoning 逻辑链（GR-010）重复维度。
 
 细则见 [cognitive_expansion.md](cognitive_expansion.md)；形态校准见 [examples.md](examples.md)。

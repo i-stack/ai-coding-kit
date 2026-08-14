@@ -44,7 +44,7 @@ experimental_locales: [en-US]
 | `cross-model-review` | 显式审查 PLAN.md（Act 2） |
 | **auto-code-review** | 用户显式启动的代码实现审查（Act 3） |
 | `engineering-discipline` | 约束主 agent 的工程改动 |
-| `epistemic-integrity` | 约束审查结论的证据与置信度 |
+| `cognitive-reasoning` | 约束审查结论的证据与置信度（GR-011~013） |
 
 ## 工作流
 

@@ -5,8 +5,8 @@
 ## 不处理的内容
 
 - **回答内容的正确性**：由对应领域 skill 负责。
-- **结论的外部验证**：由 `epistemic-integrity`（GR-011/012）负责。
-- **回答的论证结构**：由 `logical-reasoning`（GR-010）负责。
+- **结论的外部验证**：由 `cognitive-reasoning`（GR-011~013）负责。
+- **回答的论证结构**：由 `cognitive-reasoning`（GR-010）负责。
 - **工程输出结构**：由 `engineering-discipline`（GR-002/004）负责。
 - **纯机械执行**：格式化代码、直接翻译等无判断成分的任务不需要前置分析。
 

@@ -28,7 +28,7 @@ When the scenario is triggered, **read and strictly follow** [cognitive_adversar
 
 - **When to enable**: Technical decisions / architecture trade-offs / root cause & performance attribution / final review judgments / user expresses strong conviction or explicitly asks "challenge me / don't sycophant / red team"; see the ref's "Trigger Phrases" section for shorthand triggers.
 - **Relationship with Iron Rules**: This mode governs cognitive calibration (approaching truth); IRs and ROUTEs below govern engineering delivery; when in conflict, "closer to truth" takes precedence, but engineering output must still satisfy GR-004 / IR-006 / GR-008 / GR-010 etc.
-- **Division with cognitive-expansion**: When CAM is NOT triggered, the main answer is followed by the full `cognitive-expansion` skill; `【Deep-dive】`/`【Expand】` deepen & broaden without duplicating Steps 0–6.
+- **Division with cognitive-reasoning**: When CAM is NOT triggered, the main answer is followed by the full `cognitive-reasoning` skill (CE-* cognitive expansion); `【Deep-dive】`/`【Expand】` deepen & broaden without duplicating Steps 0–6.
 
 ## Core Iron Rules
 

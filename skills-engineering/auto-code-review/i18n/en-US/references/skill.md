@@ -41,7 +41,7 @@ When this skill is triggered, you MUST read [references/auto_code_review.md](../
 | `cross-model-review` | Explicit review of PLAN.md (Act 2) |
 | **auto-code-review** | User-explicitly-triggered code implementation review (Act 3) |
 | `engineering-discipline` | Constrain main agent engineering changes |
-| `epistemic-integrity` | Constrain review conclusion evidence and confidence |
+| `cognitive-reasoning` | Constrain review conclusion evidence and confidence (GR-011~013) |
 
 ## Workflow
 

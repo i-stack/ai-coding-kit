@@ -8,7 +8,7 @@
 - **计划锁定（plan-grill）**：是否进入盘问、如何盘问由 plan-grill 负责；本 skill 只在其动手前提供历史线索。
 - **代码审查（auto-code-review / cross-model-review）**：审查执行、reviewer 仲裁、归档结构由对应 skill 负责；本 skill 只在其动手前提供历史线索，归档后的 `sync` / `merge` 回灌由对应 skill 负责。
 - **写入知识库**：本 skill 只 `recall`（读），不执行 `sync` / `merge`（写）。
-- **事实性断言的真值接地**：由 `epistemic-integrity` 负责；本 skill 仅把召回标记为「不可信线索」。
+- **事实性断言的真值接地**：由 `cognitive-reasoning` 负责；本 skill 仅把召回标记为「不可信线索」。
 
 ## 触发门控
 
