@@ -41,9 +41,6 @@ if [ ! -f "$SECRETS_FILE" ]; then
   exit 0
 fi
 
-# Auto-backup config before sync (keeps last 10 in the configured backup dir)
-bash "$SCRIPT_DIR/backup-config.sh" backup
-
 echo "[1/2] Sync config to Cursor / CodeBuddy / Codex / Claude / Cline / Xcode"
 python3 "$REPO_ROOT/sync/cli/main.py" sync --target all
 

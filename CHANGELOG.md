@@ -2,6 +2,7 @@
 
 ## 2026-08-14
 
+- **移除自动配置备份**: 同步前不再备份 Git 已管理的 `env/mcp/` 与 `env/platforms/`；删除备份脚本、配置模板及文档，避免 pre-push 因用户目录备份写入失败而中断。
 - **CodeBuddy models 同步改为 marker 机制 (`_managed_by`)**: `sync/platforms/codebuddy.py` 的模型合并逻辑不再依赖外部 sidecar，改为把 `"_managed_by": "ai-coding-kit"` 持久写入 `~/.codebuddy/models.json` 的每个同步模型项。按 `id` 的合并规则：带 marker 的同 id 项由配置整条覆盖（所有字段正确同步）；无 marker 的同 id 项视为用户自有、绝不覆盖；带 marker 但 id 不在配置中的项在下次同步时精确删除；无 marker 且不在配置的项原样保留。已实测验证：codebuddy IDE 能正常识别并回写保留 `_managed_by` 字段（重启 VSCodeX 后模型列表正常）。同步契约文档 `docs/platform-sync-contract.md` 的 CodeBuddy Reference 同步更新。
 - **CodeBuddy availableModels 修正为真正整表覆盖**: 文档原声明"整表覆盖"但实现实为"配置优先+保留用户 ID"，二者相反。按用户"保持整列表覆盖"的意图，`_merge_available_models` 改为每次同步直接用配置列表整体替换，用户/UI 添加的 ID 在下次同步时移除。同步契约文档描述与实现现已一致。
 - **CodeBuddy 升级认领（legacy claim）**: 旧版本（pre-marker）同步的条目没有 `_managed_by`，升级后会被误判为用户项而失去更新/删除能力。新增 `_claim_legacy_entries`：无 marker 且与配置解析值一致的条目被认领并打上 marker，恢复管理；用户改动过值的条目不认领、原样保留。已知边界：升级前就已在配置中删除的 legacy 条目无法被认领（无配置可匹配），安全侧保留，需手动删除一次。

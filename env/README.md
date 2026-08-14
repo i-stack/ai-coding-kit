@@ -13,8 +13,6 @@ env/
 │
 ├── review.json               ← auto-code-review 配置（gitignored）
 ├── review.json.example       ← review 配置模板（已提交）
-├── backup.json               ← 配置备份保存路径（gitignored）
-├── backup.json.example       ← backup 配置模板（已提交）
 ├── user-profile.json         ← 跨会话用户画像同步开关（gitignored）
 ├── user-profile.json.example ← 用户画像同步配置模板（已提交）
 ├── user-profile.md           ← 跨会话用户画像内容（gitignored）
@@ -89,22 +87,6 @@ env/
 **加载优先级**：`env/review.json` → `.auto-review-config.json` → `AUTO_REVIEW_*` 环境变量。
 
 复制 `review.json.example` 为 `review.json` 后填写即可（`bash install.sh` 会一并从模板创建，无需手动 cp）。仅在用户显式启动 `/auto-review` 后加载。
-
-## backup.json
-
-`sync/scripts/backup-config.sh` 默认把同步前备份保存到 `~/.ai-coding-kit-backups`。
-如果要改保存目录，复制 `backup.json.example` 为 `backup.json`：
-
-```json
-{
-  "backupDir": "~/Backups/ai-coding-kit"
-}
-```
-
-- `backupDir` 留空或删除时回退到默认 `~/.ai-coding-kit-backups`。
-- 支持 `~` 和环境变量展开。
-- 相对路径会按仓库根目录解析。
-- `env/backup.json` 是本地用户配置，不提交。
 
 ## user-profile.json + user-profile.md
 
