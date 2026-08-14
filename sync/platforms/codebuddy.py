@@ -126,9 +126,13 @@ def _merge_available_models(
 
     - Config-managed IDs appear first and replace any existing duplicates.
     - User-added IDs not in the config are preserved after config entries.
+    - An explicitly empty list from config means "clear all managed models".
     """
     if not config_available:
-        return existing_available
+        # Config explicitly set availableModels to [] — sync the empty list.
+        # (The caller already guards against the None case, so an empty list
+        # here means "set to empty", not "no config".)
+        return []
 
     config_ids = set(config_available)
     # User-added IDs not managed by our config

@@ -1,27 +1,12 @@
 {
     "_comment": "CodeBuddy model configuration synced when CodeBuddy is installed. API model fields sync by default; set api.enabled=false to disable API sync and clear the managed availableModels list.",
     "api": {
-        "enabled": false
+        "enabled": true
     },
     "models": [
         {
-            "id": "deepseek-v4-pro",
-            "name": "DeepSeek V4 Pro",
-            "vendor": "dataeyes",
-            "url": "${codebuddy.url}",
-            "apiKey": "${codebuddy.key}",
-            "maxInputTokens": 128000,
-            "maxOutputTokens": 8192,
-            "supportsToolCall": true,
-            "supportsImages": false,
-            "relatedModels": {
-                "lite": "deepseek-v4-flash",
-                "reasoning": "deepseek-v4-pro"
-            }
-        },
-        {
-            "id": "deepseek-v4-flash",
-            "name": "DeepSeek V4 Flash",
+            "id": "deepseek-v4-pro-of",
+            "name": "deepseek-v4-pro-of",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
@@ -29,12 +14,44 @@
             "maxOutputTokens": 8192,
             "supportsToolCall": true,
             "supportsImages": false
+        },
+        {
+            "id": "deepseek-v4-flash-0731",
+            "name": "deepseek-v4-flash-0731",
+            "vendor": "dataeyes",
+            "url": "${codebuddy.url}",
+            "apiKey": "${codebuddy.key}",
+            "maxInputTokens": 128000,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": true,
+            "supportsImages": false
+        },
+        {
+            "id": "grok-4.6",
+            "name": "grok-4.6",
+            "vendor": "dataeyes",
+            "url": "${codebuddy.url}",
+            "apiKey": "${codebuddy.key}",
+            "maxInputTokens": 128000,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": true,
+            "supportsImages": true,
+            "supportsReasoning": true
+        },
+        {
+            "id": "gemini-3.5-flash",
+            "name": "gemini-3.5-flash",
+            "vendor": "dataeyes",
+            "url": "${codebuddy.url}",
+            "apiKey": "${codebuddy.key}",
+            "maxInputTokens": 128000,
+            "maxOutputTokens": 8192,
+            "supportsToolCall": true,
+            "supportsImages": true,
+            "supportsReasoning": true
         }
     ],
-    "availableModels": [
-        "deepseek-v4-pro",
-        "deepseek-v4-flash"
-    ],
+    "availableModels": [],
     "preamble": {
         "target": "CODEBUDDY.md",
         "mode": "full",

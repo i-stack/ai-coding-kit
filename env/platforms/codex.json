@@ -1,9 +1,9 @@
 {
     "_comment": "Codex platform config — lean team-shared set (core + security/sandbox). Third-party dataeyes API sync is enabled by default; set api.enabled=false to disable API sync and remove the managed model_provider / preferred_auth_method / model_providers block and the DATAEYES_API_KEY env export. MCP servers and the preamble are independent of API sync and always sync. Per-developer preference knobs (reasoning effort, verbosity, personality, features, history, tui, analytics, etc.) are intentionally NOT synced.",
     "api": {
-        "enabled": false
+        "enabled": true
     },
-    "model": "gpt-5.5",
+    "model": "gpt-5.6-sol",
     "sandbox_mode": "workspace-write",
     "approval_policy": "on-request",
     "allow_login_shell": true,
