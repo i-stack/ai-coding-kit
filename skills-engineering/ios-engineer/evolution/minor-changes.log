@@ -15,3 +15,8 @@ files:
   - skills-engineering/ios-engineer/SKILL.md
   - skills-engineering/ios-engineer/references/cognitive_adversary_mode.md
   - skills-engineering/ios-engineer/references/rule_index.md
+---
+timestamp: 2026-08-14T07:25:34Z
+reason: "pre-commit: commit message unavailable; set MINOR_CHANGE_REASON for audit context"
+files:
+  - skills-engineering/ios-engineer/references/cognitive_adversary_mode.md
