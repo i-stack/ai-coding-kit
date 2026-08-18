@@ -3,7 +3,14 @@ from pathlib import Path
 from typing import Any
 
 from core import recall
-from core.common import api_enabled as _api_enabled, read_json_object, sync_json_mcp, write_json
+from core.common import (
+    api_enabled as _api_enabled,
+    is_managed_entry,
+    merge_managed_entries,
+    read_json_object,
+    sync_json_mcp,
+    write_json,
+)
 from core.paths import (
     claude_skills_base,
     codebuddy_mcp_path,
@@ -78,150 +85,15 @@ def _validate_available_models(value: Any) -> list[str]:
     return value
 
 
-# Marker written onto every model entry this tool syncs into models.json.
-# It stays in the target file (self-describing) so a subsequent sync can
-# identify which entries are ours and prune the ones we no longer manage,
-# while leaving user/system entries (without this marker) untouched.
-MANAGED_BY = "ai-coding-kit"
-
-
-def _is_managed(entry: Any) -> bool:
-    return isinstance(entry, dict) and entry.get("_managed_by") == MANAGED_BY
-
-
-def _claim_legacy_entries(
-    existing_entries: list[Any], config_entries: list[dict[str, Any]]
-) -> list[Any]:
-    """Tag legacy (pre-marker) synced entries with the managed marker.
-
-    Older sync versions wrote model entries WITHOUT ``_managed_by``. An unmarked
-    entry that is an *exact* copy of the resolved config (same key set, same
-    values) is a legacy sync output — claim it as managed so it updates and
-    prunes normally from now on.
-
-    Claiming is deliberately conservative: the identity signal is the whole
-    entry, not just credentials. Matching only ``url``/``apiKey`` would wrongly
-    claim user-authored entries that share the provider credentials but differ
-    elsewhere, or entries on both sides that simply lack credentials
-    (``None == None``). Claiming means the config will overwrite the entry on
-    this same sync, so a false positive silently destroys a user-owned entry.
-    """
-    if not config_entries:
-        return existing_entries
-    config_by_id: dict[str, dict[str, Any]] = {
-        m["id"]: m for m in config_entries if isinstance(m, dict) and "id" in m
-    }
-
-    result: list[Any] = []
-    for entry in existing_entries:
-        if not isinstance(entry, dict) or "id" not in entry or _is_managed(entry):
-            result.append(entry)
-            continue
-        cfg = config_by_id.get(entry["id"])
-        if cfg is not None and _matches_config_exactly(entry, cfg):
-            claimed = dict(entry)
-            claimed["_managed_by"] = MANAGED_BY
-            result.append(claimed)
-        else:
-            result.append(entry)
-    return result
-
-
-def _matches_config_exactly(entry: dict[str, Any], cfg: dict[str, Any]) -> bool:
-    """True only when ``entry`` looks like an exact legacy copy of ``cfg``.
-
-    A legacy sync wrote the resolved config entry verbatim (no ``_managed_by``),
-    so an exact match needs:
-    - the same key set beyond ``id``/``_managed_by`` (extra or missing keys mean
-      the entry was touched by the user or a UI rewrite — not an exact copy),
-    - equal values for every key,
-    - at least one non-``None`` comparable field beyond ``id`` (an entry whose
-      only field beyond ``id`` is ``None`` carries no evidence).
-
-    Lacking credentials alone does NOT prevent a claim: an entry without
-    ``url``/``apiKey`` on either side but with other matching fields (same key
-    set, same values) is still an exact copy and is claimed.
-    """
-    entry_keys = {k for k in entry if k not in ("id", "_managed_by")}
-    cfg_keys = {k for k in cfg if k not in ("id", "_managed_by")}
-    if not cfg_keys or not any(cfg.get(k) is not None for k in cfg_keys):
-        return False
-    if entry_keys != cfg_keys:
-        return False
-    return all(entry.get(k) == cfg.get(k) for k in cfg_keys)
-
-
 def _merge_model_entries(
     existing_entries: list[Any], config_entries: list[dict[str, Any]]
 ) -> list[Any]:
     """Merge config-managed model entries into existing entries by id.
 
-    - Config-managed entries (identified by ``id``) appear in config order,
-      each tagged with ``_managed_by`` so future syncs can recognize them.
-    - If a user-added entry (no ``_managed_by`` marker) shares the same id as a
-      config entry, the user entry is kept untouched — config does NOT overwrite
-      user-owned entries.
-    - Managed entries that are no longer in config are dropped (pruned).
-    - User-added entries (no ``_managed_by`` marker) are preserved as-is.
-    - Non-dict entries with no id are preserved at the very end.
+    Delegates to the shared marker engine so empty config prunes managed
+    entries the same way as other platforms.
     """
-    if not config_entries:
-        return existing_entries
-
-    # Claim legacy (pre-marker) synced entries first so they are managed again.
-    existing_entries = _claim_legacy_entries(existing_entries, config_entries)
-
-    config_by_id: dict[str, dict[str, Any]] = {}
-    for m in config_entries:
-        if isinstance(m, dict) and "id" in m:
-            config_by_id[m["id"]] = m
-
-    # Build a set of ids that are already owned by user (same id, no marker).
-    existing_by_id: dict[str, Any] = {}
-    for m in existing_entries:
-        if isinstance(m, dict) and "id" in m:
-            existing_by_id[m["id"]] = m
-    user_owned_ids: set[str] = {
-        mid
-        for mid, entry in existing_by_id.items()
-        if not _is_managed(entry)
-    }
-
-    result: list[Any] = []
-
-    # Config-managed entries first (in config order), each tagged with the marker.
-    # Skip config entries whose id is already claimed by a user-owned entry.
-    for m in config_entries:
-        if not isinstance(m, dict) or "id" not in m:
-            continue
-        mid = m["id"]
-        if mid in user_owned_ids:
-            # User has a same-id entry without marker — keep user's, skip config.
-            result.append(existing_by_id[mid])
-            continue
-        tagged = dict(m)
-        tagged["_managed_by"] = MANAGED_BY
-        result.append(tagged)
-
-    # User-added entries from existing (not managed by us), preserving order.
-    for m in existing_entries:
-        if not isinstance(m, dict) or "id" not in m:
-            continue
-        if _is_managed(m):
-            # Ours but no longer in config -> drop (scenario 3: deletion).
-            continue
-        mid = m["id"]
-        if mid not in config_by_id:
-            result.append(m)
-        # If mid IS in config_by_id but also user-owned, we already appended
-        # it above (config-skip loop), so skip here to avoid duplicates.
-
-    # Trailing non-standard entries
-    for m in existing_entries:
-        if not isinstance(m, dict) or "id" not in m:
-            result.append(m)
-
-    return result
+    return merge_managed_entries(existing_entries, config_entries, key_field="id")
 
 
 def _merge_available_models(
@@ -249,8 +121,8 @@ def _sync_models(cfg: dict[str, Any]) -> None:
         removed = False
         # Drop only our managed model entries, keeping user/system entries.
         existing_entries = existing.get("models")
-        if isinstance(existing_entries, list) and any(_is_managed(m) for m in existing_entries):
-            existing["models"] = [m for m in existing_entries if not _is_managed(m)]
+        if isinstance(existing_entries, list) and any(is_managed_entry(m) for m in existing_entries):
+            existing["models"] = [m for m in existing_entries if not is_managed_entry(m)]
             if not existing["models"]:
                 existing.pop("models", None)
             removed = True

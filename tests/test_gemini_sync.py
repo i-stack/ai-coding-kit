@@ -120,6 +120,9 @@ class GeminiSyncTests(unittest.TestCase):
         self.assertIn("sample", settings["mcpServers"])
         self.assertEqual(settings["mcpServers"]["sample"]["command"], "echo")
         self.assertEqual(settings["mcpServers"]["sample"]["args"], ["hello"])
+        self.assertEqual(
+            settings["mcpServers"]["sample"]["_managed_by"], "ai-coding-kit"
+        )
 
     # ── Managed settings ─────────────────────────────────────────────────────
 

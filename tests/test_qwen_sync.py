@@ -241,6 +241,122 @@ class QwenSyncTests(unittest.TestCase):
         self.assertIn("qwen3-coder-plus", provider_ids)
         self.assertEqual(len(providers), 4)
 
+    def test_model_provider_same_id_user_entry_not_overwritten(self) -> None:
+        """A user-added provider entry with a config id but no marker is preserved.
+
+        Without the marker the entry is user-owned: config must not overwrite
+        it. The sync-managed entry (carrying the marker) is updated normally.
+        """
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {
+                "modelProviders": {
+                    "openai": [
+                        {
+                            "id": "qwen3-coder-plus",
+                            "name": "My Custom Qwen",
+                            "baseUrl": "https://user.example/v1",
+                            "envKey": "MY_KEY",
+                        }
+                    ]
+                }
+            },
+        )
+
+        result = self._run_qwen_sync()
+
+        providers = result["settings"]["modelProviders"]["openai"]
+        user_entry = next(p for p in providers if p["id"] == "qwen3-coder-plus")
+        # User-owned entry preserved verbatim; no marker written on it.
+        self.assertEqual(user_entry["name"], "My Custom Qwen")
+        self.assertEqual(user_entry["baseUrl"], "https://user.example/v1")
+        self.assertNotIn("_managed_by", user_entry)
+        # The other config entries are still synced in (marked).
+        self.assertEqual(len(providers), 3)
+
+    def test_model_provider_marked_entry_overwritten_and_pruned(self) -> None:
+        """Marked (sync-managed) entries are updated, then pruned when dropped."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {
+                "modelProviders": {
+                    "openai": [
+                        {
+                            "id": "qwen3-coder-plus",
+                            "name": "OLD",
+                            "baseUrl": "old",
+                            "envKey": "old",
+                            "_managed_by": "ai-coding-kit",
+                        },
+                        {
+                            "id": "stale-model",
+                            "name": "stale",
+                            "baseUrl": "stale",
+                            "envKey": "stale",
+                            "_managed_by": "ai-coding-kit",
+                        },
+                    ]
+                }
+            },
+        )
+
+        result = self._run_qwen_sync()
+
+        providers = result["settings"]["modelProviders"]["openai"]
+        provider_ids = [p["id"] for p in providers]
+        # Marked config entry updated to the resolved config values.
+        self.assertIn("qwen3-coder-plus", provider_ids)
+        self.assertNotIn("stale-model", provider_ids)
+        qwen_entry = next(p for p in providers if p["id"] == "qwen3-coder-plus")
+        self.assertEqual(qwen_entry["name"], "Qwen3 Coder Plus")
+
+    def test_vanished_provider_type_prunes_marked_and_keeps_user(self) -> None:
+        """A provider type gone from config still runs an empty merge."""
+        settings_path = self.root / "home" / ".qwen" / "settings.json"
+        self._write_json(
+            settings_path,
+            {
+                "modelProviders": {
+                    "openai": [
+                        {
+                            "id": "qwen3-coder-plus",
+                            "name": "OLD",
+                            "baseUrl": "old",
+                            "envKey": "old",
+                            "_managed_by": "ai-coding-kit",
+                        }
+                    ],
+                    "anthropic": [
+                        {
+                            "id": "stale-claude",
+                            "name": "stale",
+                            "baseUrl": "stale",
+                            "envKey": "stale",
+                            "_managed_by": "ai-coding-kit",
+                        },
+                        {
+                            "id": "user-claude",
+                            "name": "User Claude",
+                            "baseUrl": "https://user.example/v1",
+                            "envKey": "USER_KEY",
+                        },
+                    ],
+                }
+            },
+        )
+
+        result = self._run_qwen_sync()
+
+        providers = result["settings"]["modelProviders"]
+        self.assertIn("openai", providers)
+        self.assertNotIn("stale-claude", [p["id"] for p in providers.get("anthropic", [])])
+        user_entries = providers.get("anthropic", [])
+        self.assertEqual(len(user_entries), 1)
+        self.assertEqual(user_entries[0]["id"], "user-claude")
+        self.assertNotIn("_managed_by", user_entries[0])
+
     def test_no_settings_fields_skips_merge(self) -> None:
         """When config has none of the managed settings keys, nothing is merged."""
         cfg: dict = {"env": self.platform_cfg["env"]}
@@ -279,7 +395,13 @@ class QwenSyncTests(unittest.TestCase):
                 "env": {"DASHSCOPE_API_KEY": "old"},
                 "modelProviders": {
                     "openai": [
-                        {"id": "qwen3-coder-plus", "name": "x", "baseUrl": "y", "envKey": "z"}
+                        {
+                            "id": "qwen3-coder-plus",
+                            "name": "x",
+                            "baseUrl": "y",
+                            "envKey": "z",
+                            "_managed_by": "ai-coding-kit",
+                        }
                     ]
                 },
                 "model": {"name": "qwen3-coder-plus", "baseUrl": "y"},
@@ -322,7 +444,13 @@ class QwenSyncTests(unittest.TestCase):
                 "env": {"DASHSCOPE_API_KEY": "old", "USER_VAR": "keep"},
                 "modelProviders": {
                     "openai": [
-                        {"id": "qwen3-coder-plus", "name": "x", "baseUrl": "y", "envKey": "z"},
+                        {
+                            "id": "qwen3-coder-plus",
+                            "name": "x",
+                            "baseUrl": "y",
+                            "envKey": "z",
+                            "_managed_by": "ai-coding-kit",
+                        },
                         {"id": "user-only", "name": "u", "baseUrl": "b", "envKey": "e"},
                     ]
                 },
@@ -366,7 +494,13 @@ class QwenSyncTests(unittest.TestCase):
             {
                 "modelProviders": {
                     "openai": [
-                        {"id": "qwen3-coder-plus", "name": "OLD", "baseUrl": "old", "envKey": "old"}
+                        {
+                            "id": "qwen3-coder-plus",
+                            "name": "OLD",
+                            "baseUrl": "old",
+                            "envKey": "old",
+                            "_managed_by": "ai-coding-kit",
+                        }
                     ]
                 },
                 "model": {"name": "qwen3-coder-plus", "baseUrl": "old"},

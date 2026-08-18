@@ -90,7 +90,7 @@ Claude sync owns these target fields:
 
 | Target | Owned fields |
 |--------|--------------|
-| `~/.claude.json` | `mcpServers` |
+| `~/.claude.json` | `mcpServers` (marker-merged — user-added servers preserved) |
 | `~/.claude/settings.json` | API `env` keys declared in `env/platforms/claude.json` |
 | `~/.claude/config.json` | `primaryApiKey` only when its value is `self` or API sync is enabled |
 | `~/.claude/CLAUDE.md` | Managed preamble blocks only |
@@ -233,7 +233,10 @@ Answers to the platform-addition questions:
    user-added model entries (including a same-`id` entry without the marker),
    user-added MCP servers, and user content outside
    the managed block in `CODEBUDDY.md`.
-8. MCP servers are independent of API sync — they still sync when `api.enabled=false`.
+8. MCP servers are independent of API sync — they still sync when
+   `api.enabled=false`. They flow through the shared marker-aware merge
+   (`sync_json_mcp`): user-added servers (no marker) are preserved, and marked
+   servers removed from `env/mcp/*.json` are pruned.
 9. Skills / preamble are independent of API sync — they still sync when
    `api.enabled=false`.
 10. No login-bypass field like Claude `primaryApiKey=self`.
@@ -245,7 +248,56 @@ Answers to the platform-addition questions:
     comparable non-`None` field beyond `id`), legacy claim without credentials
     (matching name/vendor only), orphan legacy preservation, and legacy
     claim-then-prune (real two-sync flow: claim on sync 1, prune after the
-    model leaves config on sync 2).
+    model leaves config on sync 2), and empty `models: []` prune of marked
+    entries.
+
+## Marker Sync Across Platforms
+
+CodeBuddy's `_managed_by` marker is the shared ownership model for every
+JSON-structured sync. `sync/core/common.py` provides the reusable merge engine:
+
+- `merge_managed_entries(existing, config, key_field)` — list containers
+  (CodeBuddy `models`, Qwen `modelProviders.*`).
+- `merge_managed_dict(existing, config, key_field="name")` — name-keyed dict
+  containers (`mcpServers`).
+
+The merge rules are identical to CodeBuddy's `models`:
+
+- Config entries are written first (config order), each tagged with
+  `_managed_by`.
+- A same-key target entry WITHOUT the marker is user-owned: preserved verbatim,
+  the config entry for that key is skipped (never overwritten).
+- Marked entries no longer in config are pruned (deletion on the next sync).
+- Unmarked entries not in config are preserved as-is.
+- Legacy (pre-marker) entries that are exact config copies are claimed and
+  managed again (the same strict matcher as CodeBuddy — see its answers above).
+- Empty config still runs the merge: marked entries are pruned, unmarked
+  entries stay. List and dict engines share this rule.
+- In a name-keyed dict, identity is the map key — not a payload field.
+  A value field such as `name` is preserved through the round-trip.
+- Non-dict values in a dict container cannot carry a marker; they are
+  user-owned and preserved verbatim. A same-key opaque existing value
+  wins over a config dict.
+
+Platforms and the structures covered:
+
+| Platform | Container | Key field |
+|----------|-----------|-----------|
+| Claude `~/.claude.json` | `mcpServers` | `name` |
+| Cursor `~/.cursor/mcp.json` | `mcpServers` | `name` |
+| Cline `cline_mcp_settings.json` | `mcpServers` | `name` |
+| Gemini `~/.gemini/settings.json` | `mcpServers` | `name` |
+| CodeBuddy `~/.codebuddy/models.json` | `models` | `id` |
+| Qwen `~/.qwen/settings.json` | `modelProviders.*` | `id` |
+
+Cleanup when `api.enabled=false` is marker-aware: only entries carrying
+`_managed_by` are removed from marker-driven containers; user entries survive.
+
+Not applicable (documented per platform): Codex `config.toml` (managed-block
+replacement — content inside the `# BEGIN …` blocks is replaced wholesale and
+content outside is preserved, so per-entry markers add nothing) and Continue
+`config.yaml` (YAML list blocks are replaced wholesale; the structure is not
+marker-driven).
 
 ## Gemini Reference
 
@@ -300,7 +352,8 @@ Answers to the platform-addition questions:
    and env vars, so a missing `api` block or missing `api.enabled` keeps the old
    always-sync behavior. Only an explicit `false` disables it.
 4. Owned target fields: `~/.gemini/settings.json` → `model` (gated by `api.enabled`),
-   `mcpServers` (always synced); `~/.zshrc` → the GEMINI env block (gated); the
+   `mcpServers` (always synced, marker-merged — user-added servers preserved);
+   `~/.zshrc` → the GEMINI env block (gated); the
    managed recalL/preamble block in `GEMINI.md`.
 5. Cleanup when `api.enabled=false`: `model` is excluded from the managed settings
    and pruned from `~/.gemini/settings.json` via the managed-keys sidecar; the
@@ -412,12 +465,17 @@ Answers to the platform-addition questions:
    fields, so a missing `api` block or missing `api.enabled` keeps the old
    always-sync behavior. Only an explicit `false` disables it.
 4. Owned target fields: `~/.qwen/settings.json` → `env` (gated by `api.enabled`),
-   `security`, `modelProviders`, `model` (the last three gated by `api.enabled`);
-   synced skill directories.
+   `security`, `modelProviders`, `model` (the last three gated by `api.enabled`).
+   `modelProviders` entries are marker-merged by `id`: config entries carry
+   `_managed_by`; a same-`id` user entry without the marker is preserved and the
+   config entry for that `id` is skipped. Provider types that vanished from
+   config still run an empty merge so marked entries are pruned; unmarked
+   user groups stay. Synced skill directories.
 5. Cleanup when `api.enabled=false`: remove only the syncer-managed `env` keys
    from `~/.qwen/settings.json`; remove the managed top-level fields
-   (`security`, `modelProviders` entries by `id`, and `model`)
-   ownership-aware. Model definitions are not touched (this syncer never writes
+   (`security`, `modelProviders` entries carrying the `_managed_by` marker, and
+   `model`) marker-aware. User-added `modelProviders` entries (no marker)
+   survive cleanup. Model definitions are not touched (this syncer never writes
    `models.json`).
 6. Unrelated user fields preserved: `~/.qwen/settings.json` → `$version` and any
    other top-level key (e.g. user `modelProviders` entries not in config, user
@@ -434,8 +492,11 @@ Answers to the platform-addition questions:
     syncer — every write reads the existing file and merges only owned keys, so
     `$version` (and any other user key) survives untouched.
 11. Tests live in `tests/test_qwen_sync.py` and cover enable-by-default,
-    settings-fields merge/cleanup, `$version` preservation, models.json not
-    managed, idempotent re-sync, and re-enable-restore.
+    settings-fields merge/cleanup, same-`id` user-entry preservation (no
+    marker), marked-entry update/prune, vanished provider-type prune,
+    marker-aware cleanup on disable,
+    `$version` preservation, models.json not managed, idempotent re-sync, and
+    re-enable-restore.
 
 ## Continue Reference
 
@@ -480,7 +541,9 @@ Answers to the platform-addition questions:
    old always-sync behavior. Only an explicit `false` disables it.
 4. Owned target fields: `~/.continue/config.yaml` → `models` (gated by
    `api.enabled`); `mcpServers` (always synced); the managed `rules` recall
-   block (preamble, always synced).
+   block (preamble, always synced). Continue's `models` / `mcpServers` YAML
+   list blocks are replaced wholesale — no per-entry `_managed_by` marker is
+   used (see "Marker Sync Across Platforms").
 5. Cleanup when `api.enabled=false`: the entire syncer-owned `models` root key
    is removed from `config.yaml` (Continue replaces the block wholesale on each
    sync, so removal is deterministic and re-enable restores it).
@@ -553,7 +616,9 @@ Answers to the platform-addition questions:
    `anthropicApiKey` for other providers), user-added MCP servers, and user
    content outside the managed block in the preamble file.
 7. MCP servers are independent of API sync — they still sync when
-   `api.enabled=false`.
+   `api.enabled=false`. They flow through the shared marker-aware merge:
+   user-added servers (no marker) are preserved, marked servers removed from
+   `env/mcp/*.json` are pruned.
 8. Skills / preamble are independent of API sync — they still sync when
    `api.enabled=false` (preamble is rendered by the Bash writer, not the
    Python sync).
@@ -626,7 +691,10 @@ Answers to the platform-addition questions:
    `api.enabled`); MCP servers (always synced); the managed `DATAEYES_API_KEY`
    block in `~/.zshrc` (gated). Preference knobs (reasoning effort, verbosity,
    personality, `features`, `history`, `tui`, `analytics`, etc.) are NOT owned
-   and are never written.
+   and are never written. No per-entry `_managed_by` marker is used: the
+   managed-block mechanism already provides block-level ownership — content
+   inside `# BEGIN …` blocks is replaced wholesale, content outside is
+   preserved (see "Marker Sync Across Platforms").
 5. Cleanup when `api.enabled=false`: the renderer omits `model_provider`,
    `preferred_auth_method`, and `[model_providers.*]` from the generated
    CODEX SHARED block; because the whole block is replaced on every sync, they

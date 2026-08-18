@@ -12,7 +12,8 @@ API fields are gated by ``api.enabled`` (missing ``api`` block defaults to
 enabled). When ``api.enabled=false``:
 - the managed ``env`` key is removed;
 - the managed ``security`` / ``modelProviders`` / ``model`` fields are removed
-  (ownership-aware — ``modelProviders`` entries are merged/cleaned per ``id``).
+  (marker-aware — ``modelProviders`` entries are merged/cleaned per ``id``,
+  only entries carrying ``_managed_by`` are ever removed).
 
 ``$version`` is a Qwen-internal marker and is **never** written or overwritten
 by the syncer — every write reads the existing file and merges only owned keys.
@@ -22,7 +23,13 @@ import shutil
 from typing import Any
 from urllib.parse import urlparse
 
-from core.common import api_enabled as _api_enabled, read_json_object, write_json
+from core.common import (
+    api_enabled as _api_enabled,
+    is_managed_entry,
+    merge_managed_entries,
+    read_json_object,
+    write_json,
+)
 from core.paths import (
     claude_skills_base,
     qwen_root_dir,
@@ -152,47 +159,21 @@ def _merge_model_entries(
 ) -> list[Any]:
     """Merge config-managed model-provider entries into existing entries by id.
 
-    - Config-managed entries (identified by ``id``) appear first in config order.
-    - Existing entries with the same id are silently updated (config wins).
-    - User-added entries not in config are preserved after config entries.
-    - Non-dict entries with no id are preserved at the very end.
+    Uses the shared marker-aware merge: config entries appear first in config
+    order and carry ``_managed_by``; a same-id entry without the marker is
+    user-owned and is never overwritten; managed entries no longer in config
+    are pruned; user entries not in config are preserved; non-dict entries with
+    no id are preserved at the very end.
     """
-    if not config_entries:
-        return existing_entries
-
-    config_by_id: dict[str, dict[str, Any]] = {}
-    for m in config_entries:
-        if isinstance(m, dict) and "id" in m:
-            config_by_id[m["id"]] = m
-
-    result: list[Any] = []
-
-    # Config-managed entries first (in config order)
-    for m in config_entries:
-        if isinstance(m, dict) and "id" in m:
-            result.append(m)
-
-    # User-added entries from existing (not in config), preserving order
-    for m in existing_entries:
-        if not isinstance(m, dict) or "id" not in m:
-            continue
-        mid = m["id"]
-        if mid not in config_by_id:
-            result.append(m)
-
-    # Trailing nonstandard entries
-    for m in existing_entries:
-        if not isinstance(m, dict) or "id" not in m:
-            result.append(m)
-
-    return result
+    return merge_managed_entries(existing_entries, config_entries, key_field="id")
 
 
 def _merge_settings_block(existing: dict[str, Any], config_block: dict[str, Any]) -> dict[str, Any]:
     """Deep-merge the managed settings fields into existing settings.json.
 
     - ``modelProviders`` is merged per-provider-type by entry ``id`` (config
-      wins; user entries preserved).
+      wins; user entries preserved). Provider types that vanished from
+      config still run an empty merge so marked entries are pruned.
     - ``security`` and ``model`` are owned by the config (replaced wholesale).
     - ``$version`` and any other existing top-level key are preserved.
     """
@@ -214,6 +195,18 @@ def _merge_settings_block(existing: dict[str, Any], config_block: dict[str, Any]
                 if not isinstance(existing_entries, list):
                     existing_entries = []
                 new_mp[provider] = _merge_model_entries(existing_entries, entries)
+            # Provider types that vanished from config still need an empty
+            # merge so marked entries are pruned; unmarked user groups stay.
+            for provider, existing_entries in existing_mp.items():
+                if provider in value:
+                    continue
+                if not isinstance(existing_entries, list):
+                    continue
+                merged = _merge_model_entries(existing_entries, [])
+                if merged:
+                    new_mp[provider] = merged
+                else:
+                    new_mp.pop(provider, None)
             result["modelProviders"] = new_mp
         else:
             result[key] = value
@@ -222,31 +215,24 @@ def _merge_settings_block(existing: dict[str, Any], config_block: dict[str, Any]
 
 
 def _clean_settings_block(existing: dict[str, Any], config_block: dict[str, Any]) -> bool:
-    """Ownership-aware removal of managed settings fields.
+    """Marker-aware removal of managed settings fields.
 
     Returns True when any managed field was actually removed. ``$version`` and
-    unrelated user keys are never touched.
+    unrelated user keys are never touched. Only ``modelProviders`` entries that
+    carry the ``_managed_by`` marker are removed; user-added entries stay.
     """
     removed = False
 
     mp = existing.get("modelProviders")
-    config_mp = config_block.get("modelProviders")
-    if isinstance(mp, dict) and isinstance(config_mp, dict):
+    if isinstance(mp, dict):
         new_mp: dict[str, Any] = {}
         for provider, entries in mp.items():
             if not isinstance(entries, list):
                 new_mp[provider] = entries
                 continue
-            config_ids = {
-                e["id"]
-                for e in config_mp.get(provider, [])
-                if isinstance(e, dict) and "id" in e
-            }
-            kept = [
-                e
-                for e in entries
-                if not (isinstance(e, dict) and e.get("id") in config_ids)
-            ]
+            # Only entries carrying our managed marker are removed; user-added
+            # entries (no marker) are kept even if their id matches the config.
+            kept = [e for e in entries if not is_managed_entry(e)]
             if kept:
                 new_mp[provider] = kept
             else:

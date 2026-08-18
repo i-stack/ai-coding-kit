@@ -300,6 +300,199 @@ def discover_platforms() -> list[str]:
     )
 
 
+# ── Marker-based entry management (shared by all platforms) ──────────────────
+
+# Constant written into every entry this tool syncs (e.g. MCP servers, model
+# entries). Self-describing, so the target tool and the user can tell which
+# entries the sync engine owns without a sidecar file.
+MANAGED_BY = "ai-coding-kit"
+
+
+def is_managed_entry(entry: Any) -> bool:
+    """True when ``entry`` is a dict carrying our ``_managed_by`` marker."""
+    return isinstance(entry, dict) and entry.get("_managed_by") == MANAGED_BY
+
+
+def _matches_config_exactly(entry: dict[str, Any], cfg: dict[str, Any], key_field: str) -> bool:
+    """True only when ``entry`` looks like an exact legacy copy of ``cfg``.
+
+    A legacy sync wrote the resolved config entry verbatim (no marker), so an
+    exact match needs:
+    - the same key set beyond ``key_field``/``_managed_by`` (extra or missing
+      keys mean the entry was touched by the user or a UI rewrite),
+    - equal values for every key,
+    - at least one non-``None`` comparable field beyond ``key_field`` (an entry
+      whose only field beyond ``key_field`` is ``None`` carries no evidence).
+
+    Lacking credentials alone does NOT prevent a claim: an entry without
+    ``url``/``apiKey`` on either side but with other matching fields (same key
+    set, same values) is still an exact copy and is claimed.
+    """
+    entry_keys = {k for k in entry if k not in (key_field, "_managed_by")}
+    cfg_keys = {k for k in cfg if k not in (key_field, "_managed_by")}
+    if not cfg_keys or not any(cfg.get(k) is not None for k in cfg_keys):
+        return False
+    if entry_keys != cfg_keys:
+        return False
+    return all(entry.get(k) == cfg.get(k) for k in cfg_keys)
+
+
+def claim_legacy_entries(
+    existing_entries: list[Any], config_entries: list[dict[str, Any]], key_field: str = "id"
+) -> list[Any]:
+    """Tag legacy (pre-marker) synced entries with the managed marker.
+
+    Older sync versions wrote entries WITHOUT the marker. An unmarked entry that
+    is an *exact* copy of the resolved config (same key set, same values) is a
+    legacy sync output — claim it so it updates and prunes normally from now on.
+
+    Claiming is deliberately conservative: the identity signal is the whole
+    entry. A claim means the config will overwrite the entry on this same sync,
+    so a false positive silently destroys a user-owned entry.
+    """
+    if not config_entries:
+        return existing_entries
+    config_by_key: dict[str, dict[str, Any]] = {
+        m[key_field]: m for m in config_entries if isinstance(m, dict) and key_field in m
+    }
+
+    result: list[Any] = []
+    for entry in existing_entries:
+        if not isinstance(entry, dict) or key_field not in entry or is_managed_entry(entry):
+            result.append(entry)
+            continue
+        cfg = config_by_key.get(entry[key_field])
+        if cfg is not None and _matches_config_exactly(entry, cfg, key_field):
+            claimed = dict(entry)
+            claimed["_managed_by"] = MANAGED_BY
+            result.append(claimed)
+        else:
+            result.append(entry)
+    return result
+
+
+def merge_managed_entries(
+    existing_entries: list[Any], config_entries: list[dict[str, Any]], key_field: str = "id"
+) -> list[Any]:
+    """Marker-aware merge of list-of-dict entries keyed by ``key_field``.
+
+    - Config entries are written first (config order), each tagged with the
+      managed marker so future syncs can recognize them.
+    - A same-key entry in the target WITHOUT the marker is user-owned: it is
+      preserved verbatim and the config entry is skipped (never overwritten).
+    - Managed entries that are no longer in config are dropped (deletion).
+    - User-owned entries are preserved as-is.
+    - Non-dict entries with no key are preserved at the very end.
+    - An empty ``config_entries`` removes every managed entry while keeping
+      user-owned entries (cleanup without config).
+    """
+    config_by_key: dict[str, dict[str, Any]] = {
+        m[key_field]: m for m in config_entries if isinstance(m, dict) and key_field in m
+    }
+
+    # Claim legacy (pre-marker) synced entries first so they are managed again.
+    existing_entries = claim_legacy_entries(existing_entries, config_entries, key_field)
+
+    existing_by_key: dict[str, Any] = {}
+    for m in existing_entries:
+        if isinstance(m, dict) and key_field in m:
+            existing_by_key[m[key_field]] = m
+    user_owned_keys: set[str] = {
+        k for k, entry in existing_by_key.items() if not is_managed_entry(entry)
+    }
+
+    result: list[Any] = []
+
+    # Config-managed entries first (in config order), each tagged with the marker.
+    # Skip config entries whose key is already owned by a user entry.
+    for m in config_entries:
+        if not isinstance(m, dict) or key_field not in m:
+            continue
+        key = m[key_field]
+        if key in user_owned_keys:
+            result.append(existing_by_key[key])
+            continue
+        tagged = dict(m)
+        tagged["_managed_by"] = MANAGED_BY
+        result.append(tagged)
+
+    # User-added entries from existing (not managed by us), preserving order.
+    for m in existing_entries:
+        if not isinstance(m, dict) or key_field not in m:
+            continue
+        if is_managed_entry(m):
+            # Ours but no longer in config -> drop (deletion).
+            continue
+        key = m[key_field]
+        if key not in config_by_key:
+            result.append(m)
+
+    # Trailing non-standard entries.
+    for m in existing_entries:
+        if not isinstance(m, dict) or key_field not in m:
+            result.append(m)
+
+    return result
+
+
+# Temporary identity used only while a name-keyed dict is converted to a list
+# for :func:`merge_managed_entries`. Must not collide with real payload fields
+# such as MCP ``name`` (display name) or ``id``.
+_DICT_MAP_KEY = "_ack_map_key"
+
+
+def _dict_values_to_entries(mapping: dict[str, Any]) -> list[dict[str, Any]]:
+    """Lift dict values into list entries keyed by the map key, not a payload field."""
+    return [
+        {**cfg, _DICT_MAP_KEY: name}
+        for name, cfg in mapping.items()
+        if isinstance(cfg, dict)
+    ]
+
+
+def merge_managed_dict(
+    existing: dict[str, Any], config: dict[str, Any], key_field: str = "name"
+) -> dict[str, Any]:
+    """Marker-aware merge for name-keyed dict containers (e.g. ``mcpServers``).
+
+    Identity is the dict key. Dict values are lifted into list entries with a
+    reserved map-key field (not ``key_field``), merged via
+    :func:`merge_managed_entries`, then converted back. Payload fields such as
+    ``name`` survive the round-trip. ``key_field`` is kept for call compatibility
+    and is not used as the temporary identity.
+
+    Non-dict existing values cannot carry a marker; they are user-owned and
+    preserved verbatim. Non-dict config values are skipped (they cannot be
+    tagged). A same-key opaque existing value wins over a config dict.
+
+    An empty or non-dict ``config`` is treated as ``{}`` and still runs the
+    merge, so marked entries are pruned — same contract as the list engine.
+    """
+    del key_field  # identity is the dict key; do not inject a payload field
+    if not isinstance(existing, dict):
+        existing = {}
+    if not isinstance(config, dict):
+        config = {}
+
+    merged = merge_managed_entries(
+        _dict_values_to_entries(existing),
+        _dict_values_to_entries(config),
+        _DICT_MAP_KEY,
+    )
+    result: dict[str, Any] = {}
+    for entry in merged:
+        name = entry[_DICT_MAP_KEY]
+        existing_val = existing.get(name)
+        if name in existing and not isinstance(existing_val, dict):
+            result[name] = existing_val
+            continue
+        result[name] = {k: v for k, v in entry.items() if k != _DICT_MAP_KEY}
+    for name, cfg in existing.items():
+        if name not in result and not isinstance(cfg, dict):
+            result[name] = cfg
+    return result
+
+
 # ── JSON I/O utilities ───────────────────────────────────────────────────────
 
 def sync_json_mcp(path: Path, servers: dict[str, Any]) -> None:
@@ -312,9 +505,12 @@ def sync_json_mcp(path: Path, servers: dict[str, Any]) -> None:
         # Replace the symlink with a regular file so we don't write through it
         # into the (possibly shared) link target.
         path.unlink()
-    existing["mcpServers"] = servers
+    existing_mcp = existing.get("mcpServers")
+    if not isinstance(existing_mcp, dict):
+        existing_mcp = {}
+    existing["mcpServers"] = merge_managed_dict(existing_mcp, servers)
     write_json(path, existing)
-    print(f"Replaced MCP servers in {path}.")
+    print(f"Synced MCP servers in {path}.")
 
 
 def read_json_object(path: Path) -> dict[str, Any]:

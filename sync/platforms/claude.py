@@ -4,6 +4,7 @@ from typing import Any
 
 from core.common import (
     api_enabled as _api_enabled,
+    merge_managed_dict,
     merge_object,
     prune_managed_keys_via_sidecar,
     read_json_object,
@@ -167,10 +168,16 @@ def _sync_xcode_claude_json(servers: dict[str, Any]) -> None:
     if isinstance(projects, dict) and projects:
         for proj in projects.values():
             if isinstance(proj, dict):
-                proj["mcpServers"] = servers
+                existing_mcp = proj.get("mcpServers")
+                proj["mcpServers"] = merge_managed_dict(
+                    existing_mcp if isinstance(existing_mcp, dict) else {}, servers
+                )
         mode = "per-project"
     else:
-        data["mcpServers"] = servers
+        existing_mcp = data.get("mcpServers")
+        data["mcpServers"] = merge_managed_dict(
+            existing_mcp if isinstance(existing_mcp, dict) else {}, servers
+        )
         mode = "root"
     write_json(path, data)
     print(f"Replaced MCP servers in {path} ({mode}).")
@@ -336,9 +343,12 @@ def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:
     # ── 1. ~/.claude.json — MCP servers ──
     cj_path = claude_json_path()
     claude = read_json_object(cj_path)
-    claude["mcpServers"] = mcp_servers
+    existing_mcp = claude.get("mcpServers")
+    claude["mcpServers"] = merge_managed_dict(
+        existing_mcp if isinstance(existing_mcp, dict) else {}, mcp_servers
+    )
     write_json(cj_path, claude)
-    print(f"Replaced MCP servers in {cj_path} (other top-level config preserved).")
+    print(f"Synced MCP servers in {cj_path} (other top-level config preserved).")
 
     xcode_available = xcode_coding_assistant_exists()
     if xcode_available:

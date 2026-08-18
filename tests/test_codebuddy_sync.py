@@ -163,7 +163,7 @@ class CodeBuddySyncTests(unittest.TestCase):
         self.assertEqual(result["mcp"]["mcpServers"]["sample"]["args"], ["hello"])
 
     def test_mcp_json_preserves_existing_user_keys(self) -> None:
-        """User-added keys outside mcpServers are preserved after sync."""
+        """User-added keys (meta + unmarked MCP servers) are preserved after sync."""
         mcp_path = self.root / "home" / ".codebuddy" / "mcp.json"
         mcp_path.parent.mkdir(parents=True, exist_ok=True)
         mcp_path.write_text(
@@ -182,9 +182,51 @@ class CodeBuddySyncTests(unittest.TestCase):
 
         self.assertEqual(result["mcp"]["meta"]["version"], 1)
         self.assertEqual(result["mcp"]["meta"]["lastModified"], "2025-01-01")
-        # Managed MCP servers overwrite mcpServers key
+        # Managed MCP servers are written with the marker; user-added server
+        # (no marker) is preserved untouched instead of being overwritten.
         self.assertIn("sample", result["mcp"]["mcpServers"])
-        self.assertNotIn("customServer", result["mcp"]["mcpServers"])
+        self.assertEqual(
+            result["mcp"]["mcpServers"]["sample"]["_managed_by"], "ai-coding-kit"
+        )
+        self.assertIn("customServer", result["mcp"]["mcpServers"])
+        self.assertEqual(
+            result["mcp"]["mcpServers"]["customServer"], {"command": "custom-cmd"}
+        )
+
+    def test_mcp_json_prunes_stale_managed_servers(self) -> None:
+        """Managed servers no longer in config are pruned; user servers stay."""
+        mcp_path = self.root / "home" / ".codebuddy" / "mcp.json"
+        mcp_path.parent.mkdir(parents=True, exist_ok=True)
+        mcp_path.write_text(
+            json.dumps(
+                {
+                    "mcpServers": {
+                        "sample": {
+                            "command": "echo",
+                            "args": ["hello"],
+                            "_managed_by": "ai-coding-kit",
+                        },
+                        "stale": {
+                            "command": "old-tool",
+                            "_managed_by": "ai-coding-kit",
+                        },
+                        "userFiles": {"command": "user-tool"},
+                    }
+                },
+                indent=4,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        result = self._run_codebuddy_sync()
+
+        self.assertIn("sample", result["mcp"]["mcpServers"])
+        self.assertNotIn("stale", result["mcp"]["mcpServers"])
+        self.assertIn("userFiles", result["mcp"]["mcpServers"])
+        self.assertEqual(
+            result["mcp"]["mcpServers"]["userFiles"], {"command": "user-tool"}
+        )
 
     # ── Models sync ──────────────────────────────────────────────────────────
 
@@ -643,6 +685,36 @@ class CodeBuddySyncTests(unittest.TestCase):
         self.assertNotIn("deepseek-v4-pro", synced)
         self.assertIn("custom-model", synced)
         self.assertNotIn("_managed_by", synced["custom-model"])
+
+    def test_empty_models_list_prunes_managed_and_keeps_user(self) -> None:
+        """Explicit models=[] still runs the merge: marked entries go, unmarked stay."""
+        models_path = self.root / "home" / ".codebuddy" / "models.json"
+        self._write_json(
+            models_path,
+            {
+                "models": [
+                    {
+                        "id": "deepseek-v4-pro",
+                        "name": "Stale DeepSeek V4 Pro",
+                        "vendor": "old",
+                        "_managed_by": "ai-coding-kit",
+                    },
+                    {
+                        "id": "custom-model",
+                        "name": "Custom Model",
+                        "vendor": "custom",
+                    },
+                ],
+                "availableModels": ["deepseek-v4-pro", "custom-model"],
+            },
+        )
+
+        result = self._run_codebuddy_sync({"models": [], "availableModels": []})
+
+        model_ids = [m["id"] for m in result["models"].get("models", [])]
+        self.assertNotIn("deepseek-v4-pro", model_ids)
+        self.assertEqual(model_ids, ["custom-model"])
+        self.assertEqual(result["models"]["availableModels"], [])
 
     def test_modified_config_model_updates_target(self) -> None:
         """Editing a model in config updates the same managed entry in place (scenario 4)."""

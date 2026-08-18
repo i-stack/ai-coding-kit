@@ -3,7 +3,12 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from core.common import api_enabled as _api_enabled, read_json_object, write_json
+from core.common import (
+    api_enabled as _api_enabled,
+    merge_managed_dict,
+    read_json_object,
+    write_json,
+)
 from core.paths import (
     claude_skills_base,
     cline_data_dir,
@@ -60,9 +65,12 @@ def _sync_mcp(servers: dict[str, Any]) -> None:
         return
     for path in targets:
         data = read_json_object(path)
-        data["mcpServers"] = servers
+        existing_mcp = data.get("mcpServers")
+        data["mcpServers"] = merge_managed_dict(
+            existing_mcp if isinstance(existing_mcp, dict) else {}, servers
+        )
         write_json(path, data)
-        print(f"Replaced MCP servers in {path}.")
+        print(f"Synced MCP servers in {path}.")
 
 
 def _sync_skills() -> None:
