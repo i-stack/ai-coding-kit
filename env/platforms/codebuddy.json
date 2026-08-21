@@ -51,8 +51,8 @@
             "supportsReasoning": true
         },
 		{
-            "id": "hunyuan-role-latest",
-            "name": "hunyuan-role-latest",
+            "id": "hy3-preview",
+            "name": "hy3-preview",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
