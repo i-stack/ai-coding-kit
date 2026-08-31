@@ -7,7 +7,9 @@
         "@playwright/mcp@latest",
         "--extension"
     ],
-    "env": {},
+    "env": {
+        "PLAYWRIGHT_MCP_EXTENSION_TOKEN": "MdCvaV6OA31_14lQLvK6HL0Vly-XUK1hkTDkTyf-vjQ"
+    },
     "capabilities": {"authority": "external-write", "reversible": false, "data_sensitivity": "internal", "parallel_safe": false, "fallback": "use a read-only HTTP or local browser inspection", "verification": "observe the final page state and relevant network response"},
     "platforms": [
         "claude",
