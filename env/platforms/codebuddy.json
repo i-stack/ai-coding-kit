@@ -5,7 +5,7 @@
     },
     "models": [
         {
-            "id": "deepseek-v4-pro-of",
+            "id": "deepseek-v4-pro-of-0813",
             "name": "deepseek-v4-pro-of",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
@@ -39,8 +39,8 @@
             "supportsReasoning": true
         },
         {
-            "id": "gemini-3.5-flash",
-            "name": "gemini-3.5-flash",
+            "id": "gemini-3.7-flash",
+            "name": "gemini-3.7-flash",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
