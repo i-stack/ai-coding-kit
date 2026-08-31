@@ -6,7 +6,7 @@
     "models": [
         {
             "id": "deepseek-v4-pro-of-0813",
-            "name": "deepseek-v4-pro-of",
+            "name": "deepseek",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
@@ -17,7 +17,7 @@
         },
         {
             "id": "deepseek-v4-flash-0731",
-            "name": "deepseek-v4-flash-0731",
+            "name": "deepseek",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
@@ -28,7 +28,7 @@
         },
         {
             "id": "grok-4.6",
-            "name": "grok-4.6",
+            "name": "grok",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
@@ -40,7 +40,7 @@
         },
         {
             "id": "gemini-3.7-flash",
-            "name": "gemini-3.7-flash",
+            "name": "gemini",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
@@ -52,7 +52,7 @@
         },
 		{
             "id": "hy3-preview",
-            "name": "hy3-preview",
+            "name": "hy",
             "vendor": "dataeyes",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
