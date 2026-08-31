@@ -6,30 +6,32 @@
     "models": [
         {
             "id": "deepseek-v4-pro-of-0813",
-            "name": "deepseek",
-            "vendor": "dataeyes",
+            "name": "deepseek-v4-pro-of-0813",
+            "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
             "maxInputTokens": 128000,
             "maxOutputTokens": 8192,
             "supportsToolCall": true,
-            "supportsImages": false
+			"supportsImages": true,
+			"supportsReasoning": true
         },
         {
             "id": "deepseek-v4-flash-0731",
-            "name": "deepseek",
-            "vendor": "dataeyes",
+            "name": "deepseek-v4-flash-0731",
+            "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
             "maxInputTokens": 128000,
             "maxOutputTokens": 8192,
             "supportsToolCall": true,
-            "supportsImages": false
+			"supportsImages": true,
+			"supportsReasoning": true
         },
         {
             "id": "grok-4.6",
-            "name": "grok",
-            "vendor": "dataeyes",
+            "name": "grok-4.6",
+            "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
             "maxInputTokens": 128000,
@@ -40,8 +42,8 @@
         },
         {
             "id": "gemini-3.7-flash",
-            "name": "gemini",
-            "vendor": "dataeyes",
+            "name": "gemini-3.7-flash",
+            "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
             "maxInputTokens": 128000,
@@ -52,8 +54,8 @@
         },
 		{
             "id": "hy3-preview",
-            "name": "hy",
-            "vendor": "dataeyes",
+            "name": "hy3-preview",
+            "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
             "maxInputTokens": 128000,
