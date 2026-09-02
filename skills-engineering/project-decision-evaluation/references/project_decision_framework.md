@@ -1,3 +1,4 @@
+<!-- last-verified: 2026-09 -->
 <!-- owner: project-decision-evaluation -->
 
 # 项目决策与持续评估框架

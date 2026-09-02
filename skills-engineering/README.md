@@ -14,6 +14,7 @@
 | `cognitive-reasoning` | 全局技能 | 认知与论证纪律：认知对手模式 CAM（Tier 2）+ 论证质量 GR-010 + 真值接地 GR-011~013 + 认知拓展 CE-001~013（合并自 cognitive-calibration / cognitive-expansion / logical-reasoning / epistemic-integrity） |
 | `engineering-discipline` | 全局技能 | 工程纪律：安全合规、前置确认、四段式输出 |
 | `problem-analysis` | 全局技能 | 问题前置分析：逻辑检验、第一性原理拆解（PA-001/002/003） |
+| `classics-reading` | 全局技能 | 克制型古典文献解读：版本先行、标注出处、并列争议、三层分层（字面义/注疏义/个人推演），把「无定论/无出处」设为合法输出 |
 | `historical-recall` | 全局技能 | 每个用户任务动手前 best-effort 召回 `.plan-reviews/` 历史线索，作待验证上下文；`plan-grill` PG-006 与 `auto-code-review` ACR-006 委托于此 |
 | `doc-hygiene` | 全局技能 | 文档卫生纪律：`.md` 正文只陈述最终态事实，禁写过程叙事 |
 | `plan-grill` | 工作流技能 | 需求对齐/盘问锁定计划，产出 PLAN.md（Act 1，基于 grill-me） |
@@ -60,6 +61,7 @@
 │   └── references/
 ├── engineering-discipline/    # 工程纪律技能（同构）
 ├── problem-analysis/          # 问题分析技能（同构）
+├── classics-reading/          # 克制型经典解读技能（同构）
 ├── plan-grill/                # 需求盘问锁定计划（Act 1）
 ├── cross-model-review/        # 跨模型对抗审查 PLAN.md（Act 2）
 ├── auto-code-review/          # 用户显式启动的代码审查（Act 3）

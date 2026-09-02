@@ -3,6 +3,7 @@
   "max_age_months": 12,
   "skills": {
     "auto-code-review": "auto-code-review/SKILL.md",
+    "classics-reading": "classics-reading/SKILL.md",
     "cognitive-reasoning": "cognitive-reasoning/SKILL.md",
     "cross-model-review": "cross-model-review/SKILL.md",
     "doc-hygiene": "doc-hygiene/SKILL.md",
@@ -10,6 +11,7 @@
     "historical-recall": "historical-recall/SKILL.md",
     "ios-engineer": "ios-engineer/SKILL.md",
     "plan-grill": "plan-grill/SKILL.md",
-    "problem-analysis": "problem-analysis/SKILL.md"
+    "problem-analysis": "problem-analysis/SKILL.md",
+    "project-decision-evaluation": "project-decision-evaluation/SKILL.md"
   }
 }

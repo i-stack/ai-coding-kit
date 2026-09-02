@@ -2,6 +2,7 @@
 
 ## 2026-08-14
 
+- **新增 `classics-reading` 全局技能**: 克制型中国古典文献解读（版本先行、标注出处、并列争议、字面义/注疏义/个人推演三层分层），把「无定论/无出处」设为合法输出。含权威版本注疏谱系与可直接粘贴提示词模板两份 reference；已登记 `source-truth.json`、触发矩阵与技能表，并新增 `docs/classics-reading.md`。
 - **移除自动配置备份**: 同步前不再备份 Git 已管理的 `env/mcp/` 与 `env/platforms/`；删除备份脚本、配置模板及文档，避免 pre-push 因用户目录备份写入失败而中断。
 - **CodeBuddy models 同步改为 marker 机制 (`_managed_by`)**: `sync/platforms/codebuddy.py` 的模型合并逻辑不再依赖外部 sidecar，改为把 `"_managed_by": "ai-coding-kit"` 持久写入 `~/.codebuddy/models.json` 的每个同步模型项。按 `id` 的合并规则：带 marker 的同 id 项由配置整条覆盖（所有字段正确同步）；无 marker 的同 id 项视为用户自有、绝不覆盖；带 marker 但 id 不在配置中的项在下次同步时精确删除；无 marker 且不在配置的项原样保留。已实测验证：codebuddy IDE 能正常识别并回写保留 `_managed_by` 字段（重启 VSCodeX 后模型列表正常）。同步契约文档 `docs/platform-sync-contract.md` 的 CodeBuddy Reference 同步更新。
 - **CodeBuddy availableModels 修正为真正整表覆盖**: 文档原声明"整表覆盖"但实现实为"配置优先+保留用户 ID"，二者相反。按用户"保持整列表覆盖"的意图，`_merge_available_models` 改为每次同步直接用配置列表整体替换，用户/UI 添加的 ID 在下次同步时移除。同步契约文档描述与实现现已一致。
