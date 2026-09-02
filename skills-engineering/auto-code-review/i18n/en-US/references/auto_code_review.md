@@ -170,11 +170,11 @@ Archive structure:
 └── raw/
 ```
 
-`RESPONSE.md` MUST record the review mode and scope. After archiving, best-effort execute:
+`RESPONSE.md` MUST record the review mode and scope. After archiving, best-effort execute (replace `$CLI` with the absolute CLI path injected by your platform preamble's historical-recall section — the CLI lives in the ai-coding-kit repo at `<repo root>/skills-engineering/plan-reviews/dist/cli.js`, NOT under `~/.codebuddy/`; the repo-root-relative path only resolves when cwd is the repo root):
 
 ```bash
-node skills-engineering/plan-reviews/dist/cli.js sync 2>/dev/null || true
-node skills-engineering/plan-reviews/dist/cli.js merge 2>/dev/null || true
+node "$CLI" sync 2>/dev/null || true
+node "$CLI" merge 2>/dev/null || true
 ```
 
 Archiving and knowledge refresh occur only within authorized review sessions. Normal coding tasks do NOT create `.plan-reviews` artifacts.

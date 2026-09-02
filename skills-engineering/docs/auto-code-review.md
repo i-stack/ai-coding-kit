@@ -201,11 +201,11 @@ VERDICT: REVISE
 └── raw/
 ```
 
-随后 best-effort 运行：
+随后 best-effort 运行（把 `$CLI` 替换为 preamble 的 historical-recall 段注入的绝对路径；CLI 在仓库内 `skills-engineering/plan-reviews/dist/cli.js`，不在 `~/.codebuddy/` 下，仓库根相对路径仅当 cwd=仓库根时可用）：
 
 ```bash
-node skills-engineering/plan-reviews/dist/cli.js sync
-node skills-engineering/plan-reviews/dist/cli.js merge
+node "$CLI" sync
+node "$CLI" merge
 ```
 
 `dist/cli.js` 需先在 `skills-engineering/plan-reviews` 执行 `npm run build`。未配置 embedding 时，sync 仍支持关键词检索，merge 会跳过向量合并。

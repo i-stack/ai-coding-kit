@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-02
+
+- **plan-reviews CLI 调用统一为 preamble 注入的绝对路径（RECALL_CLI_PATH）**: `historical-recall`（SKILL.md HR-003、AGENT-BRIEF、references/rule_index.md、references/historical_recall.md）、`auto-code-review`（references/auto_code_review.md zh 与 en-US 镜像）及 `docs/plan-grill.md`、`docs/auto-code-review.md` 中所有 cwd 相对命令 `node skills-engineering/plan-reviews/dist/cli.js recall|sync|merge` 改为「以本机 preamble 的 historical-recall 段注入的绝对 CLI 路径执行」：CLI 位于 ai-coding-kit 仓库 `skills-engineering/plan-reviews/dist/cli.js`，不在 `~/.codebuddy/` 下，仓库根相对路径仅在 cwd=仓库根时可用。修复 cwd 漂移（如 `~/.codebuddy`）下 node 解析出 `~/.codebuddy/skills-engineering/...` 导致的 `MODULE_NOT_FOUND` 噪音；仓库真值与 `~/.codebuddy/skills/` 已安装副本同步更新。
+
 ## 2026-08-14
 
 - **新增 `classics-reading` 全局技能**: 克制型中国古典文献解读（版本先行、标注出处、并列争议、字面义/注疏义/个人推演三层分层），把「无定论/无出处」设为合法输出。含权威版本注疏谱系与可直接粘贴提示词模板两份 reference；已登记 `source-truth.json`、触发矩阵与技能表，并新增 `docs/classics-reading.md`。
