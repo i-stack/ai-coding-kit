@@ -17,6 +17,8 @@ from core.paths import (
     codebuddy_models_path,
     codebuddy_root_dir,
     codebuddy_skills_base,
+    workbuddy_root_dir,
+    workbuddy_skills_base,
 )
 
 # ── Standalone historical recall (used only when preamble.mode=recall) ──
@@ -168,23 +170,17 @@ def _sync_models(cfg: dict[str, Any]) -> None:
 
 
 
-def _sync_skills() -> None:
-    claude_skills_dir = claude_skills_base()
-    codebuddy_skills_dir = codebuddy_skills_base()
-    if not claude_skills_dir.exists():
-        print(f"[codebuddy] Claude skills directory not found: {claude_skills_dir} — skipping skill sync.")
-        return
-
-    codebuddy_skills_dir.mkdir(parents=True, exist_ok=True)
+def _sync_skills_to(claude_skills_dir: Path, target_skills_dir: Path, label: str) -> None:
+    target_skills_dir.mkdir(parents=True, exist_ok=True)
     synced: list[str] = []
 
     for skill_dir in sorted(claude_skills_dir.iterdir()):
         if not skill_dir.is_dir() or not (skill_dir / "SKILL.md").exists():
             continue
 
-        dest = codebuddy_skills_dir / skill_dir.name
-        tmp = codebuddy_skills_dir / f".{skill_dir.name}.tmp-sync"
-        backup = codebuddy_skills_dir / f".{skill_dir.name}.backup-sync"
+        dest = target_skills_dir / skill_dir.name
+        tmp = target_skills_dir / f".{skill_dir.name}.tmp-sync"
+        backup = target_skills_dir / f".{skill_dir.name}.backup-sync"
 
         if tmp.exists():
             shutil.rmtree(tmp)
@@ -208,7 +204,22 @@ def _sync_skills() -> None:
                 shutil.rmtree(backup)
         synced.append(skill_dir.name)
 
-    print(f"Synced {len(synced)} skills to {codebuddy_skills_dir}: {', '.join(synced) or '(none)'}.")
+    print(f"Synced {len(synced)} skills to {target_skills_dir} ({label}): {', '.join(synced) or '(none)'}.")
+
+
+def _sync_skills() -> None:
+    claude_skills_dir = claude_skills_base()
+    if not claude_skills_dir.exists():
+        print(f"[codebuddy] Claude skills directory not found: {claude_skills_dir} — skipping skill sync.")
+        return
+
+    _sync_skills_to(claude_skills_dir, codebuddy_skills_base(), "codebuddy")
+
+    workbuddy_root = workbuddy_root_dir()
+    if workbuddy_root.exists():
+        _sync_skills_to(claude_skills_dir, workbuddy_skills_base(), "workbuddy")
+    else:
+        print(f"[codebuddy] WorkBuddy root not found: {workbuddy_root} — skipping workbuddy skill sync.")
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:

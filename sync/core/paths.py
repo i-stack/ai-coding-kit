@@ -19,6 +19,7 @@ object in ``env/config.json``, so tools installed in non-default locations
         "claude":    "/custom/.claude",
         "gemini":    "/custom/.gemini",
         "codebuddy": "/custom/.codebuddy",
+        "workbuddy": "/custom/.workbuddy",
         "cursor":    "/custom/.cursor",
         "cline":     "/custom/.cline",
         "continue":  "/custom/.continue",
@@ -207,6 +208,14 @@ def codebuddy_models_path() -> Path:
     return codebuddy_root_dir() / "models.json"
 
 
+def workbuddy_root_dir() -> Path:
+    return _install_root("workbuddy", _home() / ".workbuddy")
+
+
+def workbuddy_skills_base() -> Path:
+    return workbuddy_root_dir() / "skills"
+
+
 def cline_mcp_candidate_paths() -> list[Path]:
     suffix = "saoudrizwan.claude-dev/settings/cline_mcp_settings.json"
     return [
@@ -295,6 +304,7 @@ _INSTALL_ROOTS = {
     "codex": codex_root_dir,
     "claude": claude_root_dir,
     "codebuddy": codebuddy_root_dir,
+    "workbuddy": workbuddy_root_dir,
     "gemini": gemini_root_dir,
     "cursor": cursor_root_dir,
     "continue": continue_root_dir,
