@@ -1,6 +1,7 @@
 {
     "name": "github",
     "type": "sse",
+	"enabled": false,
     "url": "https://api.githubcopilot.com/mcp/",
     "headers": {
         "Authorization": "Bearer ${github.token}"

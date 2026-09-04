@@ -1,6 +1,7 @@
 {
     "name": "moonvy",
     "type": "stdio",
+	"enabled": false,
     "command": "node",
     "args": [
         "~/Desktop/github/moonvy-design-mcp/server.js"
