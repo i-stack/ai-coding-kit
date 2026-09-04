@@ -58,7 +58,7 @@ except Exception as e:
 if not isinstance(data, dict):
     print(f"{src}: root must be a JSON object", file=sys.stderr); sys.exit(1)
 t = data.get("type")
-KNOWN = {"name","type","command","args","env","url","headers","platforms","_comment"}
+KNOWN = {"name","type","command","args","env","url","headers","platforms","_comment","enabled"}
 if t is not None and t not in ("stdio", "sse"):
     print(f"{src}: invalid type '{t}' (must be stdio or sse)", file=sys.stderr); sys.exit(1)
 # 渲染兜底：必须有可渲染的入口——stdio 需要 command，sse 需要 url。

@@ -1,6 +1,7 @@
 {
-    "_comment": "MCP 服务器配置模板。复制到 env/mcp/<name>.json，填入实际值。敏感值使用 ${platform.field} 占位，同步时从 env/secrets.json 注入。",
+    "_comment": "MCP 服务器配置模板。复制到 env/mcp/<name>.json，填入实际值。敏感值使用 ${platform.field} 占位，同步时从 env/secrets.json 注入。'enabled' 是可选同步开关：缺省即启用（所有平台同步）；设为 false 时该服务器不参与同步，并会从已同步的目标配置中自动移除（marker 清理）。",
     "name": "my-mcp-server",
+    "enabled": true,
     "type": "stdio",
     "command": "npx",
     "args": [

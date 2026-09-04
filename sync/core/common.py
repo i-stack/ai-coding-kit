@@ -134,8 +134,14 @@ def load_all_mcp() -> dict[str, Any]:
         unresolved = find_unresolved_placeholders(data)
         if unresolved:
             print(f"[sync] ⚠ {f.name}: unresolved placeholders: {', '.join(unresolved)} — add them to env/secrets.json")
+        # Per-server sync toggle: explicit "enabled": false skips the server,
+        # so it is neither synced nor kept in targets (the marker merge prunes
+        # its previously-synced managed entries). Missing defaults to enabled.
+        if not mcp_enabled(data):
+            print(f"[sync] MCP server '{f.stem}' is disabled (enabled=false) — skipped.")
+            continue
         name = data.get("name", f.stem)
-        clean = {k: v for k, v in data.items() if k not in ("name", "_comment")}
+        clean = {k: v for k, v in data.items() if k not in ("name", "_comment", "enabled")}
         result[name] = clean
     return result
 
@@ -584,6 +590,20 @@ def api_enabled(cfg: dict[str, Any]) -> bool:
     if not isinstance(api, dict):
         return True
     return api.get("enabled", True) is True
+
+
+def mcp_enabled(cfg: dict[str, Any]) -> bool:
+    """Per-MCP-server sync toggle, evaluated by load_all_mcp().
+
+    A missing ``enabled`` key defaults to enabled, preserving the historical
+    always-sync behavior for every MCP in env/mcp/. Only an explicit
+    ``false`` excludes the server from sync. Because disabled servers are
+    absent from the synced set, the marker-aware merge prunes their
+    previously-synced managed entries from every target tool config.
+    """
+    if not isinstance(cfg, dict):
+        return True
+    return cfg.get("enabled", True) is True
 
 
 # ── Path helpers (imported from centralized paths module) ────────────────────

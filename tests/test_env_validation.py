@@ -12,6 +12,7 @@ if str(SYNC_DIR) not in sys.path:
 
 from cli.validate_env_schema import (  # noqa: E402
     known_fields_for_platform,
+    validate_mcp_file,
     validate_platform_file,
 )
 
@@ -113,6 +114,55 @@ class PlatformSchemaValidationTests(unittest.TestCase):
             ["continue.json: 'preamble.mode' must be one of: full, none, recall"],
             errors,
         )
+
+
+class McpSchemaValidationTests(unittest.TestCase):
+    _BASE = {
+        "name": "github",
+        "type": "sse",
+        "url": "https://api.example.com/mcp",
+        "capabilities": {
+            "authority": "read",
+            "reversible": True,
+            "data_sensitivity": "public",
+            "parallel_safe": True,
+            "fallback": "none",
+            "verification": "read response",
+        },
+    }
+
+    def test_mcp_enabled_boolean_is_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "github.json"
+            path.write_text(
+                json.dumps({**self._BASE, "enabled": True}),
+                encoding="utf-8",
+            )
+
+            errors = validate_mcp_file(path)
+
+        self.assertEqual([], errors)
+
+    def test_mcp_enabled_must_be_boolean(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "github.json"
+            path.write_text(
+                json.dumps({**self._BASE, "enabled": "yes"}),
+                encoding="utf-8",
+            )
+
+            errors = validate_mcp_file(path)
+
+        self.assertEqual(["github.json: 'enabled' must be a boolean"], errors)
+
+    def test_mcp_enabled_missing_is_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "github.json"
+            path.write_text(json.dumps(self._BASE), encoding="utf-8")
+
+            errors = validate_mcp_file(path)
+
+        self.assertEqual([], errors)
 
 
 if __name__ == "__main__":

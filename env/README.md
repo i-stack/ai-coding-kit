@@ -124,6 +124,28 @@ bash sync.sh      # 同步（画像文件缺失时自动跳过）
 bash skills-engineering/scripts/sync-user-profile.sh --remove
 ```
 
+## mcp/ 同步开关（enabled）
+
+`env/mcp/*.json` 默认全部同步到各平台。如需按需选择安装哪些 MCP 服务器，
+在每个服务器的定义中加入 `"enabled": false` 即可跳过同步：
+
+```json
+// env/mcp/shell.json
+{
+    "name": "shell",
+    "enabled": false,
+    "command": "..."
+}
+```
+
+| 取值 | 行为 |
+|------|------|
+| 缺省 / `true` | 同步到所有声明的平台（默认行为） |
+| `false` | 不参与同步；下次 `bash sync.sh` 时会将该服务器从已同步的目标配置中自动移除（marker 清理），用户自己添加的同名服务器不受影响 |
+
+`enabled` 与平台配置中 `api.enabled` 的语义一致：缺省即启用，只有显式 `false` 才关闭。
+同样适用于 `env/optional_mcps/` 中启用后的可选服务器。
+
 ## optional_mcps — 可选 MCP 服务器
 
 将**非默认、社区/高级**的 MCP 服务器与开箱即用的 `env/mcp/` 集合分开，避免污染默认配置，同时保留「一键启用」能力。

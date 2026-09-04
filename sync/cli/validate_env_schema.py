@@ -28,6 +28,7 @@ MCP_KNOWN_FIELDS = {
     "name", "type", "command", "args", "env", "url", "headers",
     "platforms", "_comment",
     "capabilities",
+    "enabled",
 }
 
 MCP_AUTHORITIES = {"read", "local-write", "external-write"}
@@ -76,6 +77,11 @@ def validate_mcp_file(path: Path) -> list[str]:
     platforms = data.get("platforms")
     if platforms is not None and not isinstance(platforms, list):
         errors.append(f"{path.name}: 'platforms' must be a list")
+
+    # Check enabled is a boolean if present
+    enabled = data.get("enabled")
+    if enabled is not None and not isinstance(enabled, bool):
+        errors.append(f"{path.name}: 'enabled' must be a boolean")
 
     capabilities = data.get("capabilities")
     if not isinstance(capabilities, dict):
