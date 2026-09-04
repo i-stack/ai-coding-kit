@@ -41,8 +41,8 @@
             "supportsReasoning": true
         },
         {
-            "id": "gemini-3.7-flash",
-            "name": "gemini-3.7-flash",
+            "id": "gemini-3.8-flash",
+            "name": "gemini-3.8-flash",
             "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
