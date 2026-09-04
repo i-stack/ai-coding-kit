@@ -133,7 +133,7 @@ class GeminiSyncTests(unittest.TestCase):
             settings,
             {
                 "model": {
-                    "name": "gemini-3.5-flash",
+                    "name": "gemini-3.7-flash",
                     "maxSessionTurns": -1,
                     "compressionThreshold": 0.5,
                     "skipNextSpeakerCheck": True,
@@ -185,7 +185,7 @@ class GeminiSyncTests(unittest.TestCase):
         self.assertTrue(settings["ui"]["hideBanner"])
         self.assertEqual(settings["general"]["preferredEditor"], "cursor")
         # Managed keys should also be present
-        self.assertEqual(settings["model"]["name"], "gemini-3.5-flash")
+        self.assertEqual(settings["model"]["name"], "gemini-3.7-flash")
         self.assertIn("mcpServers", settings)
 
     def test_settings_json_deep_merges_nested_user_keys(self) -> None:
@@ -269,7 +269,7 @@ class GeminiSyncTests(unittest.TestCase):
     def test_missing_xcode_path_skips_xcode_gemini_target_only(self) -> None:
         native = self._run_gemini_sync()
 
-        self.assertEqual(native["model"]["name"], "gemini-3.5-flash")
+        self.assertEqual(native["model"]["name"], "gemini-3.7-flash")
         self.assertIn("mcpServers", native)
         self.assertFalse(
             (
@@ -462,7 +462,7 @@ class GeminiSyncTests(unittest.TestCase):
         settings = self._run_gemini_sync()
 
         self.assertIn("model", settings)
-        self.assertEqual(settings["model"]["name"], "gemini-3.5-flash")
+        self.assertEqual(settings["model"]["name"], "gemini-3.7-flash")
         zshrc = self.root / "home" / ".zshrc"
         self.assertTrue(zshrc.exists())
         self.assertIn("export GEMINI_API_KEY=sk-test-gemini", zshrc.read_text(encoding="utf-8"))
@@ -529,7 +529,7 @@ class GeminiSyncTests(unittest.TestCase):
         # Re-enable.
         settings = self._run_gemini_sync(dict(self.platform_cfg))
         self.assertIn("model", settings)
-        self.assertEqual(settings["model"]["name"], "gemini-3.5-flash")
+        self.assertEqual(settings["model"]["name"], "gemini-3.7-flash")
         self.assertTrue(zshrc.exists())
         self.assertIn("export GEMINI_API_KEY=sk-test-gemini", zshrc.read_text(encoding="utf-8"))
 

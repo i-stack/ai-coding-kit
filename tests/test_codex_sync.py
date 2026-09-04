@@ -201,7 +201,7 @@ class CodexSyncTests(unittest.TestCase):
         self.assertNotIn("[model_providers", config_text)
         self.assertNotIn("model_providers", parsed)
         # Non-API fields and MCP still sync.
-        self.assertEqual(parsed["model"], "gpt-5.5")
+        self.assertEqual(parsed["model"], "gpt-5.6-sol")
         self.assertIn("mcp_servers", parsed)
 
     def test_api_disabled_clears_env_block(self) -> None:
@@ -313,7 +313,7 @@ class CodexSyncTests(unittest.TestCase):
         self.assertEqual(set(self.platform_cfg), covered_keys)
 
         expected_root = {
-            "model": "gpt-5.5",
+            "model": "gpt-5.6-sol",
             "sandbox_mode": "workspace-write",
             "approval_policy": "on-request",
             "allow_login_shell": True,

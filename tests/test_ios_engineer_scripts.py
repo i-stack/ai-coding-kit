@@ -689,11 +689,16 @@ class FileContentIntegrityTests(unittest.TestCase):
     """Verify scripts reference correct files and paths."""
 
     def test_agent_preamble_rule_id_families_match_active_index(self):
-        """The generated audit contract must allow every active rule ID family."""
-        preamble = (
-            REPO_ROOT / "skills-engineering" / "scripts" / "templates"
-            / "agent-preamble.md.tmpl"
-        ).read_text(encoding="utf-8")
+        """Generated audit contracts must allow every active rule ID family."""
+        # The audit contract was moved out of the user-level preamble (commit
+        # that refactored ios-engineer to on-demand loading) and now lives in
+        # usage_ledger.md §5's per-tool copyable prompt snippets.
+        usage_ledger = (SKILL_DIR / "references" / "usage_ledger.md").read_text(
+            encoding="utf-8"
+        )
+        audit_contract = usage_ledger.split("## 5. 三端 system-prompt 片段", 1)[1].split(
+            "## 6. 批量灌入", 1
+        )[0]
         rule_index = (SKILL_DIR / "references" / "rule_index.md").read_text(
             encoding="utf-8"
         )
@@ -705,13 +710,12 @@ class FileContentIntegrityTests(unittest.TestCase):
                 re.MULTILINE,
             )
         }
-        audit_contract = preamble.split("# ios-engineer skill audit", 1)[1]
 
         for family in active_families:
             self.assertIn(
-                f"{family}-NNN",
+                f"{family}-XXX",
                 audit_contract,
-                f"agent preamble audit contract should allow active {family} IDs",
+                f"audit contract should allow active {family} IDs",
             )
         self.assertNotIn("GR-NNN 等全局纪律 ID 不在此词表内", audit_contract)
 
@@ -721,8 +725,8 @@ class FileContentIntegrityTests(unittest.TestCase):
             REPO_ROOT / "skills-engineering" / "scripts" / "templates"
             / "agent-preamble.md.tmpl"
         ).read_text(encoding="utf-8")
-        section = preamble.split("# global engineering discipline", 1)[1].split(
-            "# global problem analysis", 1
+        section = preamble.split("# global engineering-discipline", 1)[1].split(
+            "# global problem-analysis", 1
         )[0]
 
         for rule_number in range(1, 9):

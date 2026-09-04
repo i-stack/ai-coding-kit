@@ -6,8 +6,6 @@
 env/secrets.json
 env/config.json
 env/backup.json
-# 可选 MCP 启用状态（本机本地状态，不提交；脚本缺失时自动重建为 {}）
-env/optional_mcps/enabled.json
 
 *__pycache__*/
 .analysis_output/

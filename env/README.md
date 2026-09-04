@@ -18,7 +18,7 @@ env/
 ├── user-profile.md           ← 跨会话用户画像内容（gitignored）
 ├── user-profile.md.example   ← 用户画像内容模板（已提交）
 │
-├── mcp/                      ← 默认启用的 MCP 服务器定义
+├── mcp/                      ← MCP 服务器定义（enabled:false 为默认停用的可选服务器）
 │   ├── github.json
 │   ├── apifox.json
 │   ├── filesystem.json
@@ -26,14 +26,10 @@ env/
 │   ├── shell.json
 │   ├── xcodebuild.json
 │   ├── lanhu.json
-│   └── moonvy.json
-│
-├── optional_mcps/            ← 可选 MCP 服务器（需手动启用）
-│   ├── enabled.json          ← 启用状态记录
-│   ├── filesystem-extra.json
-│   ├── puppeteer.json
-│   ├── wechat-bridge.json
-│   └── README.md
+│   ├── moonvy.json
+│   ├── filesystem-extra.json ← 可选（默认停用）
+│   ├── puppeteer.json        ← 可选（默认停用）
+│   └── wechat-bridge.json    ← 可选（默认停用）
 │
 ├── platforms/                ← 平台专属配置
 │   ├── claude.json
@@ -144,41 +140,19 @@ bash skills-engineering/scripts/sync-user-profile.sh --remove
 | `false` | 不参与同步；下次 `bash sync.sh` 时会将该服务器从已同步的目标配置中自动移除（marker 清理），用户自己添加的同名服务器不受影响 |
 
 `enabled` 与平台配置中 `api.enabled` 的语义一致：缺省即启用，只有显式 `false` 才关闭。
-同样适用于 `env/optional_mcps/` 中启用后的可选服务器。
 
-## optional_mcps — 可选 MCP 服务器
+## 可选 MCP 服务器
 
-将**非默认、社区/高级**的 MCP 服务器与开箱即用的 `env/mcp/` 集合分开，避免污染默认配置，同时保留「一键启用」能力。
-
-### 工作机制
-
-- `env/optional_mcps/*.json`：可选的 MCP 服务器定义（**不**自动同步）
-- `sync/scripts/optional_mcps.sh enable <name>`：启用并同步到 `env/mcp/`
-- `sync/scripts/optional_mcps.sh disable <name>`：禁用并移除
-- 启用状态记录在 `env/optional_mcps/enabled.json`
-
-### 用法
-
-```bash
-# 列出所有可选服务器及其启用状态
-bash sync/scripts/optional_mcps.sh list
-
-# 启用一个
-bash sync/scripts/optional_mcps.sh enable puppeteer
-
-# 禁用一个
-bash sync/scripts/optional_mcps.sh disable puppeteer
-```
-
-### 可用服务器
+非默认、社区/高级的服务器（`puppeteer`、`filesystem-extra`、`wechat-bridge`）与开箱
+即用的服务器同放在 `env/mcp/`，以显式 `"enabled": false` 标记**默认不同步**，避免污染
+默认配置，同时保留「一键启用」能力：启用只需把 `enabled` 改为 `true` 或删除该字段，
+下次 `bash sync.sh` 生效；停用改回 `false`，同步时会把已写入各平台配置的该服务器清理掉。
 
 | 服务器 | 说明 | 需要 secret |
 |--------|------|-------------|
 | `puppeteer` | 浏览器自动化（与默认 `playwright` 互补，择一启用） | 否 |
 | `filesystem-extra` | 扩展文件系统访问 | 是（`filesystem_extra.root`） |
-| `wechat-bridge` | 微信桥接 | 是（`wechat.token`） |
-
-详见 [optional_mcps/README.md](optional_mcps/README.md)。
+| `wechat-bridge` | 微信桥接（演示） | 是（`wechat.token`） |
 
 ## 自定义安装路径（paths）
 

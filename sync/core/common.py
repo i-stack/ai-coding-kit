@@ -112,6 +112,9 @@ def load_all_mcp() -> dict[str, Any]:
     Secrets (${VAR}) are resolved from env/secrets.json before returning.
     Returns {} if env/mcp/ is missing or empty (graceful degradation).
     Warns about any unresolved placeholders after resolution.
+    Disabled servers (explicit "enabled": false) are skipped *before* secret
+    resolution, so default-disabled optional servers never emit missing-secret
+    warnings for secrets the user doesn't need to provide.
     """
     if not MCP_DIR.is_dir():
         print(f"[sync] {MCP_DIR} directory not found — no MCP servers loaded.")
@@ -128,18 +131,19 @@ def load_all_mcp() -> dict[str, Any]:
         if not isinstance(data, dict):
             print(f"[sync] Skipping {f.name}: not a JSON object.")
             continue
+        # Per-server sync toggle first: explicit "enabled": false skips the
+        # server before any secret resolution, so it is neither resolved nor
+        # synced (the marker merge prunes its previously-synced managed entries).
+        # Missing defaults to enabled.
+        if not mcp_enabled(data):
+            print(f"[sync] MCP server '{f.stem}' is disabled (enabled=false) — skipped.")
+            continue
         # Resolve secrets before stripping metadata
         data = resolve_secrets(data, secrets)
         # Warn about unresolved placeholders
         unresolved = find_unresolved_placeholders(data)
         if unresolved:
             print(f"[sync] ⚠ {f.name}: unresolved placeholders: {', '.join(unresolved)} — add them to env/secrets.json")
-        # Per-server sync toggle: explicit "enabled": false skips the server,
-        # so it is neither synced nor kept in targets (the marker merge prunes
-        # its previously-synced managed entries). Missing defaults to enabled.
-        if not mcp_enabled(data):
-            print(f"[sync] MCP server '{f.stem}' is disabled (enabled=false) — skipped.")
-            continue
         name = data.get("name", f.stem)
         clean = {k: v for k, v in data.items() if k not in ("name", "_comment", "enabled")}
         result[name] = clean

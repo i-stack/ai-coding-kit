@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-04
+
+- **可选 MCP 整合进 `env/mcp/`（enabled 开关统一）**: 删除 `env/optional_mcps/` 目录与 `sync/scripts/optional_mcps.sh`（`enable`/`disable`/`list`/`sync` 与 checksum 归属护栏），`puppeteer`、`filesystem-extra`、`wechat-bridge` 三个可选服务器迁入 `env/mcp/` 并以显式 `"enabled": false` 标记默认不同步（`load_all_mcp()` 的 `mcp_enabled()` 已支持过滤，停用会在下次同步时清理已写入各平台配置的该服务器）。启用 = 把 `enabled` 改 `true` 或删字段；启用状态从 gitignored 的本地 `enabled.json` 变为 git 明文可见。`sync/cli/validate_env_schema.py` 移除 optional_mcps 扫描分支；`.gitignore` 移除 `enabled.json` 条目；`env/secrets.json.example` 补充 `filesystem_extra.root`、`wechat.token` 占位说明；`env/README.md`、`sync/README.md` 同步更新。
+- **`enabled` 检查提前到 secret 解析之前**: `load_all_mcp()` 先判 `mcp_enabled()` 再 `resolve_secrets()`，默认停用的可选服务器不再因缺 `filesystem_extra.root` / `wechat.token` 等占位输出 missing-secret 警告（此前会先解析并告警、后跳过的顺序，导致不需要的 secret 也要求用户补齐）。
+
 ## 2026-09-02
 
 - **plan-reviews CLI 调用统一为 preamble 注入的绝对路径（RECALL_CLI_PATH）**: `historical-recall`（SKILL.md HR-003、AGENT-BRIEF、references/rule_index.md、references/historical_recall.md）、`auto-code-review`（references/auto_code_review.md zh 与 en-US 镜像）及 `docs/plan-grill.md`、`docs/auto-code-review.md` 中所有 cwd 相对命令 `node skills-engineering/plan-reviews/dist/cli.js recall|sync|merge` 改为「以本机 preamble 的 historical-recall 段注入的绝对 CLI 路径执行」：CLI 位于 ai-coding-kit 仓库 `skills-engineering/plan-reviews/dist/cli.js`，不在 `~/.codebuddy/` 下，仓库根相对路径仅在 cwd=仓库根时可用。修复 cwd 漂移（如 `~/.codebuddy`）下 node 解析出 `~/.codebuddy/skills-engineering/...` 导致的 `MODULE_NOT_FOUND` 噪音；仓库真值与 `~/.codebuddy/skills/` 已安装副本同步更新。

@@ -326,7 +326,7 @@ class ClaudeSyncTests(unittest.TestCase):
         # Secrets should have been resolved
         self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
         self.assertEqual(settings["env"]["ANTHROPIC_BASE_URL"], "https://claude.example/v1")
-        self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-4-8")
+        self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-5")
         self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_SONNET_MODEL"], "claude-sonnet-5")
         self.assertEqual(
             settings["env"]["ANTHROPIC_DEFAULT_HAIKU_MODEL"],

@@ -18,7 +18,6 @@ from platforms.codex import _HOST_SKIP as _CODEX_HOST_SKIP
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENV_DIR = REPO_ROOT / "env"
 MCP_DIR = ENV_DIR / "mcp"
-OPTIONAL_MCP_DIR = ENV_DIR / "optional_mcps"
 PLATFORMS_DIR = ENV_DIR / "platforms"
 
 # ── MCP server schema ────────────────────────────────────────────────────────
@@ -238,22 +237,16 @@ def main(argv: list[str] | None = None) -> int:
 
     all_errors: list[str] = []
 
-    # Validate MCP files (env/mcp + env/optional_mcps)
+    # Validate MCP files (env/mcp)
     if not args.platforms_only:
-        mcp_dirs = [MCP_DIR]
-        if OPTIONAL_MCP_DIR.is_dir():
-            mcp_dirs.append(OPTIONAL_MCP_DIR)
-        total_mcp = 0
-        for d in mcp_dirs:
-            if not d.is_dir():
-                all_errors.append(f"{d.relative_to(REPO_ROOT)}/: no JSON files found")
-                continue
-            for f in sorted(d.glob("*.json")):
-                if d is OPTIONAL_MCP_DIR and f.name == "enabled.json":
-                    continue  # registry 文件，不是 MCP 定义
+        if not MCP_DIR.is_dir():
+            all_errors.append(f"{MCP_DIR.relative_to(REPO_ROOT)}/: no JSON files found")
+        else:
+            total_mcp = 0
+            for f in sorted(MCP_DIR.glob("*.json")):
                 all_errors.extend(validate_mcp_file(f))
                 total_mcp += 1
-        print(f"Checked {total_mcp} MCP file(s) (incl. optional_mcps).")
+            print(f"Checked {total_mcp} MCP file(s).")
 
     # Validate platform files
     if not args.mcp_only and PLATFORMS_DIR.is_dir():
