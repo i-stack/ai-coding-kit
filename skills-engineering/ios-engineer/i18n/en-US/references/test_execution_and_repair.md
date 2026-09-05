@@ -26,26 +26,26 @@ Recommended paths for executing iOS tests, from high to low priority:
 | Priority | Method | Applicable Scenarios |
 |--------|------|----------|
 | **1. MCP** | `XcodeBuildMCP` (build / run tests / read Build Settings) | Interactive agent troubleshooting; auto-reads project `.xcodebuildmcp/config.yaml` |
-| **2. Adaptive Script** | `scripts/run_ios_tests.sh` (auto-discover workspace/scheme/simulator) | CI pipelines, local manual regression, fallback when MCP unavailable |
+| **2. Adaptive Script** | `scripts/run-ios-tests.sh` (auto-discover workspace/scheme/simulator) | CI pipelines, local manual regression, fallback when MCP unavailable |
 | **3. Raw xcodebuild** | Manually compose `xcodebuild test ...` | Debugging specific parameters; extreme scenarios not covered by MCP and scripts |
 
 Interactive iOS engineering tasks prefer [mcp_control.md](mcp_control.md) `XcodeBuildMCP` mapping; the following commands are fallback examples for when MCP is unavailable, MCP capability does not cover, or needs to be solidified into CI / scripts — not the default first choice.
 
 ### Adaptive Script (Recommended for CI / Local Manual Regression)
-Script located at `skills-engineering/ios-engineer/scripts/run_ios_tests.sh`; auto-discovers project configuration:
+Script located at `skills-engineering/ios-engineer/scripts/run-ios-tests.sh`; auto-discovers project configuration:
 
 ```sh
 # Copy to project scripts/ directory (or reference skill path directly)
-cp skills-engineering/ios-engineer/scripts/run_ios_tests.sh scripts/run_ios_tests.sh
+cp skills-engineering/ios-engineer/scripts/run-ios-tests.sh scripts/run-ios-tests.sh
 
 # Run all tests
-./scripts/run_ios_tests.sh
+./scripts/run-ios-tests.sh
 
 # Run specific test class only
-./scripts/run_ios_tests.sh STMarkdownFixTests
+./scripts/run-ios-tests.sh STMarkdownFixTests
 
 # Manual override configuration
-WORKSPACE=MyApp.xcworkspace SCHEME=MyApp SIMULATOR_NAME="iPhone 16 Pro" ./scripts/run_ios_tests.sh
+WORKSPACE=MyApp.xcworkspace SCHEME=MyApp SIMULATOR_NAME="iPhone 16 Pro" ./scripts/run-ios-tests.sh
 ```
 
 Configuration discovery logic (by priority):

@@ -30,20 +30,20 @@ jobs:
           sudo apt-get install -y -qq ripgrep ruby > /dev/null
 
       - name: Validate Rule IDs
-        run: bash scripts/validate_rule_ids.sh
+        run: bash scripts/validate-rule-ids.sh
 
       - name: Validate Scenario Specs
-        run: bash scripts/validate_scenario_specs.sh
+        run: bash scripts/validate-scenario-specs.sh
 
       - name: Audit Reference Freshness
         run: |
-          STALE_MONTHS=12 CRITICAL_MONTHS=18 bash scripts/audit_ref_freshness.sh
+          STALE_MONTHS=12 CRITICAL_MONTHS=18 bash scripts/audit-ref-freshness.sh
 
       - name: Validate Usage Ledger
-        run: bash scripts/validate_usage_ledger.sh
+        run: bash scripts/validate-usage-ledger.sh
 
       - name: Run full skill evolution validation
         run: |
           SKIP_SNAPSHOT_CONSISTENCY=1 \
           SKIP_BEHAVIOR_VALIDATION=1 \
-          bash scripts/validate_skill_evolution.sh
+          bash scripts/validate-skill-evolution.sh

@@ -329,7 +329,7 @@ bash scripts/sync-memory.sh --remove
 1. 创建 proposal：
 
 ```bash
-bash ios-engineer/scripts/create_skill_proposal.sh <slug>
+bash ios-engineer/scripts/create-skill-proposal.sh <slug>
 ```
 
 脚本会输出 `evolution/proposals/<proposal-id>.md`。后续命令里的 `<proposal-file>` 使用这个相对路径。
@@ -339,19 +339,19 @@ bash ios-engineer/scripts/create_skill_proposal.sh <slug>
 3. 运行基础校验：
 
 ```bash
-bash ios-engineer/scripts/validate_skill_evolution.sh
+bash ios-engineer/scripts/validate-skill-evolution.sh
 ```
 
 4. 写入 proposal 验证记录：
 
 ```bash
-bash ios-engineer/scripts/validate_skill_proposal.sh <proposal-file> [scenario-slug ...]
+bash ios-engineer/scripts/validate-skill-proposal.sh <proposal-file> [scenario-slug ...]
 ```
 
 5. 必要时记录场景验证：
 
 ```bash
-bash ios-engineer/scripts/record_validation_scenario.sh \
+bash ios-engineer/scripts/record-validation-scenario.sh \
   <proposal-file> \
   <scenario> \
   <pass|partial|fail> \
@@ -363,14 +363,14 @@ bash ios-engineer/scripts/record_validation_scenario.sh \
 6. 满足晋升条件后，记录审批并晋升：
 
 ```bash
-bash ios-engineer/scripts/approve_skill_promotion.sh <proposal-file> <approved-by>
-bash ios-engineer/scripts/promote_skill_evolution.sh <new-version> proposal:<proposal-id> <proposal-file>
+bash ios-engineer/scripts/approve-skill-promotion.sh <proposal-file> <approved-by>
+bash ios-engineer/scripts/promote-skill-evolution.sh <new-version> proposal:<proposal-id> <proposal-file>
 ```
 
 7. 如新版本带来回归，使用回滚脚本恢复历史快照：
 
 ```bash
-bash ios-engineer/scripts/rollback_skill_evolution.sh <version>
+bash ios-engineer/scripts/rollback-skill-evolution.sh <version>
 ```
 
 演进约束详见 `ios-engineer/references/self_evolution.md`。
@@ -382,7 +382,7 @@ bash ios-engineer/scripts/rollback_skill_evolution.sh <version>
 技能演进的伞形校验入口：
 
 ```bash
-bash ios-engineer/scripts/validate_skill_evolution.sh
+bash ios-engineer/scripts/validate-skill-evolution.sh
 ```
 
 该脚本会执行 12 类检查，包括 YAML 结构、SKILL 大小、引用文件存在性、内部链接、场景规格、规则 ID、usage ledger、孤儿 reference、唯一 owner、退役术语、active snapshot 一致性和行为回归场景。
@@ -390,9 +390,9 @@ bash ios-engineer/scripts/validate_skill_evolution.sh
 如只需检查特定维度，可直接运行对应脚本，例如：
 
 ```bash
-bash ios-engineer/scripts/validate_rule_ids.sh
-bash ios-engineer/scripts/validate_scenario_specs.sh
-bash ios-engineer/scripts/validate_usage_ledger.sh
+bash ios-engineer/scripts/validate-rule-ids.sh
+bash ios-engineer/scripts/validate-scenario-specs.sh
+bash ios-engineer/scripts/validate-usage-ledger.sh
 ```
 
 ### Usage ledger
@@ -400,7 +400,7 @@ bash ios-engineer/scripts/validate_usage_ledger.sh
 真实 iOS 工程任务完成后，Agent 可输出 `<usage-audit>` 块，再由脚本灌入 ledger；也可以直接用 CLI 追加：
 
 ```bash
-bash ios-engineer/scripts/append_usage_entry.sh \
+bash ios-engineer/scripts/append-usage-entry.sh \
   --tool codex \
   --task-type concurrency \
   --prompt-summary "异步搜索结果串线" \
@@ -412,13 +412,13 @@ bash ios-engineer/scripts/append_usage_entry.sh \
 批量抽取 audit 块：
 
 ```bash
-bash ios-engineer/scripts/extract_usage_audit.sh path/to/transcript.txt
+bash ios-engineer/scripts/extract-usage-audit.sh path/to/transcript.txt
 ```
 
 查看汇总信号：
 
 ```bash
-bash ios-engineer/scripts/summarize_usage_ledger.sh
+bash ios-engineer/scripts/summarize-usage-ledger.sh
 ```
 
 Ledger schema、脱敏要求和 self-grading 偏差说明见 `ios-engineer/references/usage_ledger.md`。
@@ -446,17 +446,30 @@ bash install-hooks.sh
 
 会把 `core.hooksPath` 指向 `<repo-root>/.githooks/`，一次启用 `pre-commit` 与 `pre-push` 两条守卫。
 
-### pre-commit：规则变更必须绑定治理记录
+### pre-commit：技能变更分级守卫
 
-[`.githooks/pre-commit`](../.githooks/pre-commit) 拦截以下文件的未治理变更：
+[`.githooks/pre-commit`](../.githooks/pre-commit) 对所有 `skills-engineering/` 下的技能变更实施分级守卫：
 
-- `skills-engineering/ios-engineer/SKILL.md`
-- `skills-engineering/ios-engineer/references/*.md`
+1. **结构门（所有技能）**：任何 `SKILL.md` / `AGENT-BRIEF.md` / `OUT-OF-SCOPE.md` /
+   `references/*.md` 变更必须通过 `validate-skill-structure.sh`（frontmatter、行数、
+   链接、孤儿引用、rule_index 元数据）。
+2. **DH-002 卫生门（所有技能）**：变更的运行期入口文档须通过
+   `validate-doc-hygiene.sh` 禁用词扫描。
+3. **治理门（含 `evolution/` 目录的技能，当前为 ios-engineer）**：
+   `SKILL.md` / `references/*.md` 变更必须与 staged proposal 绑定，且
+   proposal 的 approval 记录必须已 stage 或已提交。
+4. **跨技能协调门**：`.agents/*.md`（invocation/composition 矩阵）或
+   `source-truth.json` 变更须通过 `validate-skill-behavior.sh` 一致性校验。
 
-如果这些文件有 staged 改动，同一个 commit 必须包含：
+**删除与部分暂存同样受守卫**：
 
-- `skills-engineering/ios-engineer/evolution/proposals/<id>.md`
-- `skills-engineering/ios-engineer/evolution/approvals/<id>.json`，或该 approval 已经在历史中存在
+- 删除状态（`git diff --cached --diff-filter=D`）同样触发门禁：删除 `SKILL.md`
+  会直接 FAIL 结构门；删除 `references/*.md` 仍须满足治理门（proposal）要求。
+- 守卫文件禁止部分暂存：校验器读取工作树，因此文件的 staged 版本必须与工作树
+  一致（工作树有未暂存改动即 FAIL），避免用工作树"修正版"骗过校验而提交仍含
+  非法旧内容。
+
+`MINOR_CHANGE=1` 可跳过治理门（仅治理技能生效），`SKILL_BYPASS=1` 跳过全部。
 
 ### pre-push：推送前强制同步并校验
 
@@ -496,7 +509,7 @@ git push --no-verify                 # 跳过整个 pre-push（含 sync/scripts/
 - 新增或修改规则 ID 时，先更新 `ios-engineer/references/rule_index.md`，再同步 `SKILL.md` 中的 inline ID。
 - 跨文件共享概念变更前先全量搜索相关术语，proposal 中明确覆盖范围。
 - 修改任一技能的 zh 源（`SKILL.md` / `references/*.md`）时，若涉及 en-US 镜像覆盖的协调条款，必须同步更新 `i18n/en-US/`，否则 `tests/test_en_us_mirror_sync.py` 会 FAIL；该测试是 en-US 分发闭环的回归护栏。
-- 提交前运行 `./scripts/sync-skills.sh --dry-run` 和 `bash ios-engineer/scripts/validate_skill_evolution.sh`。
+- 提交前运行 `./scripts/sync-skills.sh --dry-run` 和 `bash ios-engineer/scripts/validate-skill-evolution.sh`。
 - 修改托管 preamble 时只改 `scripts/templates/agent-preamble.md.tmpl`，再运行 `./scripts/sync-agent-preamble.sh --dry-run` 检查输出。
 - 推送前（或 `SKILL_BYPASS=1` 推送后）手动跑 `./scripts/verify-sync.sh` 确认各已启用缓存与 preamble 状态一致，避免 Agent 侧加载漂移版本。
 - 本机专属配置（如外部 Cursor 项目根）写进仓库根 `env/secrets.json`；该文件已由仓库根 `.gitignore` 排除，切勿提交进仓库。

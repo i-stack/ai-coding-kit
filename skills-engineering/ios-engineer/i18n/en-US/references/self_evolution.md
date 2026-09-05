@@ -30,7 +30,7 @@ Any of the following signals is sufficient to enter the self-evolution process:
 - Multiple documents define the same thing redundantly, causing context bloat or priority conflicts.
 - A rule has been consistently and stably hit for a long time but still appears in multiple documents redundantly.
 - A rule consistently causes misleading, over-expanding, or incorrectly constraining behavior in real tasks.
-- A ref file's `<!-- last-verified -->` header exceeds 12 months (detectable via [scripts/audit_ref_freshness.sh](../scripts/audit_ref_freshness.sh)), and the ref involves iOS / Swift / SwiftUI / Xcode content subject to system iteration changes.
+- A ref file's `<!-- last-verified -->` header exceeds 12 months (detectable via [scripts/audit-ref-freshness.sh](../scripts/audit-ref-freshness.sh)), and the ref involves iOS / Swift / SwiftUI / Xcode content subject to system iteration changes.
 
 ## Self-Evolution Closed Loop
 Advance in the following fixed order:
@@ -48,7 +48,7 @@ Advance in the following fixed order:
 
 3. Only Generate Candidate Version
 - First create a candidate change; do not claim "the skill has automatically learned."
-- First use [scripts/create_skill_proposal.sh](../scripts/create_skill_proposal.sh) to generate a proposal skeleton, then fill in the proposal content.
+- First use [scripts/create-skill-proposal.sh](../scripts/create-skill-proposal.sh) to generate a proposal skeleton, then fill in the proposal content.
 - Candidate changes must simultaneously specify:
   - What to change
   - Why to change it
@@ -58,18 +58,18 @@ Advance in the following fixed order:
 4. Run Validation
 - At minimum, execute structural validation, reference validation, and scenario validation.
 - If candidate changes affect output structure, debugging discipline, or migration gates, must additionally run relevant validation scenarios.
-- The unified external entry point is [scripts/validate.sh](../scripts/validate.sh): `--all` for the full gate, `--quick` for fast structural checks, `--scenarios` for scenario specs and internal link validation; `validate_skill_evolution.sh` / `validate_scenario_specs.sh` / `validate_rule_ids.sh` / `validate_usage_ledger.sh` are retained as internal sub-checks or specialized debugging entry points.
-- Use [scripts/validate_skill_proposal.sh](../scripts/validate_skill_proposal.sh) to write validation records for the proposal and advance the proposal status to `validated` or `rejected`.
-- If concrete scenarios have been replayed, use [scripts/record_validation_scenario.sh](../scripts/record_validation_scenario.sh) to append `pass / partial / fail`, hit points, deviation points, and improvement suggestions to the same validation record; when all scenarios are complete and results meet conditions, the proposal can auto-enter `ready_to_promote`. Scenario specs are deposited in [evolution/scenarios/](../evolution/scenarios/); the `scenario` field written must fall within fixed slugs, otherwise subsequent graders cannot reconcile.
-- If the proposal has entered `ready_to_promote`, use [scripts/check_skill_promotion_readiness.sh](../scripts/check_skill_promotion_readiness.sh) to view prompts, then use [scripts/approve_skill_promotion.sh](../scripts/approve_skill_promotion.sh) to record authorization and advance the proposal to `approved`.
+- The unified external entry point is [scripts/validate.sh](../scripts/validate.sh): `--all` for the full gate, `--quick` for fast structural checks, `--scenarios` for scenario specs and internal link validation; `validate-skill-evolution.sh` / `validate-scenario-specs.sh` / `validate-rule-ids.sh` / `validate-usage-ledger.sh` are retained as internal sub-checks or specialized debugging entry points.
+- Use [scripts/validate-skill-proposal.sh](../scripts/validate-skill-proposal.sh) to write validation records for the proposal and advance the proposal status to `validated` or `rejected`.
+- If concrete scenarios have been replayed, use [scripts/record-validation-scenario.sh](../scripts/record-validation-scenario.sh) to append `pass / partial / fail`, hit points, deviation points, and improvement suggestions to the same validation record; when all scenarios are complete and results meet conditions, the proposal can auto-enter `ready_to_promote`. Scenario specs are deposited in [evolution/scenarios/](../evolution/scenarios/); the `scenario` field written must fall within fixed slugs, otherwise subsequent graders cannot reconcile.
+- If the proposal has entered `ready_to_promote`, use [scripts/check-skill-promotion-readiness.sh](../scripts/check-skill-promotion-readiness.sh) to view prompts, then use [scripts/approve-skill-promotion.sh](../scripts/approve-skill-promotion.sh) to record authorization and advance the proposal to `approved`.
 
 5. Promote Only After Passing
 - Only when the candidate version passes validation is it used as the new active version.
 - When validation fails, only continue correcting the candidate version; direct overwrite of the active version is forbidden.
 - `ready_to_promote` can be auto-determined but does not auto-promote.
 - `approved` must be produced through explicit authorization; it does not advance automatically.
-- When promoting, use [scripts/promote_skill_evolution.sh](../scripts/promote_skill_evolution.sh) to archive the current stable snapshot, update the active version, and advance the proposal status to `promoted`; this script requires the proposal status to already be `approved`.
-- To quickly demonstrate the full chain, use [scripts/demo_skill_evolution_flow.sh](../scripts/demo_skill_evolution_flow.sh); the script auto-rolls back to `v1` at the end by default.
+- When promoting, use [scripts/promote-skill-evolution.sh](../scripts/promote-skill-evolution.sh) to archive the current stable snapshot, update the active version, and advance the proposal status to `promoted`; this script requires the proposal status to already be `approved`.
+- To quickly demonstrate the full chain, use [scripts/demo-skill-evolution-flow.sh](../scripts/demo-skill-evolution-flow.sh); the script auto-rolls back to `v1` at the end by default.
 
 ## Candidate Constraints
 - Each proposal should prioritize minimal changes; do not simultaneously rewrite the main skill and a large number of references.
@@ -89,12 +89,12 @@ Candidate versions must pass at least the following checks:
 
 Recommended execution:
 - Run [scripts/validate.sh](../scripts/validate.sh) `--all` for the full gate; for local quick checks use `--quick`; for scenario specs only use `--scenarios`.
-- Run [scripts/update_skill_proposal_status.sh](../scripts/update_skill_proposal_status.sh) to maintain proposal status; allowed statuses are only `draft`, `validated`, `ready_to_promote`, `approved`, `promoted`, `rejected`.
+- Run [scripts/update-skill-proposal-status.sh](../scripts/update-skill-proposal-status.sh) to maintain proposal status; allowed statuses are only `draft`, `validated`, `ready_to_promote`, `approved`, `promoted`, `rejected`.
 - Per [validation_scenarios.md](validation_scenarios.md), select affected scenarios for forward validation.
-- Run [scripts/record_validation_scenario.sh](../scripts/record_validation_scenario.sh) to append structured scenario validation conclusions.
-- Run [scripts/check_skill_promotion_readiness.sh](../scripts/check_skill_promotion_readiness.sh) to check whether authorization preconditions and recommended prompts are met.
-- Run [scripts/approve_skill_promotion.sh](../scripts/approve_skill_promotion.sh) to record explicit authorization.
-- When rollback is needed, use [scripts/rollback_skill_evolution.sh](../scripts/rollback_skill_evolution.sh) to restore an archived version.
+- Run [scripts/record-validation-scenario.sh](../scripts/record-validation-scenario.sh) to append structured scenario validation conclusions.
+- Run [scripts/check-skill-promotion-readiness.sh](../scripts/check-skill-promotion-readiness.sh) to check whether authorization preconditions and recommended prompts are met.
+- Run [scripts/approve-skill-promotion.sh](../scripts/approve-skill-promotion.sh) to record explicit authorization.
+- When rollback is needed, use [scripts/rollback-skill-evolution.sh](../scripts/rollback-skill-evolution.sh) to restore an archived version.
 
 ## Promotion & Rollback
 - Promotion principle: Only candidate versions that have passed validation, are in `ready_to_promote`, and have recorded explicit authorization can become the new active version upon receiving an explicit command.
@@ -103,7 +103,7 @@ Recommended execution:
 
 ## Rule ID Governance
 - All structured rules in SKILL.md carry an `[ID]` prefix (Iron Rules IR-NNN / Symptom Navigation SYM-NNN / Task Routing ROUTE-NNN / Output Templates OUT-NNN); the ID canonical index is deposited in [rule_index.md](rule_index.md).
-- New IDs: **modify [rule_index.md](rule_index.md) first, then sync SKILL.md**; both sides are asserted to be bidirectionally consistent by [scripts/validate_rule_ids.sh](../scripts/validate_rule_ids.sh).
+- New IDs: **modify [rule_index.md](rule_index.md) first, then sync SKILL.md**; both sides are asserted to be bidirectionally consistent by [scripts/validate-rule-ids.sh](../scripts/validate-rule-ids.sh).
 - IDs are never reused once published: upon retirement, change the status in [rule_index.md](rule_index.md) to `retired` or `deprecated` and fill in the replacement ID (use `retired-no-replacement` if none), and simultaneously **remove the inline reference from SKILL.md** — the validator will reject retired IDs still appearing in SKILL.md.
 - Numbering may have gaps; no continuity is enforced. New entries prefer `max(existing number) + 1` within the prefix.
 - IDs carry no semantic suffix; semantics are communicated via [rule_index.md](rule_index.md)'s "Summary" column to avoid meaning drift during rename/split.
@@ -111,11 +111,11 @@ Recommended execution:
 
 ## Real-Task Observation
 - Real-task hit data is deposited in [evolution/usage/usage.jsonl](../evolution/usage/usage.jsonl); schema, write protocol, three-end audit block format, and Codex / Claude Code / Cursor system-prompt fragments are unified and deposited in [usage_ledger.md](usage_ledger.md).
-- Two write paths: single-entry via [scripts/append_usage_entry.sh](../scripts/append_usage_entry.sh); batch ingestion from audit blocks via [scripts/extract_usage_audit.sh](../scripts/extract_usage_audit.sh). Both paths atomically reject invalid entries without polluting the ledger.
-- Ledger validity is guarded by [scripts/validate_usage_ledger.sh](../scripts/validate_usage_ledger.sh), integrated into the unified validation step `[8/14]`: rule_ids must be in the [rule_index.md](rule_index.md) active set, `task_type` must be within the fixed scenario slug set + `other`, `missed_rules == expected_rules - hit_rules`.
+- Two write paths: single-entry via [scripts/append-usage-entry.sh](../scripts/append-usage-entry.sh); batch ingestion from audit blocks via [scripts/extract-usage-audit.sh](../scripts/extract-usage-audit.sh). Both paths atomically reject invalid entries without polluting the ledger.
+- Ledger validity is guarded by [scripts/validate-usage-ledger.sh](../scripts/validate-usage-ledger.sh), integrated into the unified validation step `[8/14]`: rule_ids must be in the [rule_index.md](rule_index.md) active set, `task_type` must be within the fixed scenario slug set + `other`, `missed_rules == expected_rules - hit_rules`.
 - The ledger is the data source for subsequent summarization / proposal clustering (Step 4). Three-end audit blocks are self-assessed by the LLM and carry self-grading bias — data should be viewed as **biased drafts**; truly trustworthy hit rates still rely on [validation_scenarios.md](validation_scenarios.md) + [evolution/scenarios/*.json](../evolution/scenarios/) regression scenario set independent replay confirmation.
 - Do not record only failure cases: stable successful tasks must also be appended, otherwise sampling bias will distort hit rate statistics.
-- Periodically run [scripts/summarize_usage_ledger.sh](../scripts/summarize_usage_ledger.sh) to view summary reports and proposal candidate signals; the script is read-only for the repo, outputs markdown to stdout by default, supports `--json` for machine-readable output and `--since` / `--tool` for narrowing the dataset.
+- Periodically run [scripts/summarize-usage-ledger.sh](../scripts/summarize-usage-ledger.sh) to view summary reports and proposal candidate signals; the script is read-only for the repo, outputs markdown to stdout by default, supports `--json` for machine-readable output and `--since` / `--tool` for narrowing the dataset.
 
 ## Explicitly Forbidden Patterns
 - Adding a permanent rule due to a single occasional mistake.
@@ -160,7 +160,7 @@ Field update protocol:
 - Bulk timestamp pushes without genuine review are forbidden.
 
 Audit cycle:
-- Recommended: run [scripts/audit_ref_freshness.sh](../scripts/audit_ref_freshness.sh) quarterly.
+- Recommended: run [scripts/audit-ref-freshness.sh](../scripts/audit-ref-freshness.sh) quarterly.
 - Default thresholds: `STALE_MONTHS=12` (mark STALE) / `CRITICAL_MONTHS=18` (mark CRITICAL).
 - The script exits nonzero if any of CRITICAL / UNDATED / INVALID is nonzero, suitable for CI or scheduled checks.
 - Thresholds can be overridden via environment variables.
@@ -182,7 +182,7 @@ Audit cycle:
 - Orphan approval files without a corresponding proposal file are also cleaned.
 
 **Cleanup Trigger Timing**:
-- Auto-triggered after each new version promotion (called at the end of [scripts/promote_skill_evolution.sh](../scripts/promote_skill_evolution.sh)).
+- Auto-triggered after each new version promotion (called at the end of [scripts/promote-skill-evolution.sh](../scripts/promote-skill-evolution.sh)).
 - Can also be run manually (will not delete the current active version or the most recent 10 version snapshots).
 - To temporarily skip auto-cleanup, set `SKIP_EVOLUTION_GC=1` before running the promotion script; run GC manually once afterward.
 
@@ -194,5 +194,5 @@ Audit cycle:
 - In-progress proposals (WIP) not associated with any history are always retained.
 
 **Dry-run Mode**:
-- `gc_evolution_history.sh --dry-run` lists only what would be deleted without actually deleting.
+- `gc-evolution-history.sh --dry-run` lists only what would be deleted without actually deleting.
 - First deployment should dry-run to confirm the list.

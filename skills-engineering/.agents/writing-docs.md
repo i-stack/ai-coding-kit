@@ -69,7 +69,7 @@ description: <一句话描述>
 ## 变更约定
 
 对规则文件的任何变更必须通过受控演进流程：
-1. 创建 proposal（`create_skill_proposal.sh`）
-2. 运行基础校验（`validate_skill_evolution.sh`）
+1. 创建 proposal（`create-skill-proposal.sh`）
+2. 运行基础校验（`validate-skill-evolution.sh`）
 3. 记录验证与审批
-4. 运行晋升（`promote_skill_evolution.sh`）
+4. 运行晋升（`promote-skill-evolution.sh`）

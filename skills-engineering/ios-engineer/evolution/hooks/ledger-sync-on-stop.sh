@@ -23,7 +23,7 @@ set -u
 SELF="$(python3 -c 'import os, sys; print(os.path.realpath(sys.argv[1]))' "$0")"
 HOOK_DIR="$(dirname "$SELF")"
 SKILL_DIR="$(cd "$HOOK_DIR/.." && pwd -P)"
-SYNC_SCRIPT="$SKILL_DIR/scripts/sync_transcript_to_ledger.sh"
+SYNC_SCRIPT="$SKILL_DIR/scripts/sync-transcript-to-ledger.sh"
 
 LOG_FILE="$HOME/.claude/hooks/state/ledger-sync/sync.log"
 mkdir -p "$(dirname "$LOG_FILE")"

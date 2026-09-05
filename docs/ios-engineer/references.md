@@ -37,9 +37,9 @@ The skill ships with **27 validation and evolution scripts** in `scripts/`:
 
 | Script | Purpose |
 |--------|---------|
-| `validate_rule_ids.sh` | Ensures rule IDs are consistent between rule_index.md and SKILL.md |
-| `validate_scenario_specs.sh` | Validates scenario specification files |
-| `audit_ref_freshness.sh` | Audits last-verified dates in reference files |
-| `validate_skill_evolution.sh` | 14-step comprehensive evolution validation |
-| `check_snapshot_consistency.sh` | Compares current skill state against snapshots |
-| `validate_usage_ledger.sh` | Validates usage ledger integrity |
+| `validate-rule-ids.sh` | Ensures rule IDs are consistent between rule_index.md and SKILL.md |
+| `validate-scenario-specs.sh` | Validates scenario specification files |
+| `audit-ref-freshness.sh` | Audits last-verified dates in reference files |
+| `validate-skill-evolution.sh` | 14-step comprehensive evolution validation |
+| `check-snapshot-consistency.sh` | Compares current skill state against snapshots |
+| `validate-usage-ledger.sh` | Validates usage ledger integrity |

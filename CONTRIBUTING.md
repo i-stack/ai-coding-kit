@@ -28,7 +28,7 @@ ios-engineer 采用**提案驱动**的演进流程，所有对 reference 或 SKI
 
 ```bash
 # 1. 创建提案骨架
-bash skills-engineering/ios-engineer/scripts/create_skill_proposal.sh \
+bash skills-engineering/ios-engineer/scripts/create-skill-proposal.sh \
   "feat: 新增 CarPlay 适配参考"
 
 # 2. 编辑 evolution/proposals/<id>.md，填写动机、变更范围、影响分析
@@ -36,7 +36,7 @@ bash skills-engineering/ios-engineer/scripts/create_skill_proposal.sh \
 # 3. 实现变更（修改 references/ 或 SKILL.md）
 
 # 4. 运行完整验证
-bash skills-engineering/ios-engineer/scripts/validate_skill_evolution.sh
+bash skills-engineering/ios-engineer/scripts/validate-skill-evolution.sh
 
 # 5. 提交 PR，proposal 和变更一起提交
 ```
@@ -93,7 +93,10 @@ chore: CI 加入 rule_id 双向一致性检查
 
 ## PR 要求
 
-- 涉及 `SKILL.md` 或 `references/*.md` 的变更必须绑定 `evolution/proposals/` 中的 proposal
+- 治理技能（含 `evolution/` 目录，当前为 ios-engineer）：涉及 `SKILL.md` 或
+  `references/*.md` 的变更必须绑定 `evolution/proposals/` 中的 proposal（pre-commit
+  守卫强制执行）
+- 所有技能：`SKILL.md` / `references/*.md` 变更须通过结构门与 DH-002 卫生门
 - CI 必须全部通过（Rule IDs / Scenario Specs / Ref Freshness / Snapshot Consistency）
 - 至少 1 位 [CODEOWNERS](./.github/CODEOWNERS) 批准
 

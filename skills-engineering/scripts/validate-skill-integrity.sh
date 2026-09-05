@@ -8,6 +8,15 @@
 # 这层校验独立于结构校验（validate-skill-structure.sh），关注的是「内容是否被
 # 篡改 / 意外改动」，可作为 pre-push 或 CI 的额外闸门。
 #
+# 采集范围：技能目录下所有 .md/.json/.yaml/.yml，但排除技能根目录下的
+# evolution/ —— 那是演进治理的运行时状态（proposals / approvals / history 快照 /
+# active_version.json / usage 账本 / minor-changes.log），其变化由治理流程登记、
+# 并由专门校验器守护（validate-skill-proposal.sh / check-snapshot-consistency.sh /
+# validate-usage-ledger.sh）。纳入基线会让 promote 与使用账本追加造成恒漂移。
+#
+# 因此 promote（只写快照、不改工作副本契约内容）不会触发漂移；rollback 会把快照
+# 恢复进工作副本、确实改动契约内容，之后须刷新基线。
+#
 # 用法:
 #   bash scripts/validate-skill-integrity.sh            # 全部技能：比对并更新基线
 #   bash scripts/validate-skill-integrity.sh <skill>    # 单技能
@@ -15,7 +24,12 @@
 #   bash scripts/validate-skill-integrity.sh --verify-bundle <bundle.json>
 #                                                      # 校验 skill_bundles 产物的 checksum
 #
-# 基线存储：skills-engineering/.integrity/<skill>.sha256（gitignored）
+# 基线存储：skills-engineering/.integrity/<skill>.sha256（受治理清单，提交入库）
+#
+# 基线是「内容登记制」：技能内容变更（.md/.json/.yaml/.yml）会让 --check-only
+# 报 ADDED/MODIFIED/REMOVED；变更必须显式登记 —— 运行本脚本（不带 --check-only）
+# 刷新基线，并把刷新后的 .sha256 与内容变更放在同一个 commit 里提交。
+# CI 用 --check-only 比对仓库内基线，不再自行生成基线（否则恒真）。
 # =============================================================================
 set -uo pipefail
 
@@ -70,7 +84,15 @@ collect_hashes() {
 import os, sys, hashlib
 skill_dir = sys.argv[1]
 files = []
-for root, _, fnames in os.walk(skill_dir):
+for root, dirs, fnames in os.walk(skill_dir):
+    if os.path.abspath(root) == os.path.abspath(skill_dir):
+        # 技能根目录下的 evolution/ 是演进治理的运行时状态（proposals /
+        # approvals / history 快照 / active_version.json / usage 账本 / minor
+        # -changes.log 等），其变化由治理流程登记、并由专门校验器守护
+        # （validate-skill-proposal.sh、check-snapshot-consistency.sh、
+        # validate-usage-ledger.sh），不属于「技能契约内容」，不纳入基线。
+        # 否则 promote / 使用账本追加都会让基线恒漂移。
+        dirs[:] = [d for d in dirs if d != "evolution"]
     for fn in fnames:
         if any(fn.endswith(ext) for ext in (".md", ".json", ".yaml", ".yml")):
             files.append(os.path.join(root, fn))

@@ -1,0 +1,95 @@
+name: Validate Global Skills
+
+on:
+  pull_request:
+    paths:
+      - 'skills-engineering/**'
+      - 'tests/**'
+      - 'sync/**'
+      - 'env/platforms/**'
+      - 'env/config.json'
+      - '.github/workflows/skills-global.yml'
+  push:
+    branches: [main, feature_*]
+    paths:
+      - 'skills-engineering/**'
+      - 'tests/**'
+      - 'sync/**'
+      - 'env/platforms/**'
+      - 'env/config.json'
+      - '.github/workflows/skills-global.yml'
+
+concurrency:
+  group: skills-global-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-global:
+    name: Global skill validation (structure/behavior/preamble/integrity/coordination)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ripgrep ruby > /dev/null
+
+      # validate-global-skills.sh runs `validate-skill-integrity.sh --check-only`
+      # against the checked-in integrity baselines (skills-engineering/.integrity/
+      # is a governed inventory, tracked in the repo — NOT gitignored). Creating a
+      # baseline from the checkout under test would make the comparison trivially
+      # true (恒真) and validate nothing, so CI never regenerates baselines; a
+      # content change must refresh and commit the baseline alongside the change.
+      - name: Run end-to-end global validation
+        run: bash skills-engineering/scripts/validate-global-skills.sh
+
+  regression-tests:
+    name: Multi-skill coordination regression tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run all repository regression tests
+        run: |
+          failures=0
+          for f in tests/test_*.py; do
+            echo "=== $f ==="
+            if python3 "$f" > /tmp/test_stdout.log 2>&1; then
+              echo "PASS"
+            else
+              echo "FAIL"
+              cat /tmp/test_stdout.log
+              failures=1
+            fi
+          done
+          exit $failures
+
+  plan-reviews:
+    name: plan-reviews KB build/typecheck/tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: skills-engineering/plan-reviews
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: skills-engineering/plan-reviews/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run tests
+        run: npm test
+
+      # dist/ is gitignored (built on demand by bootstrap/verify-review-setup);
+      # the build itself must succeed so the KB remains shippable.
+      - name: Build
+        run: npm run build

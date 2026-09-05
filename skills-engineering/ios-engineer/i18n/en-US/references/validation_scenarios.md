@@ -247,4 +247,4 @@ improvements
 
 Optional fields (in scenario spec JSON's `expected_hits[]` / `failure_signals[]`):
 
-- `rule_id`: fill with existing active ID from SKILL.md (e.g., `IR-006`); used for cross-scenario hit frequency statistics and missed_rules list reconciliation; ID source see [rule_index.md](rule_index.md); validation guarded by [scripts/validate_rule_ids.sh](../scripts/validate_rule_ids.sh).
+- `rule_id`: fill with existing active ID from SKILL.md (e.g., `IR-006`); used for cross-scenario hit frequency statistics and missed_rules list reconciliation; ID source see [rule_index.md](rule_index.md); validation guarded by [scripts/validate-rule-ids.sh](../scripts/validate-rule-ids.sh).

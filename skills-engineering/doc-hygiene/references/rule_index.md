@@ -13,4 +13,4 @@
 ## 演进注意
 
 - DH-* 前缀即表达 owner = doc-hygiene。
-- 新增规则须在此登记；退役 ID 须同步删除 SKILL.md 内联引用（`validate_rule_ids.sh` 双向校验）。
+- 新增规则须在此登记；退役 ID 须同步删除 SKILL.md 内联引用（`validate-rule-ids.sh` 双向校验）。

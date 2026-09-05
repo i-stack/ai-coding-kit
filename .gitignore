@@ -29,8 +29,6 @@ skills-engineering/.bundles/
 # 用户个人画像（从 env/user-profile.md.example 复制，不提交）
 env/user-profile.md
 env/user-profile.json
-# 技能完整性校验基线（由 validate-skill-integrity.sh 生成）
-skills-engineering/.integrity/
 templates/portability-ecosystem.md
 PRD/
 env/review.json

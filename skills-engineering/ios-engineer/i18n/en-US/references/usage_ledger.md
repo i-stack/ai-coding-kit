@@ -7,7 +7,7 @@
 ## Purpose
 - Structured append of "expected hit / actual hit / deviation / result" from each real iOS engineering task completion to [evolution/usage/usage.jsonl](../evolution/usage/usage.jsonl).
 - Is the data source for Step 4 summarize / proposal clustering; this file only defines schema and write protocol, **does not implement statistics**.
-- Maintainer/tools: writing relies on [scripts/append_usage_entry.sh](../scripts/append_usage_entry.sh); batch import from audit blocks relies on [scripts/extract_usage_audit.sh](../scripts/extract_usage_audit.sh); legality guarded by [scripts/validate_usage_ledger.sh](../scripts/validate_usage_ledger.sh).
+- Maintainer/tools: writing relies on [scripts/append-usage-entry.sh](../scripts/append-usage-entry.sh); batch import from audit blocks relies on [scripts/extract-usage-audit.sh](../scripts/extract-usage-audit.sh); legality guarded by [scripts/validate-usage-ledger.sh](../scripts/validate-usage-ledger.sh).
 
 ## 1. JSONL Schema (one line per entry)
 
@@ -56,7 +56,7 @@
 ## 3. CLI Writing
 
 ```bash
-bash scripts/append_usage_entry.sh \
+bash scripts/append-usage-entry.sh \
   --tool claude-code \
   --task-type concurrency \
   --prompt-summary "Search page rapid input results cross-contamination" \
@@ -75,7 +75,7 @@ bash scripts/append_usage_entry.sh \
 
 ## 4. Three-Platform Audit Block Format (Unified)
 
-Any tool (Codex CLI / Claude Code / Cursor) outputs the following text block at appropriate times; then batch-imported into ledger by human using [scripts/extract_usage_audit.sh](../scripts/extract_usage_audit.sh):
+Any tool (Codex CLI / Claude Code / Cursor) outputs the following text block at appropriate times; then batch-imported into ledger by human using [scripts/extract-usage-audit.sh](../scripts/extract-usage-audit.sh):
 
 ```
 <usage-audit>
@@ -161,11 +161,11 @@ after answer; format per ios-engineer/references/usage_ledger.md §4.
 ## 6. Batch Import
 
 ```bash
-bash scripts/extract_usage_audit.sh path/to/transcript.txt
+bash scripts/extract-usage-audit.sh path/to/transcript.txt
 ```
 
 - Extracts all `<usage-audit>...</usage-audit>` blocks from the file
-- Parses KV; calls `append_usage_entry.sh` per block
+- Parses KV; calls `append-usage-entry.sh` per block
 - **Any block with incomplete or illegal fields → entire batch rejected**; already-written entries not rolled back (v1 limitation), so extract designed as dry-run validating all before unified write
 - No interactive confirmation; extract is "audit block author's copier", not an auditor
 
@@ -181,11 +181,11 @@ bash scripts/extract_usage_audit.sh path/to/transcript.txt
 
 Step 4's summarize script buckets by `tool` field, exposing self-grading bias between different tools — this is the ledger's most useful secondary diagnosis at this stage.
 
-**Lightweight self-grading verification**: [scripts/lint_hit_rules.sh](../scripts/lint_hit_rules.sh) cross-checks audit block's `hit-rules` against response body template fields for IR-001 / GR-002 / GR-004 / IR-006 / GR-008 / GR-010 — these rules all have stable text anchors (pre-confirmation / version prerequisite / residual risk statement / four-section / findings-first skeleton / logic chain block). Script outputs PASS / FAIL / UNSUPPORTED per entry; FAIL > 0 exits non-zero; UNSUPPORTED does not count as failure. This script is a pre-filter before ledger entry; does not replace validation_scenarios replay — the latter remains the final authority on hit rates.
+**Lightweight self-grading verification**: [scripts/lint-hit-rules.sh](../scripts/lint-hit-rules.sh) cross-checks audit block's `hit-rules` against response body template fields for IR-001 / GR-002 / GR-004 / IR-006 / GR-008 / GR-010 — these rules all have stable text anchors (pre-confirmation / version prerequisite / residual risk statement / four-section / findings-first skeleton / logic chain block). Script outputs PASS / FAIL / UNSUPPORTED per entry; FAIL > 0 exits non-zero; UNSUPPORTED does not count as failure. This script is a pre-filter before ledger entry; does not replace validation_scenarios replay — the latter remains the final authority on hit rates.
 
 ## 8. Proposal Candidate Signal Thresholds
 
-[scripts/summarize_usage_ledger.sh](../scripts/summarize_usage_ledger.sh) L69-L72 hardcodes 4 threshold constants; exceeding any surfaces as proposal candidate signal in summarize output. This section is the documented mirror of those 4 constants:
+[scripts/summarize-usage-ledger.sh](../scripts/summarize-usage-ledger.sh) L69-L72 hardcodes 4 threshold constants; exceeding any surfaces as proposal candidate signal in summarize output. This section is the documented mirror of those 4 constants:
 
 | Constant | Value | Candidate Proposal Signal | Meaning |
 |------|----|-------------|------|
@@ -194,10 +194,10 @@ Step 4's summarize script buckets by `tool` field, exposing self-grading bias be
 | `DEVIATION_THRESHOLD` | 2 | Refine expression | Same deviation string repeats ≥ 2 times → stable failure pattern; corresponding rule needs tighter expression |
 | `TOOL_DIVERGENCE_THRESHOLD` | 0.4 | Self-grading bias comparison | Same `rule_id` hit_rate differs ≥ 40% across different `tool` (and each side expected ≥ 5) → tool/model understanding of rules is split; needs independent replay confirmation |
 
-**Drift prevention**: Thresholds correspond one-to-one with [scripts/summarize_usage_ledger.sh](../scripts/summarize_usage_ledger.sh) `*_THRESHOLD` constants. Changing this document must simultaneously change the script; otherwise summarize output (`thresholds` field carries script truth) and document explanation will drift. Future proposals may consider adding "script constant ↔ table figures" bidirectional verification to [scripts/validate_skill_evolution.sh](../scripts/validate_skill_evolution.sh).
+**Drift prevention**: Thresholds correspond one-to-one with [scripts/summarize-usage-ledger.sh](../scripts/summarize-usage-ledger.sh) `*_THRESHOLD` constants. Changing this document must simultaneously change the script; otherwise summarize output (`thresholds` field carries script truth) and document explanation will drift. Future proposals may consider adding "script constant ↔ table figures" bidirectional verification to [scripts/validate-skill-evolution.sh](../scripts/validate-skill-evolution.sh).
 
 ## 9. Maintenance
 
-- Adding `task_type` enum values: first expand [validation_scenarios.md](validation_scenarios.md) and [evolution/scenarios/](../evolution/scenarios/), then sync [scripts/validate_usage_ledger.sh](../scripts/validate_usage_ledger.sh) and this file.
-- Adding `tool` enum values (e.g., Aider / Continue etc.): directly modify this file + `validate_usage_ledger.sh` + `append_usage_entry.sh` whitelist.
+- Adding `task_type` enum values: first expand [validation_scenarios.md](validation_scenarios.md) and [evolution/scenarios/](../evolution/scenarios/), then sync [scripts/validate-usage-ledger.sh](../scripts/validate-usage-ledger.sh) and this file.
+- Adding `tool` enum values (e.g., Aider / Continue etc.): directly modify this file + `validate-usage-ledger.sh` + `append-usage-entry.sh` whitelist.
 - Consider sharding or compressed archiving only when ledger gets very large (> 10k rows); Step 3 does not reserve sharding mechanism.

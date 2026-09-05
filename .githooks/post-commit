@@ -6,7 +6,7 @@
 set -uo pipefail
 
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
-GC_SCRIPT="$REPO_ROOT/skills-engineering/ios-engineer/scripts/gc_evolution_history.sh"
+GC_SCRIPT="$REPO_ROOT/skills-engineering/ios-engineer/scripts/gc-evolution-history.sh"
 
 # 脚本不存在则跳过（保持钩子健壮）
 [ -x "$GC_SCRIPT" ] || exit 0

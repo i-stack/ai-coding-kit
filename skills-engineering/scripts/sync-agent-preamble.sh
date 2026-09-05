@@ -665,7 +665,7 @@ fi
 sync_manifest_skill_cursor_rules "${REPO_ROOT}"
 
 if [[ -n "${CURSOR_PROJECT_ROOTS}" ]]; then
-  DETECT_SH="${SCRIPT_DIR}/detect_project_type.sh"
+  DETECT_SH="${SCRIPT_DIR}/detect-project-type.sh"
   IFS=':' read -ra _cursor_roots <<< "${CURSOR_PROJECT_ROOTS}"
   for _root in "${_cursor_roots[@]}"; do
     [[ -z "${_root}" ]] && continue

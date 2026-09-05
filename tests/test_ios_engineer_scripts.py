@@ -337,8 +337,8 @@ class CrossScriptConsistencyTests(unittest.TestCase):
         self.assertSetEqual(ALLOWED_TASK_TYPES, expected)
 
     def test_proposal_status_transitions_are_complete(self):
-        """All statuses used in update_skill_proposal_status.sh are in our set."""
-        # Defined in update_skill_proposal_status.sh case statement
+        """All statuses used in update-skill-proposal-status.sh are in our set."""
+        # Defined in update-skill-proposal-status.sh case statement
         self.assertIn("draft", PROPOSAL_STATUSES)
         self.assertIn("validated", PROPOSAL_STATUSES)
         self.assertIn("ready_to_promote", PROPOSAL_STATUSES)
@@ -347,36 +347,36 @@ class CrossScriptConsistencyTests(unittest.TestCase):
         self.assertIn("rejected", PROPOSAL_STATUSES)
 
     def test_script_allowed_tools_match(self):
-        """Tools in append_usage_entry.sh match our extracted ALLOWED_TOOLS."""
-        content = _read_script("append_usage_entry.sh")
+        """Tools in append-usage-entry.sh match our extracted ALLOWED_TOOLS."""
+        content = _read_script("append-usage-entry.sh")
         # Extract ALLOWED_TOOLS from the Ruby embed
         m = re.search(
             r'ALLOWED_TOOLS\s*=\s*%w\[([^\]]+)\]', content
         )
-        self.assertIsNotNone(m, "Could not find ALLOWED_TOOLS in append_usage_entry.sh")
+        self.assertIsNotNone(m, "Could not find ALLOWED_TOOLS in append-usage-entry.sh")
         tools = set(m.group(1).split())
         self.assertSetEqual(tools, set(ALLOWED_TOOLS))
 
     def test_script_allowed_task_types_match(self):
-        """Task types in validate_usage_ledger.sh match our extracted ALLOWED_TASK_TYPES."""
-        content = _read_script("validate_usage_ledger.sh")
+        """Task types in validate-usage-ledger.sh match our extracted ALLOWED_TASK_TYPES."""
+        content = _read_script("validate-usage-ledger.sh")
         m = re.search(
             r'ALLOWED_TASK_TYPES\s*=\s*%w\[([^\]]+)\]', content
         )
         self.assertIsNotNone(
-            m, "Could not find ALLOWED_TASK_TYPES in validate_usage_ledger.sh"
+            m, "Could not find ALLOWED_TASK_TYPES in validate-usage-ledger.sh"
         )
         types = set(m.group(1).split())
         self.assertSetEqual(types, set(ALLOWED_TASK_TYPES))
 
     def test_script_allowed_signals_match(self):
-        """Evolution signals in append_usage_entry.sh match our extracted ALLOWED_SIGNALS."""
-        content = _read_script("append_usage_entry.sh")
+        """Evolution signals in append-usage-entry.sh match our extracted ALLOWED_SIGNALS."""
+        content = _read_script("append-usage-entry.sh")
         m = re.search(
             r'ALLOWED_SIGNALS\s*=\s*\[([^\]]+)\]', content
         )
         self.assertIsNotNone(
-            m, "Could not find ALLOWED_SIGNALS in append_usage_entry.sh"
+            m, "Could not find ALLOWED_SIGNALS in append-usage-entry.sh"
         )
         # Parse the Ruby-style array with string entries
         signals_raw = m.group(1)
@@ -386,20 +386,20 @@ class CrossScriptConsistencyTests(unittest.TestCase):
         self.assertSetEqual(signals, set(ALLOWED_SIGNALS))
 
     def test_script_output_contracts_match(self):
-        """Output contracts in validate_scenario_specs.sh match."""
-        content = _read_script("validate_scenario_specs.sh")
+        """Output contracts in validate-scenario-specs.sh match."""
+        content = _read_script("validate-scenario-specs.sh")
         m = re.search(
             r'OUTPUT_CONTRACTS\s*=\s*%w\[([^\]]+)\]', content
         )
         self.assertIsNotNone(
-            m, "Could not find OUTPUT_CONTRACTS in validate_scenario_specs.sh"
+            m, "Could not find OUTPUT_CONTRACTS in validate-scenario-specs.sh"
         )
         contracts = set(m.group(1).split())
         self.assertSetEqual(contracts, OUTPUT_CONTRACTS)
 
     def test_threshold_constants_exist_in_summarize_script(self):
-        """summarize_usage_ledger.sh defines the required threshold constants."""
-        content = _read_script("summarize_usage_ledger.sh")
+        """summarize-usage-ledger.sh defines the required threshold constants."""
+        content = _read_script("summarize-usage-ledger.sh")
         required = [
             "MISSED_RULE_THRESHOLD",
             "TASK_TYPE_OTHER_THRESHOLD",
@@ -410,18 +410,18 @@ class CrossScriptConsistencyTests(unittest.TestCase):
         for const in required:
             self.assertIn(
                 const, content,
-                f"Missing threshold constant {const} in summarize_usage_ledger.sh"
+                f"Missing threshold constant {const} in summarize-usage-ledger.sh"
             )
 
     def test_proposal_file_regex_same_across_all_scripts(self):
         """All scripts that validate proposal_file use the same regex."""
         scripts_checking_proposal = [
-            "validate_skill_proposal.sh",
-            "approve_skill_promotion.sh",
-            "check_skill_promotion_readiness.sh",
-            "promote_skill_evolution.sh",
-            "record_validation_scenario.sh",
-            "update_skill_proposal_status.sh",
+            "validate-skill-proposal.sh",
+            "approve-skill-promotion.sh",
+            "check-skill-promotion-readiness.sh",
+            "promote-skill-evolution.sh",
+            "record-validation-scenario.sh",
+            "update-skill-proposal-status.sh",
         ]
         expected = r'^evolution/proposals/[0-9]{8}-[0-9]{6}-[A-Za-z0-9_-]+\.md$'
         for sname in scripts_checking_proposal:
@@ -506,9 +506,9 @@ class LockMechanismTests(unittest.TestCase):
     def test_lock_mechanism_pattern_exists(self):
         """Scripts that acquire locks use the correct mkdir-based pattern."""
         scripts_with_locks = [
-            "append_usage_entry.sh",
-            "extract_usage_audit.sh",
-            "record_validation_scenario.sh",
+            "append-usage-entry.sh",
+            "extract-usage-audit.sh",
+            "record-validation-scenario.sh",
         ]
         for sname in scripts_with_locks:
             content = _read_script(sname)
@@ -533,7 +533,7 @@ class LockMechanismTests(unittest.TestCase):
 
     def test_lock_retry_count_is_10(self):
         """Lock retry loops should attempt exactly 10 times."""
-        for sname in ["append_usage_entry.sh", "record_validation_scenario.sh"]:
+        for sname in ["append-usage-entry.sh", "record-validation-scenario.sh"]:
             content = _read_script(sname)
             # The loop should be: for _ in 1 2 3 4 5 6 7 8 9 10
             has_10_retries = bool(re.search(
@@ -606,16 +606,16 @@ class UsageFunctionTests(unittest.TestCase):
     """Verify scripts that take arguments have usage/help info."""
 
     SCRIPTS_WITH_USAGE = {
-        "append_usage_entry.sh",
-        "summarize_usage_ledger.sh",
+        "append-usage-entry.sh",
+        "summarize-usage-ledger.sh",
         "validate.sh",
-        "gc_evolution_history.sh",
-        "validate_skill_proposal.sh",
-        "check_skill_promotion_readiness.sh",
-        "approve_skill_promotion.sh",
-        "create_skill_proposal.sh",
-        "record_validation_scenario.sh",
-        "update_skill_proposal_status.sh",
+        "gc-evolution-history.sh",
+        "validate-skill-proposal.sh",
+        "check-skill-promotion-readiness.sh",
+        "approve-skill-promotion.sh",
+        "create-skill-proposal.sh",
+        "record-validation-scenario.sh",
+        "update-skill-proposal-status.sh",
     }
 
     def test_scripts_with_args_have_usage(self):
@@ -627,7 +627,7 @@ class UsageFunctionTests(unittest.TestCase):
                 or "--help" in content
             )
             self.assertTrue(
-                has_usage or sname == "update_skill_proposal_status.sh",
+                has_usage or sname == "update-skill-proposal-status.sh",
                 f"{sname} should have usage/help info"
             )
 
@@ -642,7 +642,7 @@ class ProposalStatusStateMachineTests(unittest.TestCase):
     def test_valid_status_transitions_from_draft(self):
         """From draft, valid transitions: validated, rejected."""
         # According to the scripts, the transitions are:
-        # draft -> validated (via validate_skill_proposal.sh)
+        # draft -> validated (via validate-skill-proposal.sh)
         # draft -> rejected (via update when validation fails)
         # This is verified by examining the status values
         self.assertIn("draft", PROPOSAL_STATUSES)
@@ -650,25 +650,25 @@ class ProposalStatusStateMachineTests(unittest.TestCase):
         self.assertIn("rejected", PROPOSAL_STATUSES)
 
     def test_approve_script_checks_promotion_readiness(self):
-        """approve_skill_promotion.sh requires ready_to_promote status."""
-        content = _read_script("approve_skill_promotion.sh")
+        """approve-skill-promotion.sh requires ready_to_promote status."""
+        content = _read_script("approve-skill-promotion.sh")
         self.assertIn("ready_to_promote", content)
 
     def test_promote_script_checks_approved_status(self):
-        """promote_skill_evolution.sh requires approved status."""
-        content = _read_script("promote_skill_evolution.sh")
+        """promote-skill-evolution.sh requires approved status."""
+        content = _read_script("promote-skill-evolution.sh")
         self.assertIn("approved", content)
 
     def test_record_validation_scenario_result_values(self):
-        """record_validation_scenario.sh accepts pass/partial/fail."""
-        content = _read_script("record_validation_scenario.sh")
+        """record-validation-scenario.sh accepts pass/partial/fail."""
+        content = _read_script("record-validation-scenario.sh")
         self.assertIn('pass|partial|fail', content)
 
     def test_scenario_status_priority(self):
         """Scenario status follows: fail > partial > passed > pending > not_run."""
-        # Extract the priority logic from record_validation_scenario.sh's
+        # Extract the priority logic from record-validation-scenario.sh's
         # Ruby section for scenario_validation_status determination
-        content = _read_script("record_validation_scenario.sh")
+        content = _read_script("record-validation-scenario.sh")
         ruby_section = content.split("<<'RUBY'", 1)[1].split("RUBY", 1)[0]
         # Verify the status priority order is correct
         self.assertIn('"failed"', ruby_section)
@@ -754,22 +754,22 @@ class FileContentIntegrityTests(unittest.TestCase):
         self.assertIn("GR-XXX", prompt_sections["cursor"])
 
     def test_validate_skill_evolution_has_14_steps(self):
-        """validate_skill_evolution.sh should have exactly 14 steps."""
-        content = _read_script("validate_skill_evolution.sh")
+        """validate-skill-evolution.sh should have exactly 14 steps."""
+        content = _read_script("validate-skill-evolution.sh")
         steps = re.findall(r'\[(\d+)/14\]', content)
         self.assertEqual(len(steps), 14)
         step_nums = [int(s) for s in steps]
         self.assertEqual(step_nums, list(range(1, 15)))
 
     def test_run_behavior_validation_has_5_steps(self):
-        """run_behavior_validation.sh should have exactly 5 behavior checks."""
-        content = _read_script("run_behavior_validation.sh")
+        """run-behavior-validation.sh should have exactly 5 behavior checks."""
+        content = _read_script("run-behavior-validation.sh")
         steps = re.findall(r'\[behavior (\d+)/5\]', content)
         self.assertEqual(len(steps), 5)
 
     def test_code_review_behavior_guard_requires_gr004_owner(self):
         """Code review behavior guard must catch OUT-002 owner drift."""
-        content = _read_script("run_behavior_validation.sh")
+        content = _read_script("run-behavior-validation.sh")
         behavior_4 = content.split("[behavior 4/5] Code review output contract", 1)[1].split(
             "[behavior 5/5] Network cache and error-modeling contract", 1
         )[0]
@@ -779,8 +779,8 @@ class FileContentIntegrityTests(unittest.TestCase):
         self.assertIn("[review_checklists.md](references/review_checklists.md)", behavior_4)
 
     def test_check_snapshot_consistency_checks_4_paths(self):
-        """check_snapshot_consistency.sh verifies 4 key paths."""
-        content = _read_script("check_snapshot_consistency.sh")
+        """check-snapshot-consistency.sh verifies 4 key paths."""
+        content = _read_script("check-snapshot-consistency.sh")
         # Should check SKILL.md, agents, references, scripts
         self.assertIn('check_path "SKILL.md"', content)
         self.assertIn('check_path "agents"', content)
@@ -788,16 +788,16 @@ class FileContentIntegrityTests(unittest.TestCase):
         self.assertIn('check_path "scripts"', content)
 
     def test_rollback_checks_4_required_snapshot_items(self):
-        """rollback_skill_evolution.sh requires 4 snapshot items."""
-        content = _read_script("rollback_skill_evolution.sh")
+        """rollback-skill-evolution.sh requires 4 snapshot items."""
+        content = _read_script("rollback-skill-evolution.sh")
         # required=("SKILL.md" "agents" "references" "scripts")
         self.assertIn('required=("SKILL.md" "agents" "references" "scripts")', content)
         # Should also appear in move/restore operations (SKILL.md without quotes)
         self.assertIn("SKILL.md", content)
 
     def test_validate_rule_ids_references_correct_files(self):
-        """validate_rule_ids.sh references rule_index.md and SKILL.md."""
-        content = _read_script("validate_rule_ids.sh")
+        """validate-rule-ids.sh references rule_index.md and SKILL.md."""
+        content = _read_script("validate-rule-ids.sh")
         self.assertIn("rule_index.md", content)
         self.assertIn("SKILL.md", content)
         self.assertIn("evolution/scenarios", content)
@@ -813,50 +813,50 @@ class FileContentIntegrityTests(unittest.TestCase):
             )
 
     def test_gc_script_preserves_active_version(self):
-        """gc_evolution_history.sh must never delete the active version."""
-        content = _read_script("gc_evolution_history.sh")
+        """gc-evolution-history.sh must never delete the active version."""
+        content = _read_script("gc-evolution-history.sh")
         # The active version should be added to the protected file
         self.assertIn("ACTIVE_VERSION", content)
         self.assertIn("protected_file", content)
         self.assertIn('echo "$ACTIVE_VERSION" >> "$protected_file"', content)
 
     def test_lint_hit_rules_covers_all_known_ids(self):
-        """lint_hit_rules.sh covers IR-001..IR-011, GR-002/004/008/010."""
-        content = _read_script("lint_hit_rules.sh")
+        """lint-hit-rules.sh covers IR-001..IR-011, GR-002/004/008/010."""
+        content = _read_script("lint-hit-rules.sh")
         # All known rule IDs should be referenced
         for rid in ["IR-001", "IR-006", "IR-011", "GR-002", "GR-004", "GR-008", "GR-010"]:
-            self.assertIn(rid, content, f"lint_hit_rules.sh should cover {rid}")
+            self.assertIn(rid, content, f"lint-hit-rules.sh should cover {rid}")
 
     def test_validate_scenario_specs_includes_all_canonical_slugs(self):
-        """CANONICAL_SLUGS in validate_scenario_specs.sh should include all 12 slugs."""
-        content = _read_script("validate_scenario_specs.sh")
+        """CANONICAL_SLUGS in validate-scenario-specs.sh should include all 12 slugs."""
+        content = _read_script("validate-scenario-specs.sh")
         for slug in CANONICAL_SLUGS:
             self.assertIn(
                 slug,
                 content,
-                f"validate_scenario_specs.sh should include '{slug}' in CANONICAL_SLUGS"
+                f"validate-scenario-specs.sh should include '{slug}' in CANONICAL_SLUGS"
             )
 
     def test_sync_transcript_handles_both_formats(self):
-        """sync_transcript_to_ledger.sh handles claude-code and codex formats."""
-        content = _read_script("sync_transcript_to_ledger.sh")
+        """sync-transcript-to-ledger.sh handles claude-code and codex formats."""
+        content = _read_script("sync-transcript-to-ledger.sh")
         self.assertIn("claude_code", content)
         self.assertIn("codex", content)
 
     def test_demo_flow_has_7_steps(self):
-        """demo_skill_evolution_flow.sh has 7 steps."""
-        content = _read_script("demo_skill_evolution_flow.sh")
+        """demo-skill-evolution-flow.sh has 7 steps."""
+        content = _read_script("demo-skill-evolution-flow.sh")
         steps = re.findall(r'\[(\d+)/7\]', content)
         self.assertEqual(len(steps), 7)
 
     def test_extract_usage_audit_validates_all_fields(self):
-        """extract_usage_audit.sh validates all required fields."""
-        content = _read_script("extract_usage_audit.sh")
+        """extract-usage-audit.sh validates all required fields."""
+        content = _read_script("extract-usage-audit.sh")
         for field in ["tool", "task-type", "prompt-summary",
                        "expected-rules", "hit-rules", "outcome", "evolution-signal"]:
             self.assertIn(
                 field, content,
-                f"extract_usage_audit.sh should validate '{field}'"
+                f"extract-usage-audit.sh should validate '{field}'"
             )
 
 

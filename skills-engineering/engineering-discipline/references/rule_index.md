@@ -4,7 +4,7 @@
 > 本文件是 `engineering-discipline` skill 规则 ID 的**元数据真值索引**（条文真值在 `engineering_discipline.md`）。
 > 目的：让 `.agents/composition.md` 的冲突裁决从"散文协议"升级为"机器可解析数据"。
 > 字段见 `cognitive-reasoning/references/rule_index.md` 说明。
-> `validate_rule_ids.sh` 校验 SKILL.md 声明 ID 与本文 active 行双向一致。
+> `validate-rule-ids.sh` 校验 SKILL.md 声明 ID 与本文 active 行双向一致。
 
 | rule_id | owner | scope | phase | precedence | conflicts_with | merges_into | field_owner |
 |---------|-------|-------|-------|------------|---------------|-------------|-------------|

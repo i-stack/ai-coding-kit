@@ -2,7 +2,7 @@
 
 <Badge type="tip" text="49 IDs registered" />
 
-The canonical Rule ID registry for iOS Engineer. Every rule ID is defined here first, then referenced in `SKILL.md`. An automated validation script (`validate_rule_ids.sh`) ensures bidirectional consistency.
+The canonical Rule ID registry for iOS Engineer. Every rule ID is defined here first, then referenced in `SKILL.md`. An automated validation script (`validate-rule-ids.sh`) ensures bidirectional consistency.
 
 ## Iron Rules (IR-NNN)
 

@@ -61,7 +61,7 @@ When triggered: output restatement, strongest counter-argument, hidden assumptio
 The skill evolves through a **proposal-driven pipeline**:
 
 1. **Propose** — Create a proposal in `evolution/proposals/`
-2. **Validate** — Run `scripts/validate_skill_evolution.sh` (14-step check)
+2. **Validate** — Run `scripts/validate-skill-evolution.sh` (14-step check)
 3. **Implement** — Add/modify references; update `rule_index.md`
 4. **Promote** — Archive proposal; snapshot the skill state
 

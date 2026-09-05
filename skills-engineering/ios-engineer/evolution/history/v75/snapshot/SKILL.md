@@ -1,0 +1,150 @@
+---
+name: ios-engineer
+description: iOS / iPadOS / macOS (Catalyst) / watchOS / tvOS engineering with Swift, SwiftUI, UIKit, Objective-C, Objective-C++, Combine, async/await, Xcode, CocoaPods, SPM, Carthage, WidgetKit, App Extensions, TestFlight, App Store. Covers architecture, concurrency (actor / Sendable / @MainActor), networking, performance (卡顿 / 启动慢 / 内存上涨 / 能耗异常), crash debugging (崩溃 / 闪退 / 野指针 / EXC_BAD_ACCESS / 断言), UI & layout (布局错位 / 约束冲突 / 列表跳动 / 复用错乱 / 无障碍), code review (代码审查 / PR Review), refactoring (重构), migration (迁移 / 架构升级), testing. 设计、实现与生产风险控制。
+locale: zh-CN
+supported_locales: [zh-CN]
+experimental_locales: [en-US]
+depends_on: [cognitive-reasoning]
+# i18n/en-US/ 镜像为 experimental/generated（未校验锚点，不对外承诺 en-US 支持）
+# 待补齐 sha256 锚点 + 规则 ID 对齐后再声明 en-US。
+---
+
+# iOS Engineer
+
+<!-- @locale-support: zh-CN, en-US -->
+<!--
+  Response language: match the user's input language.
+  Reference content is maintained in zh-CN (references/) with English
+  mirrors in i18n/en-US/references/ (PARTIAL: only a subset is mirrored today;
+  see i18n/en-US/references/ for what currently exists). When a user communicates in English,
+  prefer reading the en-US mirror if available; fall back to zh-CN otherwise.
+  Rule IDs (IR-/SYM-/ROUTE-/OUT-/GR-NNN) are locale-independent and
+  must never be translated.
+-->
+
+## Cognitive Adversary Mode (Mandatory — Strict Execution)
+
+When the scenario is triggered, **read and strictly follow** [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) in order (role, Steps 0–6, final output format, and forbidden behaviors are all defined there; no skipping steps, no omitting fields, no substituting "first agree then weakly rebut" for the Step 1 strongest counter-argument). The true owner is now `cognitive-reasoning` (see `cognitive-reasoning/references/cognitive_adversary_mode.md`); this file is a downstream mirror.
+
+- **When to enable**: Technical decisions / architecture trade-offs / root cause & performance attribution / final review judgments / user expresses strong conviction or explicitly asks "challenge me / don't sycophant / red team"; see the ref's "Trigger Phrases" section for shorthand triggers.
+- **Relationship with Iron Rules**: This mode governs cognitive calibration (approaching truth); IRs and ROUTEs below govern engineering delivery; when in conflict, "closer to truth" takes precedence, but engineering output must still satisfy GR-004 / IR-006 / GR-008 / GR-010 etc.
+- **Division with cognitive-reasoning**: When CAM is NOT triggered, the main answer is followed by the full `cognitive-reasoning` skill (CE-* cognitive expansion); `【Deep-dive】`/`【Expand】` deepen & broaden without duplicating Steps 0–6.
+
+## Core Iron Rules
+
+- [IR-001] **Response language must match the user's input language.** If the user writes in Chinese, respond in Chinese; if in English, respond in English. Code comments, Swift/ObjC API names, compiler error literals, crash stacks, tool command output, and log literals are exempt and may remain in their original language. Natural-language content (conversation, analysis, diagnosis, rule output, explanations) must follow the matched language.
+- [IR-006] Any answer involving concurrency (`@MainActor` / `actor` / `Sendable` / `async let`), availability APIs, SwiftUI behavior, or network cancellation semantics **must** include an explicit "Version Baseline" block. Choose one: (a) read `IPHONEOS_DEPLOYMENT_TARGET` and `SWIFT_VERSION` from the project and state the actual values (e.g., `iOS 15.0 / Swift 5.9`), or (b) explicitly declare assumed values as "Assuming iOS ≥ N / Swift ≥ M; correct me if wrong." Providing neither or only one is a violation. Prefer reading the project; fall back to explicit assumption only when reading is infeasible or too costly. This skill does not presume a default baseline. See [examples.md](references/examples.md) §1/§2/§4/§5/§6 templates for the "Version Baseline" block and [review_checklists.md](references/review_checklists.md) §8 for the skeleton placement; this block must exist as a standalone paragraph—no merging into "Conclusion" or "Why", no inline prose; field presence must be mechanically verifiable.
+- [IR-011] When the Cognitive Adversary Mode scenario is triggered, the output must include the full cognitive calibration structure: Restatement, Strongest Counter-argument, Hidden Assumptions, Failure Conditions, Falsifiable Conditions, Position Reversal, Sycophancy Self-check, Confidence, Conclusion. Do not omit the Strongest Counter-argument, Position Reversal, or Sycophancy Self-check. See [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) for complete trigger conditions, steps, and forbidden behaviors. (True owner: `cognitive-reasoning/references/cognitive_adversary_mode.md`.)
+
+## Task Routing
+
+First classify the task into one primary category below (pick the most specific match; others are supplementary). By default, load only 2–4 refs. For cross-dimensional tasks, follow this priority: root-cause/boundary → state/concurrency → test verification → migration/release risk.
+
+### Routing Priority
+- Default: use the SYM table → single-ref routing (minimum cognitive cost).
+- Escalate to ROUTE-017 only when **at least one** of these holds: spans multiple days / spans multiple modules / conventional debugging has been tried and failed / requires phased rollout.
+- "Problem is complex" or "involves multiple refs" alone does **not** qualify for escalation — cover with primary ROUTE + supplementary refs.
+- When escalation criteria are met, ROUTE-017 replaces the SYM primary route, but the SYM table still serves as a symptom localization aid.
+- **Forced** escalation to ROUTE-017 when **any** of these quantitative signals is hit (not all are required): current session has loaded ≥ 5 refs without resolution / changes span ≥ 3 independent modules / the same problem has persisted across ≥ 2 conversation turns unresolved / estimated code change ≥ 50 lines spanning ≥ 3 files.
+- When routing: first scan ROUTE table by primary keyword, then confirm with each entry's TRIGGER / SKIP anchors. Anchors are for disambiguation only; they do not replace primary keywords or ref loading chains.
+
+### Symptom Navigation
+Start from the symptom described by the user; once matched, return to the task routing below to determine primary and supplementary refs. For rule ID index, see [rule_index.md](references/rule_index.md).
+
+<!-- TRIGGER/SKIP keywords below are intentionally bilingual (zh-CN + en) to match both Chinese and English user queries -->
+
+| Symptom / Keywords | Primary Entry | Common Supplements |
+|------|------|------|
+| [SYM-001] Crash / 崩溃 / 断言 / 强解 / 野指针 / EXC_BAD_ACCESS | [root_cause_enforcement.md](references/root_cause_enforcement.md) | For concurrency: [swift_concurrency.md](references/swift_concurrency.md); for log forensics: [observability_logging.md](references/observability_logging.md) |
+| [SYM-002] UI misalignment / constraint conflicts / list jitter / reuse bugs / accessibility / UI 错位 / 约束冲突 / 列表跳动 / 复用错乱 / 无障碍 | [layout_and_ui.md](references/layout_and_ui.md) | For state-driven rendering: [ui_state_patterns.md](references/ui_state_patterns.md) |
+| [SYM-003] State corruption / async write-back / stale request overwrites new UI / multi-Bool mutual exclusion / 状态错乱 / 异步回写 / 旧请求覆盖新 UI / 多 Bool 互斥 | [ui_state_patterns.md](references/ui_state_patterns.md) | For cancellation chains: [swift_concurrency.md](references/swift_concurrency.md) |
+| [SYM-004] 请求失败 / 重试异常 / 鉴权刷新 / 分页重复或漏数据 / 缓存污染 | [networking_patterns.md](references/networking_patterns.md) | 错误建模追加 [domain_modeling.md](references/domain_modeling.md) |
+| [SYM-005] Lag / slow launch / memory growth / excessive refresh / energy anomalies / 卡顿 / 启动慢 / 内存上涨 / 过度刷新 / 能耗异常 | [performance_optimization.md](references/performance_optimization.md) | For metrics & instrumentation: [observability_logging.md](references/observability_logging.md) |
+| [SYM-006] Naming chaos / term mixing / force-unwrap / access control / code structure / 命名混乱 / 术语混用 / 强制解包 / 访问控制 / 代码结构 | [ios_conventions.md](references/ios_conventions.md) | For code review: [review_checklists.md](references/review_checklists.md) |
+| [SYM-007] Legacy project degrading / afraid to touch certain code / can't find entry point in unfamiliar project / cascading changes / team friction / 老项目越改越乱 / 不敢动某块代码 / 接手陌生项目找不到入口 / 牵一发动全身 / 团队抱怨开发卡手 | [architecture_analysis.md](references/architecture_analysis.md) | For concrete fixes: [architecture_and_network.md](references/architecture_and_network.md); for roadmap & migration risk: [migration_strategy.md](references/migration_strategy.md) |
+
+- [ROUTE-001] **Debugging / Bug / Intermittent issues / Crash**: Primary: [root_cause_enforcement.md](references/root_cause_enforcement.md); Supplementary: concurrency → [swift_concurrency.md](references/swift_concurrency.md), layout → [layout_and_ui.md](references/layout_and_ui.md), state → [ui_state_patterns.md](references/ui_state_patterns.md), networking → [networking_patterns.md](references/networking_patterns.md), log forensics → [observability_logging.md](references/observability_logging.md).
+  - TRIGGER: "crashed / EXC_BAD_ACCESS / intermittent / can't reproduce" (and their Chinese equivalents: 崩了 / 闪退 / 偶现 / 复现不出); crash log stack trace provided; "线上某用户报告" / "a user reported online".
+  - SKIP: structural design / new module design → ROUTE-002; only "lag / slow" without crash → ROUTE-010; naming / formatting only → ROUTE-014.
+- [ROUTE-002] **Architecture Design / Module decomposition / State ownership / Parameter pass-through**: Primary: [architecture_and_network.md](references/architecture_and_network.md); Supplementary: data modeling → [domain_modeling.md](references/domain_modeling.md); UI state → [ui_state_patterns.md](references/ui_state_patterns.md).
+  - TRIGGER: "how to split / how to design / state ownership / where does this value come from" (怎么拆 / 怎么设计 / 状态归属 / 这个值从哪传); new module / new page design; network layer refactoring.
+  - SKIP: "project is getting worse / health check / roadmap" → ROUTE-003; already in implementation phase → ROUTE-012.
+- [ROUTE-003] **Architecture Analysis / Architecture health check / Tech debt inventory / Systematic risk assessment / Refactoring roadmap**: Primary: [architecture_analysis.md](references/architecture_analysis.md); Supplementary: concrete fixes → [architecture_and_network.md](references/architecture_and_network.md) / [swift_concurrency.md](references/swift_concurrency.md) / [performance_optimization.md](references/performance_optimization.md); migration & rollback → [migration_strategy.md](references/migration_strategy.md); decision records → [decision_records.md](references/decision_records.md).
+  - TRIGGER: "project health check / tech debt / afraid to touch this / where to start refactoring" (项目体检 / 技术债 / 不敢动这块 / 重构从哪开始); inheriting unfamiliar project; assessment-type requests.
+  - SKIP: user has a specific design / decomposition intent → ROUTE-002; already entering migration implementation → ROUTE-012.
+- [ROUTE-004] **Data Modeling / DTO / Entity / ViewState / ErrorModel / Mapping**: Primary: [domain_modeling.md](references/domain_modeling.md).
+  - TRIGGER: "DTO / Entity / ViewState / ErrorModel / how to model / field mapping" (DTO / Entity / ViewState / ErrorModel / 怎么建模 / 字段映射).
+  - SKIP: only ViewState flow / async write-back → ROUTE-005; error handling at network layer → ROUTE-008.
+- [ROUTE-005] **UI State / Lists / Forms / Async write-back**: Primary: [ui_state_patterns.md](references/ui_state_patterns.md).
+  - TRIGGER: "state corruption / multi-Bool mutual exclusion / list jitter / stale request overwrites new UI / async write-back" (状态错乱 / 多 Bool 互斥 / 列表跳动 / 旧请求覆盖新 UI / 异步回写).
+  - SKIP: root cause is task cancellation / actor / Sendable → ROUTE-007; layout / constraint conflicts → ROUTE-006.
+- [ROUTE-006] **UI Layout / SwiftUI stability / Auto Layout / Accessibility / List reuse**: Primary: [layout_and_ui.md](references/layout_and_ui.md).
+  - TRIGGER: "constraint conflict / misalignment / SwiftUI jitter / Auto Layout / reuse bugs / accessibility" (约束冲突 / 错位 / SwiftUI 抖动 / Auto Layout / 复用错乱 / 无障碍).
+  - SKIP: actually state corruption causing UI anomalies → ROUTE-005; only performance (lag / dropped frames) → ROUTE-010.
+- [ROUTE-007] **Concurrency / Cancellation chains / `actor` / `Sendable` / Legacy interface bridging**: Primary: [swift_concurrency.md](references/swift_concurrency.md).
+  - TRIGGER: "@MainActor / actor / Sendable / async let / task cancellation / data race / deadlock / await stuck" (@MainActor / actor / Sendable / async let / 任务取消 / 数据竞争 / 死锁 / await 卡住).
+  - SKIP: only state ownership / UI flow with no concurrency race → ROUTE-005; only launch / list performance hotspots → ROUTE-010.
+- [ROUTE-008] **Networking Patterns / Pagination / Caching / Retry / Auth / Upload-Download / Idempotency & dedup**: Primary: [networking_patterns.md](references/networking_patterns.md).
+  - TRIGGER: "request failure / retry / auth refresh / 401 / pagination / cache / upload-download / idempotent" (请求失败 / 重试 / 鉴权刷新 / 401 / 分页 / 缓存 / 上传下载 / 幂等).
+  - SKIP: error model / layer definitions → ROUTE-004; cancellation semantics / Task cancellation chains → ROUTE-007.
+  - Preferred MCP: `apifox` (API field alignment / error code contract forensics / schema validation); see [mcp_control.md](references/mcp_control.md) §iOS MCP Priority Mapping.
+- [ROUTE-009] **Logging / Observability / Required fields / Performance instrumentation / Debug forensics**: Primary: [observability_logging.md](references/observability_logging.md).
+  - TRIGGER: "how to log / logging standards / required fields / debug forensics / performance instrumentation / how to observe" (怎么记日志 / 日志规范 / 必记字段 / 排障取证 / 性能埋点 / 怎么观测).
+  - SKIP: logging is a means, problem is crash localization → ROUTE-001; performance quantification itself → ROUTE-010.
+- [ROUTE-010] **Performance / Launch / List lag / Memory / Excessive refresh / Energy**: Primary: [performance_optimization.md](references/performance_optimization.md); Supplementary: metrics → [observability_logging.md](references/observability_logging.md); concurrency hotspots → [swift_concurrency.md](references/swift_concurrency.md).
+  - TRIGGER: "slow launch / lag / scroll dropped frames / memory growth / excessive refresh / energy drain" (启动慢 / 卡顿 / 滚动掉帧 / 内存上涨 / 过度刷新 / 能耗).
+  - SKIP: confirmed deadlock / await blocking → ROUTE-007; only SwiftUI re-rendering without metric evidence → ROUTE-006.
+- [ROUTE-011] **Code Review / PR Review / Design Review**: Primary: [review_checklists.md](references/review_checklists.md); Supplementary: anti-patterns → [anti_patterns.md](references/anti_patterns.md); cross-team collaboration → [team_collaboration.md](references/team_collaboration.md); style / terminology → [ios_conventions.md](references/ios_conventions.md).
+  - TRIGGER: "review / take a look at this change / check this PR / this code" (review / 帮我看一下这个改动 / PR 看一下 / 这块代码); diff / patch / PR link provided.
+  - SKIP: user describing their own change and seeking design advice → ROUTE-002; only pointing out style / naming issues → ROUTE-014.
+- [ROUTE-012] **Refactoring Implementation / Migration / Canary / Rollback**: Primary: [migration_strategy.md](references/migration_strategy.md); Supplementary: CI / build → [build_release_and_ci.md](references/build_release_and_ci.md); decision records → [decision_records.md](references/decision_records.md).
+  - TRIGGER: "canary / rollback / phased cutover / UIKit to SwiftUI / callback to async/await / compatibility layer" (灰度 / 回滚 / 阶段切 / UIKit 转 SwiftUI / callback 转 async/await / 兼容层).
+  - SKIP: still in evaluation / roadmap phase → ROUTE-003; only design / decomposition → ROUTE-002.
+- [ROUTE-013] **Build / CI / Release observability**: Primary: [build_release_and_ci.md](references/build_release_and_ci.md).
+  - TRIGGER: "Xcode build / Archive / IPA / TestFlight / CI / Fastlane / release observability" (Xcode build / Archive / IPA / TestFlight / CI / Fastlane / 发布观测).
+  - SKIP: root cause is code / type issue → ROUTE-014 or ROUTE-001; performance data collection → ROUTE-009.
+  - Preferred MCP: `XcodeBuildMCP` (build / Archive / simulator / run tests / read Build Settings); do not invoke `xcodebuild` / `xcrun simctl` directly. See [mcp_control.md](references/mcp_control.md) §iOS MCP Priority Mapping.
+- [ROUTE-014] **Coding Conventions / Terminology / Naming / Access Control / Force-unwrap / Nesting / Code structure**: Primary: [ios_conventions.md](references/ios_conventions.md).
+  - TRIGGER: "naming convention / force-unwrap / access control / deep nesting / code style / terminology" (命名规范 / 强制解包 / 访问控制 / 嵌套深 / 代码风格 / 术语).
+  - SKIP: real bug, not just style → ROUTE-001; structure change / decomposition → ROUTE-002.
+- [ROUTE-015] **Cross-module collaboration / Ownership / PR decomposition / Tech debt**: Primary: [team_collaboration.md](references/team_collaboration.md); Supplementary: architecture decisions → [decision_records.md](references/decision_records.md).
+  - TRIGGER: "PR decomposition / multi-module change / ownership / team division / who should change this" (PR 拆分 / 多模块改 / ownership / 团队分工 / 谁该改这块).
+  - SKIP: technical solution design → ROUTE-002; reviewing a specific PR → ROUTE-011.
+- [ROUTE-016] **Tool budget / Sub-agent routing / Multi-round investigation / Search control / Log forensics budget / MCP priority mapping**: Primary: [mcp_control.md](references/mcp_control.md).
+  - TRIGGER: "search budget / sub-agent routing / multi-round investigation strategy / log forensics budget / which MCP / MCP vs raw command" (搜索预算 / 子代理分流 / 多轮排查策略 / 日志取证预算 / 该用哪个 MCP / MCP 还是裸命令).
+  - SKIP: concrete debugging → ROUTE-001; concrete performance analysis → ROUTE-010.
+- [ROUTE-017] **Complex Task Playbooks** (escalation criteria: see `### Routing Priority`): Playbooks cover legacy page handover / systematic intermittent crash investigation / performance deep-dive / concurrency architecture migration / large-scale refactoring implementation. Pick the matching playbook from [execution_playbooks.md](references/execution_playbooks.md) first, then expand per its referenced primary refs.
+  - TRIGGER: "legacy page handover / performance deep-dive / intermittent crash / concurrency architecture migration / large-scale refactoring" (接手遗留页面 / 性能专项 / 反复偶现 crash / 并发架构迁移 / 大型重构); any of: (qualitative) spans multiple days / multiple modules / conventional debugging exhausted / needs phased rollout; (quantitative) session loaded ≥ 5 refs unresolved / changes span ≥ 3 independent modules / same problem across ≥ 2 turns unresolved / estimated code change ≥ 50 lines across ≥ 3 files.
+  - SKIP: single-point issue / solvable with one ref → use ROUTE-001~016; "problem is complex" or "involves multiple refs" alone does not qualify.
+- [ROUTE-018] **Skill self-evolution / Rule gaps-conflicts-retirements / Skill validation scenarios**: Primary: [self_evolution.md](references/self_evolution.md); Supplementary: scenario specs or replay → [validation_scenarios.md](references/validation_scenarios.md).
+  - TRIGGER: "skill / rule gap / rule conflict / validation scenario / proposal / self-evolution" (skill / 规则缺失 / 规则冲突 / 验证场景 / 提案 / 自进化); meta-engineering / SkillOps maintenance tasks.
+  - SKIP: business problem answers → use ROUTE-001~017.
+- [ROUTE-020] **Git workflow / pbxproj & storyboard conflicts / Lock file commits / Branching & hotfix**: Primary: [git_workflow.md](references/git_workflow.md); Supplementary: PR decomposition & ownership → [team_collaboration.md](references/team_collaboration.md); CI / release tags → [build_release_and_ci.md](references/build_release_and_ci.md).
+  - TRIGGER: "pbxproj conflict / storyboard merge / Podfile.lock or Package.resolved conflict / Pods commit strategy / branching strategy / hotfix / cherry-pick / force push / Asset Catalog binary conflict" (pbxproj 冲突 / storyboard 合并 / Podfile.lock 或 Package.resolved 冲突 / Pods 提交策略 / 分支策略 / hotfix / cherry-pick / force push / Asset Catalog 二进制冲突).
+  - SKIP: only source merge conflict without Xcode project files → ROUTE-015; build config / CI root cause → ROUTE-013; general PR decomposition → ROUTE-015.
+- [ROUTE-021] **Push Notifications / Remote push / Local notifications / Notification Service Extension / Rich media notifications / Notification permissions**: Primary: [notifications.md](references/notifications.md); Supplementary: background tasks → [performance_optimization.md](references/performance_optimization.md); certificates & signing → [build_release_and_ci.md](references/build_release_and_ci.md).
+  - TRIGGER: "push / notification / UNUserNotificationCenter / APNs / Notification Service Extension / rich media notification / notification permission / silent push / provisional authorization" (推送 / 通知 / UNUserNotificationCenter / APNs / Notification Service Extension / 富媒体通知 / 通知权限 / 静默推送 / provisional authorization).
+  - SKIP: UI rendering after push delivery → ROUTE-006; network retry / connectivity → ROUTE-008.
+- [ROUTE-022] **Privacy Permissions / Location / Camera / Photo Library / Microphone / Contacts / HealthKit / ATT tracking / Permission request best practices**: Primary: [privacy_permissions.md](references/privacy_permissions.md); Supplementary: Info.plist descriptions → [build_release_and_ci.md](references/build_release_and_ci.md); App Review rejection risk → [migration_strategy.md](references/migration_strategy.md).
+  - TRIGGER: "privacy / permission / location / CLLocationManager / camera / photo library / PHPhotoLibrary / microphone / ATT / AppTrackingTransparency / permission denied / Info.plist description / app review rejection" (隐私 / 权限 / 定位 / CLLocationManager / 相机 / 相册 / PHPhotoLibrary / 麦克风 / ATT / AppTrackingTransparency / 权限被拒 / Info.plist 描述 / 审核被拒).
+  - SKIP: data processing logic after permission granted → route by data type (photos → ROUTE-006, location data modeling → ROUTE-004); StoreKit / IAP review rejection → ROUTE-024.
+- [ROUTE-023] **SwiftData / Core Data / Persistence / Data Migration / Model Schema / Lightweight migration / Heavyweight migration**: Primary: [persistence.md](references/persistence.md); Supplementary: data modeling → [domain_modeling.md](references/domain_modeling.md); concurrent access → [swift_concurrency.md](references/swift_concurrency.md).
+  - TRIGGER: "SwiftData / Core Data / NSPersistentContainer / NSManagedObjectContext / persistence / database migration / Model Schema change / lightweight migration / heavyweight migration / @Model / FetchRequest" (SwiftData / Core Data / NSPersistentContainer / NSManagedObjectContext / 持久化 / 数据库迁移 / Model Schema 变更 / 轻量级迁移 / 重量级迁移 / @Model / FetchRequest).
+  - SKIP: in-memory cache, not persistence → ROUTE-008 or ROUTE-005; performance issue, not persistence scheme → ROUTE-010.
+- [ROUTE-024] **StoreKit / In-App Purchase / Subscriptions / IAP / Receipt validation / Restore purchases / Promotional offers**: Primary: [storekit_iap.md](references/storekit_iap.md); Supplementary: server-side validation → [networking_patterns.md](references/networking_patterns.md); app review compliance → [privacy_permissions.md](references/privacy_permissions.md).
+  - TRIGGER: "StoreKit / in-app purchase / IAP / subscription / receipt validation / restore purchases / promotional offer / Product / Transaction / StoreKit 2 / App Store review" (StoreKit / 内购 / IAP / 订阅 / 收据验证 / 恢复购买 / 促销优惠 / Product / Transaction / StoreKit 2 / App Store 审核).
+  - SKIP: post-payment UI display → ROUTE-005; App Store Connect configuration → direct user to App Store Connect; not a code-level issue.
+- [ROUTE-025] **App Extensions / Widget / Share Extension / Watch App / Siri Intent / Action Extension / Notification Content Extension**: Primary: [app_extensions.md](references/app_extensions.md); Supplementary: cross-target data sharing → [persistence.md](references/persistence.md); build configuration → [build_release_and_ci.md](references/build_release_and_ci.md).
+  - TRIGGER: "Widget / WidgetKit / Share Extension / Watch App / Siri Intent / Action Extension / App Group / cross-target data sharing / extension" (Widget / WidgetKit / 小组件 / Share Extension / Watch App / Siri Intent / Action Extension / App Group / 跨 Target 数据共享 / 扩展).
+  - SKIP: main app UI / architecture → ROUTE-002 or ROUTE-006; build signing → ROUTE-013.
+
+## Output Templates
+
+Trigger the corresponding template by output type; orthogonal to task routing:
+
+- [OUT-001] Formal proposals / Debugging conclusions / Migration roadmaps / Performance analysis: four-section field template → [examples.md](references/examples.md).
+- [OUT-002] 代码审查 / PR Review：findings-first 标准骨架（触发条件见 GR-004；骨架段落详见 [review_checklists.md](references/review_checklists.md) 第 8 节）。
+- [OUT-003] Production code skeleton → [code_templates.md](references/code_templates.md).
+- [OUT-004] Testing strategy / Verification scope → [testing_strategy.md](references/testing_strategy.md).
+- [OUT-005] Architecture decision records → [decision_records.md](references/decision_records.md).
+- [OUT-006] iOS test system construction / Execute tests and repair failures → [test_execution_and_repair.md](references/test_execution_and_repair.md), combined with [testing_strategy.md](references/testing_strategy.md).
