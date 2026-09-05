@@ -113,7 +113,14 @@ trap - ERR
 #    （promote 只写 evolution/ 快照，已排除出基线范围，不会漂移。）
 INTEGRITY_SCRIPT="../scripts/validate-skill-integrity.sh"
 if [ -f "${INTEGRITY_SCRIPT}" ]; then
-  bash "${INTEGRITY_SCRIPT}" ios-engineer || true
+  if ! bash "${INTEGRITY_SCRIPT}" ios-engineer; then
+    echo "ERROR: integrity baseline refresh failed after rollback to ${target_version}" >&2
+    exit 1
+  fi
+  if ! bash "${INTEGRITY_SCRIPT}" --check-only ios-engineer; then
+    echo "ERROR: integrity baseline still drifting after refresh; rollback incomplete" >&2
+    exit 1
+  fi
 else
   echo "⚠ integrity script not found; refresh the baseline manually:" >&2
   echo "    bash skills-engineering/scripts/validate-skill-integrity.sh ios-engineer" >&2

@@ -24,6 +24,12 @@
 #   bash scripts/validate-skill-integrity.sh --verify-bundle <bundle.json>
 #                                                      # 校验 skill_bundles 产物的 checksum
 #
+# 退出码:
+#   0  --check-only 且无漂移；或刷新模式成功写入新基线 / 无需写入
+#   1  --check-only 发现漂移；或刷新模式采集哈希 / 写入基线失败
+# 刷新模式不再把「检测到漂移但已成功更新」当成失败，避免调用方用 || true
+# 把 Python 缺失、权限不足、磁盘写入失败等真实错误一并吞掉。
+#
 # 基线存储：skills-engineering/.integrity/<skill>.sha256（受治理清单，提交入库）
 #
 # 基线是「内容登记制」：技能内容变更（.md/.json/.yaml/.yml）会让 --check-only
@@ -128,7 +134,20 @@ TOTAL_FAIL=0
 for skill_dir in "${SKILLS[@]}"; do
   name="$(basename "${skill_dir%/}")"
   baseline="${INTEGRITY_DIR}/${name}.sha256"
-  cur="$(collect_hashes "$skill_dir")"
+  if ! cur="$(collect_hashes "$skill_dir")"; then
+    echo "=== $name ==="
+    echo "  FAIL: could not collect hashes for '$name' (python3 missing, permission, or I/O error)" >&2
+    TOTAL_FAIL=$((TOTAL_FAIL + 1))
+    continue
+  fi
+
+  write_baseline() {
+    if ! echo "$cur" > "$baseline"; then
+      echo "  FAIL: could not write integrity baseline: $baseline" >&2
+      return 1
+    fi
+    return 0
+  }
 
   if [[ ! -f "$baseline" ]]; then
     echo "=== $name ==="
@@ -137,8 +156,11 @@ for skill_dir in "${SKILLS[@]}"; do
       echo "  FAIL: no integrity baseline for '$name' (run without --check-only first to create it)"
       TOTAL_FAIL=$((TOTAL_FAIL + 1))
     else
-      echo "  [baseline] created ($(echo "$cur" | grep -c .) files hashed)"
-      echo "$cur" > "$baseline"
+      if write_baseline; then
+        echo "  [baseline] created ($(echo "$cur" | grep -c .) files hashed)"
+      else
+        TOTAL_FAIL=$((TOTAL_FAIL + 1))
+      fi
     fi
     continue
   fi
@@ -165,10 +187,17 @@ for skill_dir in "${SKILLS[@]}"; do
         fi
       fi
     done <<<"$diff_out"
-    TOTAL_FAIL=$((TOTAL_FAIL + 1))
-    if [[ "$CHECK_ONLY" -ne 1 ]]; then
-      echo "$cur" > "$baseline"
-      echo "  [baseline] updated"
+    if [[ "$CHECK_ONLY" -eq 1 ]]; then
+      # 只比对：漂移即失败。
+      TOTAL_FAIL=$((TOTAL_FAIL + 1))
+    else
+      # 刷新模式：成功写入新基线视为完成（exit 0），写入失败才算失败。
+      # 不再把「检测到漂移但已更新」当成错误，避免调用方用 || true 吞掉真实 I/O 失败。
+      if write_baseline; then
+        echo "  [baseline] updated"
+      else
+        TOTAL_FAIL=$((TOTAL_FAIL + 1))
+      fi
     fi
   fi
 done
@@ -178,6 +207,6 @@ if [[ $TOTAL_FAIL -eq 0 ]]; then
   echo "All checked skills: integrity OK."
   exit 0
 else
-  echo "Integrity drift detected in $TOTAL_FAIL skill(s)."
+  echo "Integrity check failed for $TOTAL_FAIL skill(s)."
   exit 1
 fi
