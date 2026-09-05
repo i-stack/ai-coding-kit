@@ -34,49 +34,6 @@ def _list_scripts() -> list[str]:
     )
 
 
-def _is_compat_shim(content: str) -> bool:
-    return "Compatibility shim" in content and "DEPRECATED:" in content
-
-
-IOS_SNAKE_TO_KEBAB = {
-    "append_usage_entry.sh": "append-usage-entry.sh",
-    "approve_skill_promotion.sh": "approve-skill-promotion.sh",
-    "audit_ref_freshness.sh": "audit-ref-freshness.sh",
-    "check_skill_promotion_readiness.sh": "check-skill-promotion-readiness.sh",
-    "check_snapshot_consistency.sh": "check-snapshot-consistency.sh",
-    "create_skill_proposal.sh": "create-skill-proposal.sh",
-    "demo_skill_evolution_flow.sh": "demo-skill-evolution-flow.sh",
-    "extract_usage_audit.sh": "extract-usage-audit.sh",
-    "gc_evolution_history.sh": "gc-evolution-history.sh",
-    "install_codex_ledger_sync.sh": "install-codex-ledger-sync.sh",
-    "lint_hit_rules.sh": "lint-hit-rules.sh",
-    "promote_skill_evolution.sh": "promote-skill-evolution.sh",
-    "record_validation_scenario.sh": "record-validation-scenario.sh",
-    "rollback_skill_evolution.sh": "rollback-skill-evolution.sh",
-    "run_behavior_validation.sh": "run-behavior-validation.sh",
-    "run_ios_tests.sh": "run-ios-tests.sh",
-    "suggest_skill_proposals.sh": "suggest-skill-proposals.sh",
-    "summarize_usage_ledger.sh": "summarize-usage-ledger.sh",
-    "sync_codex_sessions.sh": "sync-codex-sessions.sh",
-    "sync_transcript_to_ledger.sh": "sync-transcript-to-ledger.sh",
-    "test_gc_invariant.sh": "test-gc-invariant.sh",
-    "test_proposal_scripts.sh": "test-proposal-scripts.sh",
-    "update_skill_proposal_status.sh": "update-skill-proposal-status.sh",
-    "validate_rule_ids.sh": "validate-rule-ids.sh",
-    "validate_scenario_specs.sh": "validate-scenario-specs.sh",
-    "validate_skill_evolution.sh": "validate-skill-evolution.sh",
-    "validate_skill_proposal.sh": "validate-skill-proposal.sh",
-    "validate_usage_ledger.sh": "validate-usage-ledger.sh",
-}
-
-GLOBAL_SNAKE_TO_KEBAB = {
-    "detect_project_type.sh": "detect-project-type.sh",
-    "skill_bundles.sh": "skill-bundles.sh",
-}
-
-GLOBAL_SCRIPTS_DIR = REPO_ROOT / "skills-engineering" / "scripts"
-
-
 # ─── Regex Patterns extracted from scripts ───
 
 RE_PROPOSAL_FILE = re.compile(
@@ -846,13 +803,17 @@ class FileContentIntegrityTests(unittest.TestCase):
         self.assertIn("evolution/scenarios", content)
 
     def test_all_scripts_are_in_scripts_directory(self):
-        """All .sh files should be in the scripts/ directory."""
+        """All .sh files should be in scripts/ and use kebab-case names."""
         scripts_list = _list_scripts()
         self.assertGreaterEqual(len(scripts_list), 20)
         for s in scripts_list:
             self.assertTrue(
                 s.endswith(".sh"),
                 f"Script should end with .sh: {s}"
+            )
+            self.assertNotIn(
+                "_", s,
+                f"Script should use kebab-case rather than snake_case: {s}",
             )
 
     def test_gc_script_preserves_active_version(self):
@@ -904,57 +865,8 @@ class FileContentIntegrityTests(unittest.TestCase):
 
 
 # ═══════════════════════════════════════════════════════════════
-# Compatibility shim + rollback integrity tests
+# Rollback integrity tests
 # ═══════════════════════════════════════════════════════════════
-
-class CompatibilityShimTests(unittest.TestCase):
-    """Old snake_case names must keep working for one release cycle."""
-
-    def test_ios_snake_case_shims_cover_renamed_scripts(self):
-        for old_name, new_name in IOS_SNAKE_TO_KEBAB.items():
-            shim_path = SCRIPTS_DIR / old_name
-            target_path = SCRIPTS_DIR / new_name
-            self.assertTrue(shim_path.is_file(), f"missing shim: {old_name}")
-            self.assertTrue(target_path.is_file(), f"missing target: {new_name}")
-            content = shim_path.read_text(encoding="utf-8")
-            self.assertTrue(_is_compat_shim(content), f"{old_name} is not a shim")
-            self.assertIn(f"/{new_name}", content)
-            self.assertIn("exec ", content)
-
-    def test_global_snake_case_shims_cover_renamed_scripts(self):
-        for old_name, new_name in GLOBAL_SNAKE_TO_KEBAB.items():
-            shim_path = GLOBAL_SCRIPTS_DIR / old_name
-            target_path = GLOBAL_SCRIPTS_DIR / new_name
-            self.assertTrue(shim_path.is_file(), f"missing shim: {old_name}")
-            self.assertTrue(target_path.is_file(), f"missing target: {new_name}")
-            content = shim_path.read_text(encoding="utf-8")
-            self.assertTrue(_is_compat_shim(content), f"{old_name} is not a shim")
-            self.assertIn(f"/{new_name}", content)
-
-    def test_underscore_script_names_are_shims_only(self):
-        for sname in _list_scripts():
-            if "_" not in sname:
-                continue
-            content = _read_script(sname)
-            self.assertTrue(
-                _is_compat_shim(content),
-                f"{sname} uses snake_case but is not a compatibility shim",
-            )
-
-    def test_old_entry_prints_deprecation_and_forwards(self):
-        shim = SCRIPTS_DIR / "validate_skill_proposal.sh"
-        result = subprocess.run(
-            ["bash", str(shim)],
-            cwd=SKILL_DIR,
-            capture_output=True,
-            text=True,
-        )
-        self.assertNotEqual(result.returncode, 0)
-        self.assertIn("DEPRECATED", result.stderr)
-        self.assertIn("validate-skill-proposal.sh", result.stderr)
-        self.assertIn("Usage:", result.stdout)
-
-
 class RollbackIntegrityTests(unittest.TestCase):
     """rollback must not swallow a real integrity refresh failure."""
 
