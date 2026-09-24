@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-05 -->
+<!-- last-verified: 2026-09 -->
 # problem-analysis Agent Invocation Guide
 
 > This is an English mirror of the authoritative Chinese `AGENT-BRIEF.md`.
@@ -6,18 +6,18 @@
 
 ## One-line Description
 
-Problem pre-analysis — logic testing, first principles decomposition, respond only after sufficient understanding (PA-001/002/003). Applicable to all tasks containing judgment or solution discussion.
+Problem pre-analysis — logic testing, first principles decomposition, respond only after sufficient understanding (PA-001/002/003). Default-load on judgment, solution discussion, implementation requests, or architecture trade-offs.
 
 ## When to Invoke
 
-- **Default**: When receiving any technical question, solution discussion, implementation request, architecture trade-off.
+- **Default**: Any technical question containing judgment, solution discussion, implementation request, or architecture trade-off. Does not depend on the user saying "first principles / deeper need / problem deviation".
 - **Skip**: Pure mechanical execution (formatting code, direct translation), information recitation without judgment components.
 
 ## Key Behaviors
 
 1. **[PA-001] Logic testing**: After receiving a problem, first review whether it contains logical errors, contradictory premises, circular assumptions, or false dichotomy. If found, must reveal first; must not answer directly on flawed premises.
-2. **[PA-002] First principles**: Decompose from base requirements — what actually needs to be solved? Is the current path optimal? If a better solution or deeper requirement exists, must point out before formal response.
-3. **[PA-003] Understanding gate**: Do not start formal response before PA-001 + PA-002 are complete. When problem is clear, complete internally; when deviation found, output "Problem Analysis" block.
+2. **[PA-002] First principles**: For reasoning/trade-off questions, decompose from base requirements. Fact-class questions are verified, not derived from first principles. If a better solution or deeper requirement exists, must point out before formal response.
+3. **[PA-003] Understanding gate**: Three states — silent when clear; output `Problem Analysis` block then answer on substantial deviation; confirm real intent when base requirement does not match surface request.
 
 ## When Not to Invoke
 

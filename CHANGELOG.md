@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-24
+
+- **problem-analysis 契约对齐**：`description` / `SKILL.md` / `invocation.md` 统一为「含判断即默认加载」，不依赖用户说出「第一性原理 / 深层需求 / 问题偏差」。PA-002 写入事实/推理分流（与 GR-013 同边界）；PA-003 写成静默 / 出块后作答 / 停确认三态。`问题分析` 块字段钉死为「逻辑检验 / 真实需求 / 路径评估」，`docs/problem-analysis.md` 与细则同 schema。补 `references/rule_index.md` 供 composition 裁决；相邻 skill 表补 plan-grill、CAM、GR-013、GR-002。CAM owner 指向 `cognitive-reasoning`。en-US 镜像保持 experimental，locale 声明与源一致。
+
 ## 2026-09-07
 
 - **sync 新增 `SKIP_SKILL_SYNC` 环境变量（受控跳过 skill 分发）**: 新增共享开关 `skill_sync_disabled()`，`SKIP_SKILL_SYNC=1` 时 CodeBuddy / Cline / Qwen 三个平台的 `_sync_skills()` 直接跳过，避免在带批量删除保护的环境（如 CodeBuddy 的 safe-delete，阈值 500）中因 `shutil.rmtree` 清理 `.tmp-sync` / `.backup-sync` 被拦截而中断同步。MCP / 模型 / 设置 / 全局状态同步不受影响。普通用户与 CI 不设置该变量，行为不变；agent 环境可 `SKIP_SKILL_SYNC=1 git push` 显式跳过。配套测试覆盖三平台跳过路径，文档见 `sync/README.md`。

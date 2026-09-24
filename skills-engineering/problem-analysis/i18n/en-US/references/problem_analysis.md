@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-05 -->
+<!-- last-verified: 2026-09 -->
 # Problem Pre-analysis
 
 > This is an English mirror of the authoritative Chinese `references/problem_analysis.md`.
@@ -46,7 +46,7 @@ Two common misunderstandings:
 | Misunderstanding | Correction |
 |-----------------|------------|
 | "Only chase others' experience, own practices don't count" | Precedent whether from others or yourself, as long as using "it worked before → it works now" as legitimacy, it's analogical reasoning |
-| "Must find absolutely indivisible facts" | In practice, no need to reach philosophical axioms; the goal is to descend to **quantifiable, independently verifiable constraints** (physical laws, measured data, unit economics),脱离 precedent interpretation |
+| "Must find absolutely indivisible facts" | In practice, no need to reach philosophical axioms; the goal is to descend to **quantifiable, independently verifiable constraints** (physical laws, measured data, unit economics), leaving precedent interpretation |
 
 Two steps:
 
@@ -74,10 +74,16 @@ Evaluate the currently proposed path against base requirements:
 | **Side effects** | What known costs or risks exist? |
 | **Alternatives** | Is there a lower-cost or better-effect path? |
 
+**Fact / reasoning split (same boundary as GR-013)**:
+
+- **Fact-class** (a library API, an event, an interface behavior, a number) → **verify**; do not derive the answer from first principles applied to empirical facts.
+- **Reasoning / trade-off** (architecture choice, logical derivation, requirements decomposition) → this rule applies.
+- Whether the question is fact or reasoning is decided by `cognitive-reasoning` GR-013; this rule decomposes requirements only on reasoning-class questions. If GR-013 is not loaded, still perform this split; do not grow a requirements tree on a fact question.
+
 **Disposition principles**:
 - Current path already optimal → internal confirmation, answer directly
 - Clearly better solution exists → point out before formal response, explain why better, **do not force user to accept**
-- Base requirement does not match surface request → first confirm user's real intent
+- Base requirement does not match surface request → first confirm user's real intent; do not advance the solution before confirmation
 
 ---
 
@@ -85,9 +91,15 @@ Evaluate the currently proposed path against base requirements:
 
 **Goal**: Ensure response is built on sufficient understanding, not fast response.
 
-- Only start constructing formal response after PA-001 + PA-002 are both complete
-- **Silent mode**: If problem is clear, premises valid, current path reasonable → complete two steps internally, answer directly, **do not output analysis block** (keep response concise)
-- **Explicit mode**: If logical flaws or better paths found → output `Problem Analysis` block, then give answer
+Only start constructing formal response after PA-001 + PA-002 are both complete. Three mutually exclusive states:
+
+| State | Condition | Action |
+|-------|-----------|--------|
+| **Silent** | Problem clear, premises valid, current path reasonable | Complete two steps internally, answer directly, **do not output analysis block** |
+| **Explicit then answer** | Substantial logical error, unstated strong assumption, or a clearly better path | Output `Problem Analysis` block, then give answer |
+| **Stop and confirm** | Base requirement does not match surface request | Confirm real intent first; do not advance the solution or pretend understanding before confirmation |
+
+"Substantial" = not pointing it out would make the later answer rest on a false premise. Vague wording that can be disambiguated from context → silent. Missing information (environment / reproduction / scope) → GR-002 pre-confirmation, not this rule.
 
 ---
 
@@ -124,9 +136,11 @@ Block immediately followed by formal response, no extra explanation of the block
 | Discipline | Trigger Point | Division |
 |------------|---------------|----------|
 | **PA-001/002/003 (this rule)** | When receiving a problem | Analyze **the problem itself**'s validity and real requirements |
+| GR-013 (cognitive-reasoning) | When classifying the question | Facts are verified; reasoning may use PA-002 |
 | GR-010 (cognitive-reasoning) | When constructing response | Constrain AI's own response's **argumentation quality** |
 | GR-002 (engineering-discipline) | When description unclear | **Pre-confirmation** to fill in missing information |
-| Cognitive Adversary Mode (ios-engineer) | Technical decisions/strong conviction | **Challenge user**'s conclusions and assumptions |
+| Cognitive Adversary Mode (cognitive-reasoning, CAM-001~005) | Technical decisions/strong conviction | **Challenge user**'s conclusions and assumptions; when both hit, finish problem review first |
+| plan-grill (PG-000) | After this rule | Grill the implementation decision tree; do not start before problem review completes |
 
 > **On fallacy list overlap**: PA-001 and GR-010 share fallacy terms like "false dichotomy / circular / concept conflation" — this is expected — PA-001 checks for fallacies in the **input (the question)**, GR-010 checks for fallacies in the **output (your response)**. Same word list, different targets; not duplicate definitions.
 
@@ -137,5 +151,7 @@ Block immediately followed by formal response, no extra explanation of the block
 - [ ] Are the problem's core premises valid? Any logical flaws?
 - [ ] What is the base requirement? Does the surface request directly correspond to the base requirement?
 - [ ] Is the currently proposed path already optimal, or do lower-cost alternatives exist?
-- [ ] If findings exist, have they been clearly pointed out in a `Problem Analysis` block?
+- [ ] Is this question fact or reasoning? Was first principles misused on a fact-class question?
+- [ ] If findings exist, have they been pointed out in a `Problem Analysis` block with the fixed fields?
 - [ ] When the problem is clear, was silent mode maintained (no redundant analysis block output)?
+- [ ] When base requirement does not match surface request, was intent confirmed before advancing the solution?
