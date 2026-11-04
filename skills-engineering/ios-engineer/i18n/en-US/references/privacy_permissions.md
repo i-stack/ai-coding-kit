@@ -45,17 +45,21 @@ Use the key documented by the target SDK's framework. Calendar, reminders, and s
 | File timestamp | `NSPrivacyAccessedAPICategoryFileTimestamp` | `DDA9.1` `C617.1` `3B52.1` `0A2A.1` |
 | System boot time | `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` `8FFB.1` `3D61.1` |
 | Disk space | `NSPrivacyAccessedAPICategoryDiskSpace` | `85F4.1` `E174.1` `7D9E.1` `B728.1` |
-| Active keyboard | `NSPrivacyAccessedAPICategoryActiveKeyboards` | `3EC4.1` `54CD.1` |
+| Active keyboard | `NSPrivacyAccessedAPICategoryActiveKeyboards` | `3EC4.1` `54BD.1` |
 | User Defaults | `NSPrivacyAccessedAPICategoryUserDefaults` | `CA92.1` `1C8F.1` `C56D.1` `AC6B.1` |
 
 High-frequency mapping (still verify the official permitted use before declaring):
 - App-only UserDefaults → `CA92.1`
 - UserDefaults shared in the same App Group → `1C8F.1`
 - File timestamps or size inside the App / App Group / CloudKit container → `C617.1`
+- Displaying file timestamps to the user (must not leave the device) → `DDA9.1`
 - Showing disk space to the user → `85F4.1`
 - Checking space before writing, or deleting files when space is low → `E174.1`
+- Measuring elapsed time between in-app events or driving timers → `35F9.1` (elapsed intervals may leave the device; boot time itself and other derived data must not)
+- Calculating absolute timestamps for in-app events → `8FFB.1` (those absolute timestamps may leave the device; boot time itself must not)
+- Including boot time in an optional bug report the user chooses to submit → `3D61.1`
 
-SDK-wrapper codes that a host App MUST NOT use as a substitute for its own purpose: `0A2A.1`, `B728.1`, `C56D.1`. System boot time codes differ on whether derived timing may leave the device; check the official text per code.
+SDK-wrapper codes that a host App MUST NOT use as a substitute for its own purpose: `0A2A.1`, `C56D.1`. `B728.1` is only for health-research apps that meet App Review Guideline 5.1.3; it is not an SDK-wrapper code and not a generic disk-space reason. Active-keyboard UI adaptation uses `54BD.1`; do not declare a nearby invalid code.
 - A wrong code may pass upload validation and still violate the usage rules, which can fail later App Review.
 - Re-check signatures, privacy manifests, and required-reason API changes on dependency upgrades, and verify the aggregated result on the Archive product.
 

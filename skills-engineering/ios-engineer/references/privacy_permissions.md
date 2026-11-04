@@ -42,17 +42,21 @@
 | 文件时间戳 | `NSPrivacyAccessedAPICategoryFileTimestamp` | `DDA9.1` `C617.1` `3B52.1` `0A2A.1` |
 | 系统启动时间 | `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` `8FFB.1` `3D61.1` |
 | 磁盘空间 | `NSPrivacyAccessedAPICategoryDiskSpace` | `85F4.1` `E174.1` `7D9E.1` `B728.1` |
-| 活动键盘 | `NSPrivacyAccessedAPICategoryActiveKeyboards` | `3EC4.1` `54CD.1` |
+| 活动键盘 | `NSPrivacyAccessedAPICategoryActiveKeyboards` | `3EC4.1` `54BD.1` |
 | User Defaults | `NSPrivacyAccessedAPICategoryUserDefaults` | `CA92.1` `1C8F.1` `C56D.1` `AC6B.1` |
 
 高频对照（仍须核对官方允许用途后再声明）：
 - 只读写本 App 自己的 UserDefaults → `CA92.1`
 - 同一 App Group 内共享 UserDefaults → `1C8F.1`
 - 访问 App / App Group / CloudKit 容器内文件时间戳或大小 → `C617.1`
+- 向用户展示文件时间戳（信息不得出设备） → `DDA9.1`
 - 向用户展示磁盘空间 → `85F4.1`
 - 写入前检查空间或空间不足时删除文件 → `E174.1`
+- 测量 App 内事件间隔或做定时器 → `35F9.1`（间隔信息可出设备；启动时间本身及派生信息不得出设备）
+- 为 App 内事件计算绝对时间戳 → `8FFB.1`（绝对时间戳可出设备；启动时间本身不得出设备）
+- 用户自愿提交的可选错误报告中包含启动时间 → `3D61.1`
 
-仅第三方 SDK 对其包装函数声明、宿主 App 不得拿来替代自身用途：`0A2A.1`、`B728.1`、`C56D.1`。系统启动时间各类 code 的出设备限制不同，必须按官方条文逐条核对。
+仅第三方 SDK 对其包装函数声明、宿主 App 不得拿来替代自身用途：`0A2A.1`、`C56D.1`。`B728.1` 仅适用于符合审核指南的健康研究 App，不是 SDK 包装码，也不是通用磁盘空间理由。活动键盘 UI 适配用 `54BD.1`，不要写成相近但无效的 code。
 - 选错 code 可能通过上传校验，但仍违反使用规则，后续审核可能被拒。
 - 依赖升级时重新检查签名、privacy manifest 和 required-reason API 变化，并在 Archive 产物上验证最终聚合结果。
 
