@@ -65,6 +65,7 @@
 ├── plan-grill/                # 需求盘问锁定计划（Act 1）
 ├── cross-model-review/        # 跨模型对抗审查 PLAN.md（Act 2）
 ├── auto-code-review/          # 用户显式启动的代码审查（Act 3）
+├── workbuddy/                # WorkBuddy 开放平台上架打包（catalog.json + 构建/校验脚本）
 ├── scripts/                   # 仓库级脚本
 │   ├── bootstrap.sh
 │   ├── sync-skills.sh
@@ -279,6 +280,22 @@ bash scripts/sync-memory.sh --remove
 ```
 
 两层记忆与 `user-profile`、`agent-preamble` 托管块标记各自独立，`sync-agent-preamble.sh` 重写 agent-preamble 块时不会破坏它们；`verify-sync.sh` 校验 agent-preamble 块的标记与关键路径，不受新增块影响。
+
+## WorkBuddy 上架（技能收费）
+
+把本仓库技能打包成 WorkBuddy 开放平台可上传的 zip，在技能市场售卖（一次性买断 / 按月订阅）：
+
+```bash
+bash workbuddy/package-workbuddy.sh list                 # 版本 / 定价建议 / 依赖
+bash workbuddy/package-workbuddy.sh build --all          # 每个技能一个 zip
+bash workbuddy/package-workbuddy.sh expert               # 专家包：一个 zip 带全部 13 个技能
+bash workbuddy/package-workbuddy.sh sheet                # 生成后台填表清单
+```
+
+产物在 `dist/workbuddy/`（每个技能一个 zip）与 `dist/workbuddy-expert/`（专家包，均已 gitignore）。
+市场展示面字段集中在 `workbuddy/catalog.json`（技能）与 `workbuddy/expert.json`（专家），源
+`SKILL.md` 仍是单一真源；市场侧没有 `depends_on` —— 技能包把依赖内联为 `references/deps/<dep>/`，
+专家包内技能同级存在则直接按兄弟路径引用。规范与上架流程见 [workbuddy/README.md](workbuddy/README.md)。
 
 ## ios-engineer 技能概览
 
