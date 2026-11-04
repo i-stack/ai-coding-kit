@@ -294,7 +294,7 @@ bash workbuddy/package-workbuddy.sh sheet                # 生成后台填表清
 
 产物在 `dist/workbuddy/`（每个技能一个 zip）与 `dist/workbuddy-expert/`（专家包，均已 gitignore）。
 市场展示面字段集中在 `workbuddy/catalog.json`（技能）与 `workbuddy/expert.json`（专家），源
-`SKILL.md` 仍是单一真源；市场侧没有 `depends_on` —— 技能包把依赖内联为 `references/deps/<dep>/`，
+`SKILL.md` 仍是单一真源；市场侧没有 `depends_on` —— 技能包把依赖拍平内联为 `references/dep-<dep>--<file>.md`（市场包仅支持根/二级目录/文件，不能落三层目录 `references/deps/<dep>/`），
 专家包内技能同级存在则直接按兄弟路径引用。规范与上架流程见 [workbuddy/README.md](workbuddy/README.md)。
 
 ## ios-engineer 技能概览

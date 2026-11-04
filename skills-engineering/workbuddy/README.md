@@ -43,13 +43,14 @@ zip 内顶层必须是技能目录，`SKILL.md` 要在技能根的下一级直�
    `workbuddy/catalog.json`，打包时注入。
 2. **`description` 不重复维护**。直接取源 `SKILL.md` 的 `description`（已是触发语义），
    `catalog.json` 只维护展示面字段（展示名、中英简介、示例、定价建议）。
-3. **依赖必须内联**。市场侧没有 `depends_on`，用户只装一个技能。catalog 里声明的
-   `deps` 在打包时内联为 `references/deps/<dep>/`，跨技能链接自动改写。
+3. **依赖必须拍平内联**。市场侧没有 `depends_on`，用户只装一个技能。市场包仅支持
+   根 / 二级目录 / 文件，不能落三层目录；catalog 里声明的 `deps` 在打包时拍平内联为
+   `references/dep-<dep>--<file>.md`（用前缀命名代替子目录），跨技能链接自动改写。
 
 包内链接处理规则（`build_workbuddy.py::fix_links`）：
 
 - 包内可解析 → 保持/重写为相对路径；
-- 指向内联依赖（`../../cognitive-reasoning/references/x.md`）→ 改写到 `references/deps/<dep>/`；
+- 指向内联依赖（`../../cognitive-reasoning/references/x.md`）→ 改写到 `references/dep-<dep>--x.md`；
 - 指向 companion 文件（`../AGENT-BRIEF.md`）→ 落到 `references/`；
 - 指向包外且包内没有（`../scripts/...`、`../evolution/...`）→ 降级为行内代码，保留标签文本，不留死链。
 

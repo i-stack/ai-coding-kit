@@ -1,0 +1,40 @@
+{
+  "proposal_id": "20261104-150016-localize-skill-entry-and-workbuddy-flat-deps",
+  "proposal_file": "evolution/proposals/20261104-150016-localize-skill-entry-and-workbuddy-flat-deps.md",
+  "validated_at": "2026-11-04T15:00:50+0800",
+  "status": "validated",
+  "exit_code": 0,
+  "active_version": "v75",
+  "base_validation_output": "[1/14] Validate YAML structure\nYAML OK\n[2/14] Validate SKILL.md size\nSKILL.md lines: 159\n[3/14] Validate referenced files exist\nReference files OK\n[4/14] Validate layering guardrails\nLayering guardrails OK\n[5/14] Validate internal markdown links\nInternal links OK\n[6/14] Validate scenario specs\nScenario specs OK (11 files, 11 canonical slugs covered)\n[7/14] Validate rule IDs\nRule IDs OK (40 IDs in SKILL.md, 52 in rule_index.md, 52 active)\n[8/14] Validate usage ledger\nUsage ledger OK (3 entries, 52 active rule IDs)\n[9/14] Validate no orphan references\nNo orphan references\n[10/14] Validate unique ownership + retired word regression\nUnique ownership + retired words OK\n[11/14] Validate threshold doc/script sync\nThreshold doc/script sync OK\n[12/14] Validate snapshot consistency with active version\nSkipped (SKIP_SNAPSHOT_CONSISTENCY=1)\n[13/14] Run behavior validation scenarios\n[behavior 1/5] Active snapshot consistency\nSkipped (SKIP_SNAPSHOT_CONSISTENCY=1)\n[behavior 2/5] Proposal script rejection paths\n---\nPassed: 39\nFailed: 0\nPASS: gc executed on minimal fixture\nPASS: gc kept exactly 10 most recent versions (kept=10)\nPASS: gc only deleted oldest versions (v1..v3)\nPASS: active version v10 protected\nPASS: every kept version retains complete snapshot\nPASS: rollback rejects version with missing snapshot\nPASS: rollback rejects invalid version format\n---\nPassed: 7\nFailed: 0\n---\nPassed (incl. GC): 40\nFailed (incl. GC): 0\n[behavior 3/5] Repository template usability\nRepository template Swift typecheck skipped (SKIP_SWIFT_TYPECHECK=1)\n[behavior 4/5] Code review output contract\n[behavior 5/5] Network cache and error-modeling contract\nBehavior validation passed\n[14/14] Validate slug list sync (validation_scenarios.md ↔ ALLOWED_TASK_TYPES ↔ CANONICAL_SLUGS)\nSlug sync OK (11 slugs: layout, parameter-pass-through, concurrency, review, migration, mcp-control, notifications, privacy, persistence, storekit, extensions)\nSlug sync OK\nBase validation passed\n",
+  "promotion_readiness": "ready_to_promote",
+  "scenario_validation_status": "passed",
+  "scenario_records": [
+    {
+      "scenario": "mcp-control",
+      "result": "pass",
+      "hits": [
+        "静态核对：把日志压缩为现象/已知事实/关键缺口的要求仍在 mcp_control.md；两次无新增证据即切方向的约束仍在；调用预算与防循环退出条件两节标题保留，页内锚点改文字引用后语义不变"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "场景规格 expected_hits 的 GR-003/SKILL.md:11 锚点属既有漂移（改动前后均不存在），建议另案修正"
+      ]
+    },
+    {
+      "scenario": "review",
+      "result": "pass",
+      "hits": [
+        "静态核对：OUT-002 findings-first 骨架条目仍在 SKILL.md；骨架段落锚点 review_checklists.md 第 8 节存在；GR-004 触发条件引用保持"
+      ],
+      "deviations": [
+        "无"
+      ],
+      "improvements": [
+        "无"
+      ]
+    }
+  ],
+  "updated_at": "2026-11-04T15:01:40+0800"
+}

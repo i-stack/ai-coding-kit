@@ -17,7 +17,8 @@
 #   2. description 直接取源 SKILL.md 的 description（触发语义单一真源），
 #      catalog.json 只维护市场展示面字段（展示名 / 中英简介 / 示例 / 定价建议）。
 #   3. 市场侧没有 depends_on 机制，用户只装一个技能；因此 catalog 声明的
-#      deps 必须在打包时内联为 references/deps/<dep>/，并把跨技能链接改写。
+#      deps 必须在打包时拍平内联为 references/dep-<dep>--<file>.md（市场包仅支持
+#      根 / 二级目录 / 文件，不能落三层目录 references/deps/<dep>/），并把跨技能链接改写。
 #
 # 用法:
 #   python3 workbuddy/build_workbuddy.py list
@@ -177,8 +178,10 @@ def render_frontmatter(skill: str, entry: dict, src_fm: dict, author: str, versi
 # --------------------------------------------------------------------------
 # 链接改写：市场包是独立个体，跨技能 / 跨目录链接必须重定位或降级
 # --------------------------------------------------------------------------
-def _dep_root(stage: Path, dep: str) -> Path:
-    return stage / "references" / "deps" / dep
+def _dep_file(stage: Path, dep: str, fname: str) -> Path:
+    """市场包仅支持 根/二级目录/文件 三段路径，依赖内联必须拍平到 references/ 下，
+    用 `dep-<dep>--<file>.md` 前缀命名代替子目录。"""
+    return stage / "references" / f"dep-{dep}--{fname}"
 
 
 def _within(stage: Path, p: Path) -> bool:
@@ -196,6 +199,7 @@ def _resolve(
     deps: list[str],
     boundary: Path,
     fallback_dir: Path,
+    from_file: Path | None = None,
 ) -> Path | None:
     # 1) 边界内可解析（技能包边界 = 技能根；专家包边界 = skills/ 根，允许跨技能引用）
     cand = (base_dir / path).resolve()
@@ -203,24 +207,24 @@ def _resolve(
         return cand
     parts = os.path.normpath(os.path.join(base_dir, path)).split(os.sep)
     base = str(stage.resolve())
-    # dep 作用域：文件本身位于 references/deps/<dep>/ 下时，优先同域查找
-    own_dep = None
-    rel = os.path.relpath(str(base_dir.resolve()), base)
-    rel_parts = rel.split(os.sep)
-    if len(rel_parts) >= 3 and rel_parts[0] == "references" and rel_parts[1] == "deps":
-        own_dep = rel_parts[2]
-    if own_dep:
-        sibling = _dep_root(stage, own_dep) / os.path.basename(path)
-        if sibling.exists():
-            return sibling.resolve()
-    # 2) 跨技能链接 → 内联依赖目录
+    # dep 作用域：链接者本身是拍平内联的 dep 文件（references/dep-<dep>--*.md）时，
+    # 优先在同域内按文件名找（dep 内部对 references/x.md 的相对引用）
+    if from_file is not None:
+        m_dep = re.match(r"^dep-(.+?)--", from_file.name)
+        if m_dep:
+            sibling = _dep_file(stage, m_dep.group(1), os.path.basename(path))
+            if sibling.exists():
+                return sibling.resolve()
+    # 2) 跨技能链接 → 拍平内联文件 references/dep-<dep>--<file>.md
     for dep in deps:
         if dep in parts:
             idx = len(parts) - 1 - parts[::-1].index(dep)
             rest = parts[idx + 1 :]
             if rest and rest[0] == "references":
                 rest = rest[1:]
-            target = _dep_root(stage, dep).joinpath(*rest)
+            if not rest:
+                rest = ["SKILL.md"]
+            target = _dep_file(stage, dep, "-".join(rest))
             if target.exists():
                 return target.resolve()
     # 3) 边界外但包内存在的同名文件（companion 文件等）→ 落到 fallback 目录
@@ -254,7 +258,7 @@ def fix_links(
             if not path:
                 return m.group(0)
             anchor = target[len(path) :]
-            resolved = _resolve(md.parent, stage, path, deps, boundary, fallback_dir)
+            resolved = _resolve(md.parent, stage, path, deps, boundary, fallback_dir, from_file=md)
             if resolved is None:
                 stats["n"] += 1
                 return f"`{label}`" if degrade and label else (m.group(0) if not degrade else "")
@@ -314,7 +318,7 @@ def stage_skill(
             "相关细则已内联到包内，无需另外安装：",
             "",
         ]
-        out_body += [f"- `{d}` → `references/deps/{d}/`" for d in deps]
+        out_body += [f"- `{d}` → `references/dep-{d}--*.md`" for d in deps]
         out_body.append("")
     elif entry.get("deps"):
         # 专家包模式：依赖技能与本技能同在 skills/ 下，直接按兄弟目录读取
@@ -355,19 +359,17 @@ def stage_skill(
         if fsrc.is_file():
             shutil.copy2(fsrc, companion_dir / fname)
 
-    # 依赖内联
+    # 依赖内联（拍平：市场包仅支持 根/二级目录/文件，不能落 references/deps/<dep>/）
     for dep in deps:
         dsrc = SE_DIR / dep
         if not dsrc.is_dir():
             sys.exit(f"declared dep '{dep}' not found for '{skill}'")
-        ddst = _dep_root(stage, dep)
-        ddst.mkdir(parents=True, exist_ok=True)
         if (dsrc / "SKILL.md").is_file():
-            shutil.copy2(dsrc / "SKILL.md", ddst / "SKILL.md")
+            shutil.copy2(dsrc / "SKILL.md", _dep_file(stage, dep, "SKILL.md"))
         drefs = dsrc / "references"
         if drefs.is_dir():
             for f in sorted(drefs.glob("*.md")):
-                shutil.copy2(f, ddst / f.name)
+                shutil.copy2(f, _dep_file(stage, dep, f.name))
 
     degraded = (
         fix_links(
@@ -429,6 +431,7 @@ def validate_stage(
     boundary: Path | None = None,
     allow_root_files: tuple[str, ...] = (),
     check_size: bool = True,
+    inline_deps: bool = True,
 ) -> tuple[list[str], list[str]]:
     fails: list[str] = []
     warns: list[str] = []
@@ -473,12 +476,17 @@ def validate_stage(
             continue
         fail(f"unexpected entry at package root: {child.name} (only SKILL.md + {list(SPEC_SUBDIRS)})")
 
-    # 依赖内联完整性（专家包内技能同级存在，不内联，跳过）
-    if (stage / "references" / "deps").is_dir():
+    # 依赖内联完整性（专家包内技能同级存在，不内联，inline_deps=False 跳过）
+    if inline_deps:
         for dep in entry.get("deps") or []:
-            d = _dep_root(stage, dep)
-            if not d.is_dir() or not any(d.iterdir()):
-                fail(f"declared dep '{dep}' not inlined under references/deps/{dep}/")
+            f = _dep_file(stage, dep, "SKILL.md")
+            if not f.is_file():
+                fail(f"declared dep '{dep}' not inlined as references/dep-{dep}--SKILL.md")
+
+    # 目录层级门：平台仅支持 根/二级目录/文件 三段路径
+    for p in sorted(stage.rglob("*")):
+        if p.is_file() and len(p.relative_to(stage).parts) > 3:
+            fail(f"目录层级超限（平台仅支持 根/二级目录/文件）: {p.relative_to(stage)}")
 
     # 安全扫描
     for root, _, files in os.walk(stage):
@@ -534,6 +542,14 @@ def validate_zip(zip_path: Path, skill: str, layout: str = "flat") -> list[str]:
             fails.append(f"zip top-level must contain '{skill}/SKILL.md'")
     if any(n.startswith("__MACOSX") for n in names):
         fails.append("zip contains __MACOSX junk")
+    # 目录层级门：相对技能根最多 根/二级目录/文件 三段（nested 布局需先剥掉外层 <skill>/）
+    pre = "" if layout == "flat" else f"{skill}/"
+    for n in names:
+        rel = n[len(pre):] if n.startswith(pre) else n
+        if rel.endswith("/"):
+            rel = rel[:-1]
+        if rel and len(rel.split("/")) > 3:
+            fails.append(f"目录层级超限（平台仅支持 根/二级目录/文件）: {n}")
     return fails
 
 
@@ -890,6 +906,7 @@ def validate_expert_pkg(expert: dict, cat: dict, pkg: Path, allow_placeholder: b
             boundary=skills_root,
             allow_root_files=("AGENT-BRIEF.md", "OUT-OF-SCOPE.md"),
             check_size=False,
+            inline_deps=False,
         )
         for w in s_warns:
             warns.append(f"{sd.name}: {w}")
