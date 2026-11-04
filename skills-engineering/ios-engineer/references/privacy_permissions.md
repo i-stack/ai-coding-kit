@@ -35,6 +35,25 @@
 ## Privacy Manifest 与 Required Reason API
 - App 与纳入发布包的第三方 SDK 都要检查 `PrivacyInfo.xcprivacy`；声明实际收集的数据、用途、tracking 与 required-reason API 使用原因。
 - manifest 声明必须与代码、SDK 行为、App Store Connect 隐私问卷和服务端数据流一致；不能用宽泛声明替代实际盘点。
+- Required Reason API 在 `NSPrivacyAccessedAPITypes` 中按类别声明。reason code 大小写敏感，必须与真实调用匹配。每个 code 的允许用途、是否得出设备、是否仅限第三方 SDK，以 Apple 文档 [Describing use of required reason API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api) 为准；本表只登记类别与 code，不替代官方条文。Xcode 或审核若报未知 code，以报错中的官方链接为准。
+
+| 类别 | `NSPrivacyAccessedAPIType` | Reason code |
+|------|----------------------------|-------------|
+| 文件时间戳 | `NSPrivacyAccessedAPICategoryFileTimestamp` | `DDA9.1` `C617.1` `3B52.1` `0A2A.1` |
+| 系统启动时间 | `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` `8FFB.1` `3D61.1` |
+| 磁盘空间 | `NSPrivacyAccessedAPICategoryDiskSpace` | `85F4.1` `E174.1` `7D9E.1` `B728.1` |
+| 活动键盘 | `NSPrivacyAccessedAPICategoryActiveKeyboards` | `3EC4.1` `54CD.1` |
+| User Defaults | `NSPrivacyAccessedAPICategoryUserDefaults` | `CA92.1` `1C8F.1` `C56D.1` `AC6B.1` |
+
+高频对照（仍须核对官方允许用途后再声明）：
+- 只读写本 App 自己的 UserDefaults → `CA92.1`
+- 同一 App Group 内共享 UserDefaults → `1C8F.1`
+- 访问 App / App Group / CloudKit 容器内文件时间戳或大小 → `C617.1`
+- 向用户展示磁盘空间 → `85F4.1`
+- 写入前检查空间或空间不足时删除文件 → `E174.1`
+
+仅第三方 SDK 对其包装函数声明、宿主 App 不得拿来替代自身用途：`0A2A.1`、`B728.1`、`C56D.1`。系统启动时间各类 code 的出设备限制不同，必须按官方条文逐条核对。
+- 选错 code 可能通过上传校验，但仍违反使用规则，后续审核可能被拒。
 - 依赖升级时重新检查签名、privacy manifest 和 required-reason API 变化，并在 Archive 产物上验证最终聚合结果。
 
 ## ATT 追踪（AppTrackingTransparency）

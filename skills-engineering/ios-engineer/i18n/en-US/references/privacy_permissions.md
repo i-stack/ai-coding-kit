@@ -38,6 +38,25 @@ Use the key documented by the target SDK's framework. Calendar, reminders, and s
 ## Privacy Manifest and Required Reason API
 - Inspect `PrivacyInfo.xcprivacy` for the App and every third-party SDK shipped in the release. Declare collected data, purposes, tracking, and required-reason API uses.
 - Manifest declarations MUST match code, SDK behavior, the App Store Connect privacy questionnaire, and server data flows. A broad declaration is not a substitute for an actual inventory.
+- Declare Required Reason APIs under `NSPrivacyAccessedAPITypes` by category. Reason codes are case-sensitive and MUST match the real call sites. Permitted use, whether data may leave the device, and whether a code is SDK-only follow Apple's [Describing use of required reason API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api). This table records categories and codes only; it does not replace the official text. If Xcode or App Review reports an unknown code, follow the official link in that error.
+
+| Category | `NSPrivacyAccessedAPIType` | Reason codes |
+|----------|----------------------------|--------------|
+| File timestamp | `NSPrivacyAccessedAPICategoryFileTimestamp` | `DDA9.1` `C617.1` `3B52.1` `0A2A.1` |
+| System boot time | `NSPrivacyAccessedAPICategorySystemBootTime` | `35F9.1` `8FFB.1` `3D61.1` |
+| Disk space | `NSPrivacyAccessedAPICategoryDiskSpace` | `85F4.1` `E174.1` `7D9E.1` `B728.1` |
+| Active keyboard | `NSPrivacyAccessedAPICategoryActiveKeyboards` | `3EC4.1` `54CD.1` |
+| User Defaults | `NSPrivacyAccessedAPICategoryUserDefaults` | `CA92.1` `1C8F.1` `C56D.1` `AC6B.1` |
+
+High-frequency mapping (still verify the official permitted use before declaring):
+- App-only UserDefaults → `CA92.1`
+- UserDefaults shared in the same App Group → `1C8F.1`
+- File timestamps or size inside the App / App Group / CloudKit container → `C617.1`
+- Showing disk space to the user → `85F4.1`
+- Checking space before writing, or deleting files when space is low → `E174.1`
+
+SDK-wrapper codes that a host App MUST NOT use as a substitute for its own purpose: `0A2A.1`, `B728.1`, `C56D.1`. System boot time codes differ on whether derived timing may leave the device; check the official text per code.
+- A wrong code may pass upload validation and still violate the usage rules, which can fail later App Review.
 - Re-check signatures, privacy manifests, and required-reason API changes on dependency upgrades, and verify the aggregated result on the Archive product.
 
 ## ATT Tracking (AppTrackingTransparency)

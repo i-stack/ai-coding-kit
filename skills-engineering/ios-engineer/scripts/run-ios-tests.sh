@@ -114,22 +114,14 @@ fi
 echo "🏗️  Scheme:      ${SCHEME}"
 
 # --- 4. 确定 simulator ---
-SIMULATOR_ID="${SIMULATOR_ID:-}"
-SIMULATOR_NAME="${SIMULATOR_NAME:-}"
-SIMULATOR_PLATFORM="${SIMULATOR_PLATFORM:-}"
-if [ -z "$SIMULATOR_ID" ] && [ -n "${_yaml_udid:-}" ]; then
-    SIMULATOR_NAME="${_yaml_sim}"
-    SIMULATOR_ID="${_yaml_udid}"
-fi
-if [ -z "$SIMULATOR_ID" ]; then
-    if [ -z "$SIMULATOR_NAME" ] && [ -n "${_yaml_sim:-}" ]; then
-        SIMULATOR_NAME="${_yaml_sim}"
-    fi
-    DEST_LINES=$(xcodebuild -showdestinations ${XCB_FLAG} "$WORKSPACE" -scheme "$SCHEME" 2>/dev/null \
-        | grep '{' | grep 'Simulator' | grep 'id:' \
-        | grep -v 'unavailable' | grep -v 'placeholder' \
-        | grep -v 'Designed for' | grep -v 'macOS' || true)
-    PICKED=$(echo "$DEST_LINES" | awk -v want="$SIMULATOR_NAME" '
+_show_destinations() {
+    xcodebuild -showdestinations ${XCB_FLAG} "$WORKSPACE" -scheme "$SCHEME" 2>/dev/null || true
+}
+
+_parse_dest_fields() {
+    local want_name="$1"
+    local want_id="$2"
+    awk -v want_name="$want_name" -v want_id="$want_id" '
         function trim(s) { gsub(/^ +| +$/, "", s); return s }
         {
             name = ""; id = ""; plat = ""
@@ -137,40 +129,82 @@ if [ -z "$SIMULATOR_ID" ]; then
             if (match($0, /id:[A-Fa-f0-9-]+/)) id = substr($0, RSTART+3, RLENGTH-3)
             if (match($0, /platform:[^,}]+/)) plat = trim(substr($0, RSTART+9, RLENGTH-9))
             if (id == "") next
-            if (want != "" && name != want) next
+            if (want_id != "" && id != want_id) next
+            if (want_name != "" && name != want_name) next
             print id "\t" name "\t" plat
-        }')
-    if [ -z "$SIMULATOR_NAME" ]; then
-        IPHONE_PICK=$(echo "$PICKED" | awk -F'\t' '$2 ~ /^iPhone/ { print; exit }')
-        if [ -n "$IPHONE_PICK" ]; then
-            PICKED="$IPHONE_PICK"
-        else
-            PICKED=$(echo "$PICKED" | head -1)
+        }'
+}
+
+_pick_row() {
+    local rows="$1"
+    local prefer_iphone="$2"
+    if [ "$prefer_iphone" = "1" ]; then
+        local iphone_row
+        iphone_row=$(printf '%s\n' "$rows" | awk -F'\t' '$2 ~ /^iPhone/ { print; exit }')
+        if [ -n "$iphone_row" ]; then
+            printf '%s\n' "$iphone_row"
+            return
         fi
-    else
-        PICKED=$(echo "$PICKED" | head -1)
     fi
+    printf '%s\n' "$rows" | awk 'NF { print; exit }'
+}
+
+SIMULATOR_ID="${SIMULATOR_ID:-}"
+SIMULATOR_NAME="${SIMULATOR_NAME:-}"
+SIMULATOR_PLATFORM="${SIMULATOR_PLATFORM:-}"
+if [ -z "$SIMULATOR_ID" ] && [ -n "${_yaml_udid:-}" ]; then
+    SIMULATOR_NAME="${SIMULATOR_NAME:-${_yaml_sim:-}}"
+    SIMULATOR_ID="${_yaml_udid}"
+fi
+if [ -z "$SIMULATOR_NAME" ] && [ -n "${_yaml_sim:-}" ]; then
+    SIMULATOR_NAME="${_yaml_sim}"
+fi
+
+DEST_RAW=$(_show_destinations)
+DEST_SIM_LINES=$(printf '%s\n' "$DEST_RAW" | grep '{' | grep 'Simulator' | grep 'id:' \
+    | grep -v 'unavailable' | grep -v 'placeholder' \
+    | grep -v 'Designed for' | grep -v 'macOS' || true)
+DEST_ID_LINES=$(printf '%s\n' "$DEST_RAW" | grep '{' | grep 'id:' \
+    | grep -v 'unavailable' | grep -v 'placeholder' \
+    | grep -v 'Designed for' || true)
+
+if [ -z "$SIMULATOR_ID" ]; then
+    PICKED=$(_pick_row "$(_parse_dest_fields "$SIMULATOR_NAME" "" <<< "$DEST_SIM_LINES")" \
+        "$([ -z "$SIMULATOR_NAME" ] && echo 1 || echo 0)")
     SIMULATOR_ID=$(printf '%s\n' "$PICKED" | awk -F'\t' 'NR==1 { print $1 }')
     SIMULATOR_NAME=$(printf '%s\n' "$PICKED" | awk -F'\t' 'NR==1 { print $2 }')
     SIMULATOR_PLATFORM=$(printf '%s\n' "$PICKED" | awk -F'\t' 'NR==1 { print $3 }')
+fi
+
+if [ -n "$SIMULATOR_ID" ] && { [ -z "$SIMULATOR_PLATFORM" ] || [ -z "$SIMULATOR_NAME" ]; }; then
+    LOOKUP=$(_pick_row "$(_parse_dest_fields "" "$SIMULATOR_ID" <<< "$DEST_ID_LINES")" 0)
+    if [ -n "$LOOKUP" ]; then
+        if [ -z "$SIMULATOR_NAME" ]; then
+            SIMULATOR_NAME=$(printf '%s\n' "$LOOKUP" | awk -F'\t' 'NR==1 { print $2 }')
+        fi
+        if [ -z "$SIMULATOR_PLATFORM" ]; then
+            SIMULATOR_PLATFORM=$(printf '%s\n' "$LOOKUP" | awk -F'\t' 'NR==1 { print $3 }')
+        fi
+    fi
 fi
 
 if [ -z "$SIMULATOR_ID" ]; then
     echo "❌ 未找到与 scheme 匹配的 available Simulator destination${SIMULATOR_NAME:+: $SIMULATOR_NAME}"
     echo ""
     echo "   可用 destination:"
-    xcodebuild -showdestinations ${XCB_FLAG} "$WORKSPACE" -scheme "$SCHEME" 2>/dev/null | grep '{' | head -20 || true
+    printf '%s\n' "$DEST_RAW" | grep '{' | head -20 || true
     echo ""
     echo "   请指定 SIMULATOR_ID=<UDID> 或 SIMULATOR_NAME=<已安装模拟器名称>"
     echo "   不要改用 macOS destination 来跑 iOS/watchOS/tvOS 测试"
     exit 1
 fi
 
-if [ -z "$SIMULATOR_PLATFORM" ]; then
-    SIMULATOR_PLATFORM="iOS Simulator"
+if [ -n "$SIMULATOR_PLATFORM" ]; then
+    DEST="platform=${SIMULATOR_PLATFORM},id=${SIMULATOR_ID}"
+else
+    DEST="id=${SIMULATOR_ID}"
 fi
-DEST="platform=${SIMULATOR_PLATFORM},id=${SIMULATOR_ID}"
-echo "📱 Simulator:   ${SIMULATOR_NAME:-unknown} (${SIMULATOR_ID})"
+echo "📱 Destination: ${SIMULATOR_NAME:-unknown} (${SIMULATOR_ID}${SIMULATOR_PLATFORM:+, $SIMULATOR_PLATFORM})"
 
 # --- 5. 确定测试类 ---
 TEST_CLASS="${1:-${CLASS:-}}"

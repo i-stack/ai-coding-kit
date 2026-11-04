@@ -24,9 +24,66 @@
 
 ## ViewModel Template
 Applicable to:
-- UIKit MVVM
-- SwiftUI state-driven pages
+- SwiftUI state-driven pages (Observation by default)
+- UIKit MVVM / iOS 16 and below (ObservableObject)
 - List, form, detail page state orchestration
+
+> Version prerequisite: iOS 17+ / Swift 5.9+ uses `@Observable`; the view holds the instance with `@State`. iOS 16 and below, or a UIKit Combine path, uses `ObservableObject` + `@Published`.
+
+iOS 17+ Observation:
+
+```swift
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class FeatureViewModel {
+    private(set) var viewState: ViewState = .idle
+
+    private let useCase: FeatureUseCaseProtocol
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+
+    init(useCase: FeatureUseCaseProtocol) {
+        self.useCase = useCase
+    }
+
+    deinit {
+        loadTask?.cancel()
+    }
+
+    func load() {
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            self.viewState = .loading
+
+            do {
+                let output = try await self.useCase.execute()
+                guard !Task.isCancelled else { return }
+                self.viewState = .loaded(output)
+            } catch is CancellationError {
+                return
+            } catch {
+                self.viewState = .failed(.from(error))
+            }
+        }
+    }
+}
+
+extension FeatureViewModel {
+    enum ViewState: Equatable {
+        case idle
+        case loading
+        case loaded(FeatureOutput)
+        case failed(ViewError)
+    }
+}
+```
+
+SwiftUI ownership: `@State private var viewModel = FeatureViewModel(useCase: useCase)`. Do not let `loadTask` participate in Observation tracking; mark it `@ObservationIgnored`.
+
+iOS 16 and below / UIKit Combine:
 
 ```swift
 import Combine

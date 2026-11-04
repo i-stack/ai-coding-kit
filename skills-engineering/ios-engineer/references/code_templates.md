@@ -21,9 +21,66 @@
 
 ## ViewModel 模板
 适用于：
-- UIKit MVVM
-- SwiftUI 状态驱动页面
+- SwiftUI 状态驱动页面（默认 Observation）
+- UIKit MVVM / iOS 16 及以下（ObservableObject）
 - 列表、表单、详情页状态编排
+
+> 版本前提：iOS 17+ / Swift 5.9+ 用 `@Observable`；视图持有实例用 `@State`。iOS 16 及以下或 UIKit Combine 路径用 `ObservableObject` + `@Published`。
+
+iOS 17+ Observation：
+
+```swift
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class FeatureViewModel {
+    private(set) var viewState: ViewState = .idle
+
+    private let useCase: FeatureUseCaseProtocol
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+
+    init(useCase: FeatureUseCaseProtocol) {
+        self.useCase = useCase
+    }
+
+    deinit {
+        loadTask?.cancel()
+    }
+
+    func load() {
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            self.viewState = .loading
+
+            do {
+                let output = try await self.useCase.execute()
+                guard !Task.isCancelled else { return }
+                self.viewState = .loaded(output)
+            } catch is CancellationError {
+                return
+            } catch {
+                self.viewState = .failed(.from(error))
+            }
+        }
+    }
+}
+
+extension FeatureViewModel {
+    enum ViewState: Equatable {
+        case idle
+        case loading
+        case loaded(FeatureOutput)
+        case failed(ViewError)
+    }
+}
+```
+
+SwiftUI 持有方式：`@State private var viewModel = FeatureViewModel(useCase: useCase)`。不要把 `loadTask` 放进 Observation 跟踪；用 `@ObservationIgnored`。
+
+iOS 16 及以下 / UIKit Combine：
 
 ```swift
 import Combine
