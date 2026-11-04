@@ -96,11 +96,7 @@ case "$cmd" in
     fi
     NAME="$(python3 -c "import sys,json;print(json.loads(sys.argv[1])['name'])" "$FM")"
     DESC="$(python3 -c "import sys,json;print(json.loads(sys.argv[1])['description'])" "$FM")"
-    # 版本：ios-engineer 取 active_version，否则 local
     VERSION="local"
-    if [ -f "${SRC}/evolution/active_version.json" ]; then
-      VERSION="$(python3 -c "import json;print(json.load(open('${SRC}/evolution/active_version.json')).get('active_version','local'))" 2>/dev/null || echo local)"
-    fi
     DEST="${OUT_DIR}/${SKILL}"
     rm -rf "$DEST"; mkdir -p "$DEST"
     # agentskills.io 布局：SKILL.md + 随技能分发的支持目录（references/ scripts/
@@ -113,22 +109,6 @@ case "$cmd" in
     for subdir in references scripts templates examples assets agents; do
       [ -d "${SRC}/${subdir}" ] && cp -R "${SRC}/${subdir}" "$DEST/${subdir}"
     done
-    # 自校验（scripts/validate.sh --quick / --scenarios）依赖的演进工具链最小必要子集。
-    # 不复制整个 evolution/（含 490+ history 文件，会使 bundle 臃肿且含仓库内部演进历史），
-    # 仅复制运行校验所需的：active_version.json、scenarios/，并保留空的演进工作目录结构。
-    if [ -d "${SRC}/evolution" ]; then
-      mkdir -p "${DEST}/evolution"
-      [ -f "${SRC}/evolution/active_version.json" ] && cp "${SRC}/evolution/active_version.json" "${DEST}/evolution/active_version.json"
-      [ -d "${SRC}/evolution/scenarios" ] && cp -R "${SRC}/evolution/scenarios" "${DEST}/evolution/scenarios"
-      # 演进工作目录：保留空结构，避免校验/工具因目录缺失而失败。
-      # usage.jsonl 是运行时生成的用量账本，bundle 内创建空文件以满足
-      # references 中的 ../evolution/usage/usage.jsonl 链接（避免自校验断链）。
-      for wd in proposals validations approvals; do
-        mkdir -p "${DEST}/evolution/${wd}"
-      done
-      mkdir -p "${DEST}/evolution/usage"
-      : > "${DEST}/evolution/usage/usage.jsonl"
-    fi
     for extra in AGENT-BRIEF.md OUT-OF-SCOPE.md; do
       [ -f "${SRC}/${extra}" ] && cp "${SRC}/${extra}" "$DEST/${extra}"
     done

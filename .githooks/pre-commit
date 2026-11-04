@@ -4,11 +4,7 @@
 # Guards every staged change that touches a skill contract or a cross-skill
 # coordination file under skills-engineering/:
 #
-#   Governed skills (shipping an evolution/ dir — currently ios-engineer):
-#     SKILL.md / references/*.md changes must be bound to a staged evolution
-#     proposal whose approval record is staged or already committed.
-#
-#   All skills (governed or not):
+#   All skills:
 #     SKILL.md / AGENT-BRIEF.md / OUT-OF-SCOPE.md / references/*.md changes
 #     must pass the mechanical structure gate
 #     (scripts/validate-skill-structure.sh <skill>) and the DH-002 banned-phrase
@@ -20,19 +16,16 @@
 #
 # Deletions (diff-filter D) are in scope too: a deleted contract file must
 # still satisfy the gates — validated by its absence (a deleted SKILL.md FAILS
-# the structure gate; a deleted references/*.md must still satisfy the
-# governance proposal requirement).
+# the structure gate; a deleted references/*.md must not leave dangling links).
 #
 # Partial staging is rejected: validators read the worktree, so a guarded file
 # must be staged exactly as it exists in the worktree (unstaged diff empty),
 # otherwise gates could pass against a worktree "fixed" copy while the commit
 # ships the stale staged version.
 #
-# Bypass modes (in order of severity):
-#   MINOR_CHANGE=1  — Skip proposal/approval for trivial changes (typos,
-#                     comments, formatting). Logs and stages minor-changes.log.
-#   SKILL_BYPASS=1  — Full bypass for emergencies. Must be documented
-#                     in commit message.
+# Bypass mode:
+#   SKILL_BYPASS=1  — Skip every gate for emergencies. Must be documented in the
+#                     commit message.
 
 set -uo pipefail
 
@@ -46,8 +39,8 @@ SCRIPTS_DIR="${SE_DIR}/scripts"
 
 # Deletions are in scope too: removing a contract file must not bypass the
 # gates. Validators read the worktree, so a deleted file is validated by its
-# absence (a deleted SKILL.md must FAIL; a deleted reference must still satisfy
-# the governance/proposal requirement).
+# absence (a deleted SKILL.md must FAIL; a deleted reference must not leave
+# dangling links in SKILL.md).
 changed_files="$(git diff --cached --name-only --diff-filter=ACMRD)"
 deleted_files="$(git diff --cached --name-only --diff-filter=D)"
 
@@ -76,7 +69,7 @@ partial=0
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   if [ -n "$(git -C "${ROOT}" diff --name-only -- "$f")" ]; then
-    echo "skill-evolution pre-commit: ⚠ partially staged guarded file: ${f}" >&2
+    echo "skill-gate pre-commit: ⚠ partially staged guarded file: ${f}" >&2
     echo "  (worktree differs from the staged version; stage it fully: git add ${f})" >&2
     partial=1
   fi
@@ -98,7 +91,7 @@ if [ -n "$guarded_paths" ]; then
       # must FAIL the structure gate — it must not be silently skipped by the
       # missing-file guard below.
       if printf '%s\n' "$deleted_files" | grep -qx "${skill_dir}/SKILL.md"; then
-        echo "skill-evolution pre-commit: ⚠ ${skill_dir}/SKILL.md is being DELETED — a skill's entry document must not be removed without an explicit structure-gate override." >&2
+        echo "skill-gate pre-commit: ⚠ ${skill_dir}/SKILL.md is being DELETED — a skill's entry document must not be removed without an explicit structure-gate override." >&2
         echo "  (Restore the file, or set SKILL_BYPASS=1 for emergencies only.)" >&2
         failures=$((failures + 1))
       fi
@@ -106,9 +99,9 @@ if [ -n "$guarded_paths" ]; then
     fi
     skill="$(basename "${skill_dir}")"
 
-    echo "skill-evolution pre-commit: structure gate for ${skill}..."
+    echo "skill-gate pre-commit: structure gate for ${skill}..."
     if ! bash "${SCRIPTS_DIR}/validate-skill-structure.sh" "${skill}" >&2; then
-      echo "skill-evolution pre-commit: ⚠ ${skill} FAILED structure validation." >&2
+      echo "skill-gate pre-commit: ⚠ ${skill} FAILED structure validation." >&2
       failures=$((failures + 1))
     fi
 
@@ -117,9 +110,9 @@ if [ -n "$guarded_paths" ]; then
       | grep -E "^${skill_dir}/(SKILL|AGENT-BRIEF|OUT-OF-SCOPE)\.md$" || true)"
     while IFS= read -r f; do
       [ -z "$f" ] && continue
-      echo "skill-evolution pre-commit: DH-002 doc-hygiene scan for ${f}..."
+      echo "skill-gate pre-commit: DH-002 doc-hygiene scan for ${f}..."
       if ! bash "${SCRIPTS_DIR}/validate-doc-hygiene.sh" "${ROOT}/${f}" >&2; then
-        echo "skill-evolution pre-commit: ⚠ ${f} FAILED DH-002 banned-phrase scan." >&2
+        echo "skill-gate pre-commit: ⚠ ${f} FAILED DH-002 banned-phrase scan." >&2
         failures=$((failures + 1))
       fi
     done <<EOF
@@ -128,120 +121,15 @@ EOF
   done
 fi
 
-# ─── 2. Governed-skill governance gate (proposal + approval) ─────────────────
-# A skill is "governed" when it ships an evolution/ dir. This gate enforces the
-# proposal/approval workflow; every skill (governed or not) still passes through
-# the mechanical gates in section 1.
-for evolution_dir in "${SE_DIR}"/*/evolution; do
-  [ -d "${evolution_dir}" ] || continue
-  skill="$(basename "$(dirname "${evolution_dir}")")"
-  PREFIX="skills-engineering/${skill}"
-
-  guarded="$(printf '%s\n' "$changed_files" | grep -E "^${PREFIX}/(SKILL\.md|references/.+\.md)$" || true)"
-  [ -z "$guarded" ] && continue
-
-  # --- Minor change path: log and skip proposal requirement ---------------------
-  if [ "${MINOR_CHANGE:-0}" = "1" ]; then
-    MINOR_LOG="${PREFIX}/evolution/minor-changes.log"
-    if ! mkdir -p "$(dirname "${ROOT}/${MINOR_LOG}")"; then
-      echo "skill-evolution pre-commit: failed to create minor-change log directory." >&2
-      exit 1
-    fi
-    timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-    reason="${MINOR_CHANGE_REASON:-pre-commit: commit message unavailable; set MINOR_CHANGE_REASON for audit context}"
-
-    if ! {
-      echo "---"
-      echo "timestamp: ${timestamp}"
-      printf 'reason: "%s"\n' "${reason//\"/\\\"}"
-      echo "files:"
-      printf '%s\n' "$guarded" | sed 's/^/  - /'
-    } >> "${ROOT}/${MINOR_LOG}"; then
-      echo "skill-evolution pre-commit: failed to write ${MINOR_LOG}." >&2
-      exit 1
-    fi
-
-    if ! git add "${MINOR_LOG}"; then
-      echo "skill-evolution pre-commit: failed to stage ${MINOR_LOG}." >&2
-      exit 1
-    fi
-
-    count=$(printf '%s\n' "$guarded" | grep -c .)
-    echo "skill-evolution pre-commit: MINOR_CHANGE=1 — logged ${count} file(s) to ${MINOR_LOG}"
-    echo "  (No proposal/approval required for trivial changes)"
-    continue
-  fi
-
-  # --- Standard path: require proposal + approval -------------------------------
-  staged_proposals="$(printf '%s\n' "$changed_files" \
-    | grep -E "^${PREFIX}/evolution/proposals/[0-9]{8}-[0-9]{6}-[A-Za-z0-9_-]+\.md$" || true)"
-
-  if [ -z "$staged_proposals" ]; then
-    {
-      echo "skill-evolution pre-commit: SKILL.md or references/ changed in ${skill} without a staged evolution proposal."
-      echo "Guarded changes:"
-      printf '%s\n' "$guarded" | sed 's/^/  - /'
-      echo ""
-      echo "Options:"
-      echo "  1. Stage an approved evolution proposal in the same commit"
-      echo "  2. Set MINOR_CHANGE=1 for trivial changes (typos, comments, formatting)"
-      echo "  3. Set SKILL_BYPASS=1 for emergencies only"
-    } >&2
-    failures=$((failures + 1))
-    continue
-  fi
-
-  deleted_files="$(git diff --cached --name-only --diff-filter=D)"
-
-  missing_approvals=""
-  while IFS= read -r proposal; do
-    [ -z "$proposal" ] && continue
-
-    # 删除态提案不要求审批记录：--diff-filter=ACMRD 会让 GC 回收的历史提案也进入
-    # changed_files，但审批约束的是新增/修改提案；删除提案不改动技能契约内容，
-    # 由 promote 的 GC 自动执行，向其索要 approval 会误报并阻断正常晋升提交。
-    if printf '%s\n' "$deleted_files" | grep -qx "$proposal"; then
-      continue
-    fi
-
-    proposal_id="$(basename "$proposal" .md)"
-    approval_path="${PREFIX}/evolution/approvals/${proposal_id}.json"
-
-    if printf '%s\n' "$changed_files" | grep -qx "$approval_path"; then
-      continue
-    fi
-
-    if git ls-files --error-unmatch "$approval_path" >/dev/null 2>&1; then
-      continue
-    fi
-
-    missing_approvals="${missing_approvals}${approval_path}
-"
-  done <<EOF
-$staged_proposals
-EOF
-
-  if [ -n "${missing_approvals%$'\n'}" ]; then
-    {
-      echo "skill-evolution pre-commit: staged proposals in ${skill} lack approval records."
-      printf '%s' "$missing_approvals" | sed 's/^/  - /'
-      echo ""
-      echo "Run bash ${PREFIX}/scripts/approve-skill-promotion.sh and stage the resulting approval JSON,"
-      echo "or set SKILL_BYPASS=1 to bypass (emergencies only)."
-    } >&2
-    failures=$((failures + 1))
-  fi
-done
-
 # ─── 3. Cross-skill coordination gate ────────────────────────────────────────
 # .agents/*.md (invocation/composition matrices) and source-truth.json shape
 # cross-skill consistency (trigger matrix coverage, i18n mirrors, rule-id
 # ownership). These are not owned by any single skill's structure gate, so the
 # cross-skill behavior/consistency validator runs when they change.
 if [ -n "$coord_changed" ]; then
-  echo "skill-evolution pre-commit: cross-skill behavior/consistency gate (triggered by .agents/source-truth change)..."
+  echo "skill-gate pre-commit: cross-skill behavior/consistency gate (triggered by .agents/source-truth change)..."
   if ! bash "${SCRIPTS_DIR}/validate-skill-behavior.sh" >&2; then
-    echo "skill-evolution pre-commit: ⚠ cross-skill behavior/consistency validation FAILED." >&2
+    echo "skill-gate pre-commit: ⚠ cross-skill behavior/consistency validation FAILED." >&2
     failures=$((failures + 1))
   fi
 fi
@@ -249,7 +137,7 @@ fi
 # ─── Summary ─────────────────────────────────────────────────────────────────
 if [ "$failures" -gt 0 ]; then
   echo "" >&2
-  echo "skill-evolution pre-commit: ${failures} gate(s) failed." >&2
+  echo "skill-gate pre-commit: ${failures} gate(s) failed." >&2
   echo "Resolve the issues above, or set SKILL_BYPASS=1 to bypass (emergencies only)." >&2
   exit 1
 fi

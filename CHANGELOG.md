@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-11-04
+
+- **移除 ios-engineer 的 evolution 演进体系（全删）**: 删除 `ios-engineer/evolution/`（3.9M / 569 文件，含 v66–v75 十份完整快照、proposals、approvals、validations、usage 账本、11 个行为场景规格）、26 个演进专用脚本（提案/审批/晋升/回滚/GC/账本/场景回放等）、`references/` 下的 `rule_index.md`、`self_evolution.md`、`usage_ledger.md`、`validation_scenarios.md` 及对应 en-US 镜像、`tests/test_ios_engineer_scripts.py`、docs 的 `rule-index.md` 页面。依据：仪式成本常驻（每次改 `SKILL.md` / `references/*.md` 需提案 + 校验 + 审批三份产物）而收益低频（历史快照/提案/审批与 git tag、commit message、PR review 高度重叠），且 `evolution/` 从不进入市场包（workbuddy 打包本就排除），删除对已上架技能零影响。
+- **守卫与 CI 同步收缩**: `.githooks/pre-commit` 删除「治理门（提案+审批）」段，保留部分暂存检查、结构门、DH-002 卫生门与跨技能协调门，提示前缀改为 `skill-gate pre-commit:`；删除 `.githooks/post-commit`（evolution GC）；`validate.yml` 删除 rule-id / scenario-specs / usage-ledger / 14 步 evolution 校验四个步骤，改为运行全仓结构校验。`MINOR_CHANGE` 绕过模式随治理门一并移除，仅保留 `SKILL_BYPASS`。
+- **`validate-skill-behavior.sh` Check 2 语义调整**: 规则 ID 双向一致性检查需 `references/rule_index.md` 作为 active 行登记面；不提供注册表的 skill 现显式 `[skip]` 并打印原因（不再静默通过），其余 skill 行为不变。ios-engineer 的规则 ID 改为在 `SKILL.md` 内声明、细则写在其指向的 reference。
+- **文档与打包侧同步**: 根 `README.md`、`skills-engineering/README.md`（演进工作流 → 变更流程；校验章节改为机械门禁表）、`CONTRIBUTING.md`（提案流程 → 结构门/卫生门/基线刷新，治理体系速览重写）、`docs/index.md` 与 `docs/ios-engineer/*`、`doc-hygiene` 的 DH-003（变更过程去处收敛为 CHANGELOG + commit message）、`skill-bundles.sh`（去掉 evolution 复制与版本读取）、`workbuddy` 的 catalog/README 均同步。`agent-preamble` 模板不再要求加载 `rule_index.md`。
+- **基线刷新**: `skills-engineering/.integrity/ios-engineer.sha256` 随内容变更重算；`validate-skill-integrity.sh` 的 `evolution/` 排除规则保留（对不存在的目录无副作用）。
+
 ## 2026-09-24
 
 - **problem-analysis 契约对齐**：`description` / `SKILL.md` / `invocation.md` 统一为「含判断即默认加载」，不依赖用户说出「第一性原理 / 深层需求 / 问题偏差」。PA-002 写入事实/推理分流（与 GR-013 同边界）；PA-003 写成静默 / 出块后作答 / 停确认三态。`问题分析` 块字段钉死为「逻辑检验 / 真实需求 / 路径评估」，`docs/problem-analysis.md` 与细则同 schema。补 `references/rule_index.md` 供 composition 裁决；相邻 skill 表补 plan-grill、CAM、GR-013、GR-002。CAM owner 指向 `cognitive-reasoning`。en-US 镜像保持 experimental，locale 声明与源一致。

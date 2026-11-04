@@ -20,21 +20,16 @@
 - 「owner 纠正 / 抽象归属倒置 / 此前承载 / 之前承载 / 现由 / 现已 / 不再由 X 承载」
 - 「我们做了 / 本轮 / 已重构为 / 改为」等第一/第二人称的变更主语
 
-**例外**：`evolution/history/**` 是不可变的历史快照，本规则不适用；CHANGELOG.md / proposals 本就是变更记录，本规则不适用。
+**例外**：`CHANGELOG.md` 本就是变更记录，本规则不适用。
 
 ## DH-003：变更过程记入专门去处
 
-所有「为什么变、变了什么、谁批准」**至少**进以下其一（按 skill 类型选择可用去处）：
+所有「为什么变、变了什么、谁批准」**至少**进以下其一：
 
-- 有 `evolution/` 树的 skill（如 `ios-engineer`）：
-  - `evolution/proposals/*.md` + `validations/*.json` + `approvals/*.json`（受控演进审计）
-  - `evolution/history/v*/`（不可变快照）
-- **所有** skill 均可用的去处（无 `evolution/` 树时此为唯一合规去处）：
-  - 仓库根 `CHANGELOG.md`（用户可见的变更摘要；路径为 repo 根，非 `skills-engineering/CHANGELOG.md`）
-- 兜底去处（任一上述去处不便时仍合法，但不应作为唯一去处）：
-  - git commit message（含 why/what/who-approved；CI 无法读取，故仅作兜底）
-
-> 触发本 skill 的典型场景是**全局 skill 的重构**（如 CAM 真值归属迁移）。此类 skill 通常**没有** `evolution/` 树，因此合规路径是「仓库根 `CHANGELOG.md`」或「git commit message 兜底」。DH-003 不要求全局 skill 自建 `evolution/` 树即可合规。
+- 主去处：仓库根 `CHANGELOG.md`（用户可见的变更摘要；路径为 repo 根，非 `skills-engineering/CHANGELOG.md`）
+- 兜底去处（主去处不便时仍合法，但不应作为唯一去处）：
+  - git commit message（含 why/what；CI 无法读取，故仅作兜底）
+  - PR 描述（团队评审场景）
 
 文档正文零负责变更叙事；只反映上述流程落地后的**结果状态**。
 
@@ -51,4 +46,4 @@
 在输出/提交任何文档改动前，逐条确认：
 1. 正文无 DH-002 关键词。
 2. 若读者是 Agent，它读到的只是「现在该读谁、依赖闭包是什么、指向哪」——无需知道历史。
-3. 若确有变更需要交代，确认它进了 CHANGELOG / evolution，而非文档正文。
+3. 若确有变更需要交代，确认它进了 CHANGELOG 或 commit message，而非文档正文。

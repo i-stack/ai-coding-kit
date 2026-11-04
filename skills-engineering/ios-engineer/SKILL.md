@@ -58,7 +58,7 @@ depends_on: [cognitive-reasoning]
 - 分流时先按主关键词过 ROUTE 表，再用每条的 TRIGGER / SKIP 锚点确认；锚点对仅用于消歧，不替代主关键词与 ref 主读链。
 
 ### 症状导航
-先按用户描述的直接症状选入口；命中后再回到下方任务分流确定主读与追加 ref。规则 ID 索引见 [rule_index.md](references/rule_index.md)。
+先按用户描述的直接症状选入口；命中后再回到下方任务分流确定主读与追加 ref。
 
 <!-- 下方 TRIGGER/SKIP 关键词刻意保持中英双语，以匹配中文与英文用户的提问 -->
 
@@ -125,9 +125,6 @@ depends_on: [cognitive-reasoning]
 - [ROUTE-017] **复杂任务剧本**（升级判据见 `### 路由优先级`）：剧本涵盖 接手遗留页面 / 反复偶现 Crash 系统排查 / 性能专项 / 并发架构迁移 / 大型重构落地；先选 [execution_playbooks.md](references/execution_playbooks.md) 对应剧本，再按剧本引用的主读 ref 展开。
   - TRIGGER：「接手遗留页面 / 性能专项 / 反复偶现 crash / 并发架构迁移 / 大型重构 / legacy page handover / performance deep-dive / intermittent crash / concurrency architecture migration / large-scale refactoring」；满足以下任一（定性）跨多日 / 跨多模块 / 已尝试常规排障无果 / 需要分阶段落地，或任一（定量）会话已加载 ≥ 5 份 ref 未解决 / 改动跨 ≥ 3 个独立模块 / 同一问题跨 ≥ 2 轮未解决 / 预估改动 ≥ 50 行跨 ≥ 3 个文件。
   - SKIP：单点问题 / 单 ref 即可解决 → 走对应 ROUTE-001~016；仅"问题复杂"或"涉及多个 ref"不算升级条件。
-- [ROUTE-018] **Skill 自进化 / 规则缺失冲突退役 / Skill 验证场景**：主读 [self_evolution.md](references/self_evolution.md)；具体场景规格或回放追加 [validation_scenarios.md](references/validation_scenarios.md)。
-  - TRIGGER：「skill / 规则缺失 / 规则冲突 / 验证场景 / 提案 / 自进化 / rule gap / rule conflict / validation scenario / proposal / self-evolution」；元工程 / SkillOps 维护任务。
-  - SKIP：是业务问题答法 → 走 ROUTE-001~017。
 - [ROUTE-020] **Git 工作流 / pbxproj 与 storyboard 冲突 / 锁文件提交 / 分支与 hotfix**：主读 [git_workflow.md](references/git_workflow.md)；涉及 PR 拆分与 ownership 追加 [team_collaboration.md](references/team_collaboration.md)；涉及 CI / 发布 tag 追加 [build_release_and_ci.md](references/build_release_and_ci.md)。
   - TRIGGER：「pbxproj 冲突 / storyboard 合并 / Podfile.lock 或 Package.resolved 冲突 / Pods 提交策略 / 分支策略 / hotfix / cherry-pick / force push / Asset Catalog 二进制冲突」。
   - SKIP：仅源码合并冲突不涉及 Xcode 工程文件 → ROUTE-015；构建配置 / CI 根因 → ROUTE-013；通用 PR 拆分 → ROUTE-015。

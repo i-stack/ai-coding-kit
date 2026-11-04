@@ -127,7 +127,15 @@ for skill_dir in skills:
     # ios-engineer's references (which would let a non-iOS skill's id be silently
     # backstopped). Result: a skill that declares `[GR-999]` in SKILL.md but never
     # defines it in references/ now correctly FAILs.
-    owned_ids = RULE_BULLET.findall(skill_text)
+    # A skill ships its rule IDs either through a registry (references/rule_index.md,
+    # whose `| ID | active |` rows are the structured definition anchor) or inline in
+    # SKILL.md only. The bidirectional registry check needs the registry to compare
+    # against, so a skill without one is skipped explicitly (never silently passed).
+    if not os.path.isfile(os.path.join(refs_dir, "rule_index.md")):
+        print("  [skip] no references/rule_index.md — rule-id registry check not applicable")
+        owned_ids = []
+    else:
+        owned_ids = RULE_BULLET.findall(skill_text)
     # Expand any range shorthand `PREFIX-START~END` into individual ids so the
     # bidirectional check validates every id, not just the long-form ones.
     expanded_ids = []

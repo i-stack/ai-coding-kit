@@ -52,10 +52,10 @@ zip 内顶层必须是技能目录，`SKILL.md` 要在技能根的下一级直�
 - 包内可解析 → 保持/重写为相对路径；
 - 指向内联依赖（`../../cognitive-reasoning/references/x.md`）→ 改写到 `references/dep-<dep>--x.md`；
 - 指向 companion 文件（`../AGENT-BRIEF.md`）→ 落到 `references/`；
-- 指向包外且包内没有（`../scripts/...`、`../evolution/...`）→ 降级为行内代码，保留标签文本，不留死链。
+- 指向包外且包内没有（`../scripts/...`、`../i18n/...`）→ 降级为行内代码，保留标签文本，不留死链。
 
-根目录白名单只有 `SKILL.md + references/ scripts/ templates/`，其余（含 `evolution/`、
-`i18n/`、`docs/`）一律不进包。
+根目录白名单只有 `SKILL.md + references/ scripts/ templates/`，其余（含 `i18n/`、
+`agents/`、`docs/`）一律不进包。
 
 ## 三、命令
 
@@ -192,6 +192,6 @@ team 形态的成员 Agent 文件齐全、`skills` 路径均存在且各自通�
 
 - 新增上架技能：在 `catalog.json` 的 `skills` 下加一条，`enabled: true`，补齐展示名、
   中英简介、中英示例、定价建议、依赖。
-- 改版本号：改 `catalog.json` 的 `version`（仓库内部 `evolution/active_version.json` 不上架）。
+- 改版本号：改 `catalog.json` 的 `version`。
 - 改触发语义：改源 `SKILL.md` 的 `description`，重新 `build` 即生效。
 - 临时下架：该条 `enabled: false`，`build --all` 会跳过。

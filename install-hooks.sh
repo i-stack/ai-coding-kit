@@ -3,8 +3,7 @@
 #
 # Registers the root .githooks/ directory with this clone:
 #   - pre-commit:  skill contract guards for ALL skills (structure / DH-002 /
-#                  governance-proposal for evolution/ skills / cross-skill)
-#   - post-commit: evolution history GC (keep latest KEEP_RECENT snapshots)
+#                  cross-skill)
 #   - pre-push:    skill-sync chain + sync/scripts/sync_all.sh (MCP + Codex shared)
 #
 # Run this once per clone:

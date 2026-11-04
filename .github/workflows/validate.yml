@@ -29,21 +29,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq ripgrep ruby > /dev/null
 
-      - name: Validate Rule IDs
-        run: bash scripts/validate-rule-ids.sh
-
-      - name: Validate Scenario Specs
-        run: bash scripts/validate-scenario-specs.sh
-
       - name: Audit Reference Freshness
         run: |
           STALE_MONTHS=12 CRITICAL_MONTHS=18 bash scripts/audit-ref-freshness.sh
 
-      - name: Validate Usage Ledger
-        run: bash scripts/validate-usage-ledger.sh
-
-      - name: Run full skill evolution validation
-        run: |
-          SKIP_SNAPSHOT_CONSISTENCY=1 \
-          SKIP_BEHAVIOR_VALIDATION=1 \
-          bash scripts/validate-skill-evolution.sh
+      - name: Validate references and links
+        run: bash ../scripts/validate-skill-structure.sh ios-engineer

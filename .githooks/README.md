@@ -16,20 +16,17 @@ bash install-hooks.sh
 
 1. **结构门（所有技能）**：任何 `SKILL.md` / `AGENT-BRIEF.md` / `OUT-OF-SCOPE.md` /
    `references/*.md` 变更必须通过 `validate-skill-structure.sh`（frontmatter、行数、
-   链接、孤儿引用、rule_index 元数据）。
+   链接、孤儿引用）。
 2. **DH-002 卫生门（所有技能）**：变更的运行期入口文档须通过
    `validate-doc-hygiene.sh` 禁用词扫描。
-3. **治理门（含 `evolution/` 目录的技能，当前为 ios-engineer）**：
-   `SKILL.md` / `references/*.md` 变更必须与 staged proposal 绑定，且
-   proposal 的 approval 记录必须已 stage 或已提交。
-4. **跨技能协调门**：`.agents/*.md`（invocation/composition 矩阵）或
+3. **跨技能协调门**：`.agents/*.md`（invocation/composition 矩阵）或
    `source-truth.json` 变更须通过 `validate-skill-behavior.sh` 一致性校验。
 
-`MINOR_CHANGE=1` 可跳过治理门（仅治理技能生效），`SKILL_BYPASS=1` 跳过全部。
+`SKILL_BYPASS=1` 跳过全部守卫（仅限紧急修复）。
 
 **删除与部分暂存同样受守卫**：删除状态（`git diff --cached --diff-filter=D`）
-同样触发门禁（删除 `SKILL.md` FAIL 结构门；删除 `references/*.md` 仍须满足
-治理门）；守卫文件禁止部分暂存（staged 版本必须与工作树一致）。
+同样触发门禁（删除 `SKILL.md` FAIL 结构门；删除 `references/*.md` 不得留下
+悬空链接）；守卫文件禁止部分暂存（staged 版本必须与工作树一致）。
 
 ## pre-push — 推送前强制同步并校验
 

@@ -77,7 +77,7 @@ problem-analysis 完成后，对每个非平凡构建、修改或方案请求执
 
 本文件是**用户级通用纪律**载体，只承载与语言/平台无关的规则。iOS / Android / Web / 后端等平台专属技能**不在此内联**，改由对应 SKILL 的门控按需加载：
 
-- 遇到 iOS / Swift / SwiftUI / UIKit / Xcode 任务 → 加载 `ios-engineer` SKILL（SKILL.md + references/rule_index.md 中 `status=active` 的 IR / SYM / ROUTE / OUT 条目）。
+- 遇到 iOS / Swift / SwiftUI / UIKit / Xcode 任务 → 加载 `ios-engineer` SKILL（SKILL.md 的路由与 IR / SYM / ROUTE / OUT 声明 + 其指向的 references/ 细则）。
 - Android / Web / 后端等同理，由各自 SKILL.md 门控触发。
 
 平台专属全文（含使用规则、审计块等重内容）只在该技能**确被命中**时展开，不进用户级 preamble，避免无关平台文本污染所有项目。项目级 `.cursor/rules/<skill>.mdc` 由 `sync-agent-preamble.sh` 按探测到的项目类型生成，做到「iOS 项目才含 ios-engineer，web 项目才含 web-engineer」。

@@ -37,7 +37,7 @@
       "pricing": { "mode": "subscription", "cny": 29, "note": "Swift / Xcode 版本知识需持续更新，适合订阅" },
       "deps": ["cognitive-reasoning", "engineering-discipline"],
       "include": ["references"],
-      "notes": "ios-engineer/scripts/、evolution/、i18n/、agents/ 为仓库治理与本地化资产，不属于运行期知识，不上架；平台仅支持 根/二级目录/文件 三段路径，依赖内联拍平为 references/dep-<dep>--*.md；references 中对 ../scripts、../evolution 的链接在打包时降级为纯文本。"
+      "notes": "ios-engineer/scripts/、i18n/、agents/ 为仓库工具与本地化资产，不属于运行期知识，不上架；平台仅支持 根/二级目录/文件 三段路径，依赖内联拍平为 references/dep-<dep>--*.md；references 中对 ../scripts 的链接在打包时降级为纯文本。"
     },
     "cognitive-reasoning": {
       "route_hint": "论证质量、隐藏假设、最强反驳、认知拓展",
@@ -223,8 +223,8 @@
       "version": "1.0.0",
       "display_name": "文档卫生",
       "display_name_en": "Doc Hygiene",
-      "description_zh": "文档只写最终态事实：禁止把迁移过程、owner 纠正、历史承载写进 .md 正文，变更过程一律进 CHANGELOG / evolution。",
-      "description_en": "Keep docs in final-state voice: no migration narratives or change-process prose in .md bodies — the process belongs in CHANGELOG / evolution.",
+      "description_zh": "文档只写最终态事实：禁止把迁移过程、owner 纠正、历史承载写进 .md 正文，变更过程一律进 CHANGELOG。",
+      "description_en": "Keep docs in final-state voice: no migration narratives or change-process prose in .md bodies — the process belongs in CHANGELOG.",
       "examples_zh": [
         "帮我把这篇文档改成最终态表述",
         "检查这段文档有没有过程叙事",

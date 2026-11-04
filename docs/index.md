@@ -17,13 +17,13 @@ hero:
 features:
   - icon: 🧠
     title: Agent Skills Engineering
-    details: Define skills once, sync to Claude Code, Codex CLI, Cursor, Gemini CLI, CodeBuddy, Continue, Cline, and Xcode Coding Assistant — with structured evolution governance.
+    details: Define skills once, sync to Claude Code, Codex CLI, Cursor, Gemini CLI, CodeBuddy, Continue, Cline, and Xcode Coding Assistant — with mechanical contract gates.
   - icon: ⚙️
     title: MCP Config Sync
     details: Single source of truth for MCP servers, API keys, and model settings. Auto-render to each platform's native config format.
   - icon: 🍎
     title: iOS Engineering Rules
-    details: Production-grade Swift / SwiftUI / UIKit rules with 40+ rule IDs, symptom routing, task triage, and auto-evolution — maintained by an Agent Skill system.
+    details: Production-grade Swift / SwiftUI / UIKit rules with 40+ rule IDs, symptom routing and task triage — maintained by an Agent Skill system.
   - icon: 🔒
     title: Global Engineering Discipline
     details: Six global skills spanning security compliance, epistemic integrity, logical reasoning, cognitive expansion, and problem analysis — apply to any platform.
@@ -74,7 +74,7 @@ npm install -g @i-stack/ai-coding-kit
 
 | Module | Description |
 |--------|------------|
-| **skills-engineering/** | Agent Skill content, multi-platform sync, governed evolution |
+| **skills-engineering/** | Agent Skill content, multi-platform sync, contract validation |
 | **sync/** | MCP config sync engine — injects secrets, renders to native formats. See [Platform Sync Contract](/platform-sync-contract) for API sync ownership rules |
 | **env/** | Config data source (secrets + MCP definitions + platform configs) |
 | **hooks/** | Project hooks (xmcp init, etc.) |
