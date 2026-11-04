@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-07 -->
+<!-- last-verified: 2026-11 -->
 # App Extensions Engineering Specification
 
 > This is an English mirror of the authoritative Chinese `references/app_extensions.md`.
@@ -6,28 +6,28 @@
 
 ## Usage Rules
 - This file MUST be used when dealing with Widget (WidgetKit), Share Extension, Watch App, Siri Intent, Notification Content Extension, or Action Extension.
-- Extensions run in independent processes and do NOT share memory space with the main App; data sharing MUST go through App Group or Keychain Group.
+- An Extension does not share in-process state with its containing App. Share files or preferences with an App Group; share credentials with a Keychain Access Group. Exact capabilities depend on the extension point and entitlements.
 - Default output: "Type Selection → Data Sharing → Lifecycle → Build Configuration → Verification" five sections.
 
 ## Widget (WidgetKit / iOS 14+)
-- Use `TimelineProvider` to drive refresh: `snapshot` (preview) → `timeline` (real data) → `placeholder` (placeholder).
-- The `date` field of `TimelineEntry` determines when to display and when to refresh; after the `Timeline` `policy` expiration, the system requests new data.
-- `WidgetFamily` (systemSmall / systemMedium / systemLarge / accessory*) determines display size and content area; each family MUST have a corresponding view.
-- Network requests are made within `getTimeline` and MUST complete within the Extension's memory budget (~30MB iOS 17+); continuous retries are NOT allowed.
+- `TimelineProvider` supplies `placeholder(in:)`, `getSnapshot(in:completion:)`, and `getTimeline(in:completion:)` separately. They correspond to placeholder, a temporary snapshot, and a timeline request; they are not a fixed call order.
+- `TimelineEntry.date` is when that entry starts displaying. Later reloads are jointly decided by timeline entries, `TimelineReloadPolicy`, and WidgetKit's system budget; the App cannot guarantee an exact refresh time.
+- `WidgetFamily` decides display size and content area. Declare only the families you actually support and adapt the view with `widgetFamily`. Do not implement families you did not declare.
+- `getTimeline` may do controlled async fetches, but MUST finish quickly, cap decode/image memory peaks, and provide cache/placeholder fallback. Extension budgets are managed dynamically by the system; do not hardcode a memory ceiling or retry continuously.
 - Communication with main App: use `UserDefaults(suiteName:)` (App Group) for lightweight data; for large or structured data, use shared container file URLs.
 - Tapping Widget opens main App: use `widgetURL(_:)` or `Link(destination:)` for deep links; `systemSmall` supports only a single `widgetURL`; multiple targets require `systemMedium` or `systemLarge`.
 
 ## Share Extension
 - Receives `NSExtensionItem` arrays; attachment types are `NSItemProvider`, supporting text, URLs, images, videos, etc.
 - MUST share UserDefaults / file URLs with main App via App Group; cannot directly access main App's sandbox directory.
-- Lifecycle: user taps "Share" → Extension view opens → user completes action (post / save) → Extension closes; not Suspended during this period.
-- UI must not be too heavy — Extension memory limit is strict (~120MB), and user cannot exit before completing the action.
+- Lifecycle is managed by the host and the system. After the user completes or cancels, call the extension context complete/cancel APIs. The extension may be terminated; do not depend on the process staying alive.
+- Keep UI and data processing light, control image/video decode peaks, and release resources promptly. Persist in-progress state so it can be recovered; do not rely on a fixed memory number.
 
 ## Watch App
 - watchOS apps run in independent processes; communication with iPhone uses `WCSession` (WatchConnectivity).
-- `WCSession.sendMessage(_:replyHandler:errorHandler:)` is real-time communication (only when both watch and iPhone are foreground); `transferUserInfo(_:)` / `updateApplicationContext(_:)` for background sync.
+- `WCSession.sendMessage(_:replyHandler:errorHandler:)` is appropriate for immediate messages when the counterpart is reachable; both sides being in the foreground is not the only condition. `transferUserInfo(_:)` / `updateApplicationContext(_:)` are for system-scheduled background transfer and latest-state sync.
 - Watch persistence is independent of iPhone; data to sync is coordinated via WCSession + shared container.
-- Watch app performance requirements are strict: frontend interaction latency < 200ms, memory limit is very small (~60-120MB depending on model).
+- Watch apps must control launch, interaction latency, memory, and energy. Thresholds come from the target device matrix and measured baselines, not a cross-model fixed memory cap.
 
 ## Cross-Target Data Sharing
 | Sharing Method | Use Case | Limitations |
@@ -39,7 +39,7 @@
 
 ## Build Configuration
 - Each Extension Target MUST have its own Provisioning Profile and Bundle ID (typically `com.example.app.widget`).
-- Debug builds must select the correct Scheme (main App vs Extension); Extensions cannot run independently.
+- For debug builds, select the matching Extension scheme and configure an appropriate host to launch debugging. An extension cannot provide a complete runtime experience without its host.
 - App Group capability MUST be enabled in both main App and Extension entitlements with matching group identifiers.
 
 ## Common Anti-Patterns

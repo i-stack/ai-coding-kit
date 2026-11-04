@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-11 -->
 # Git 工作流（iOS 工程特化）
 
 ## 目录
@@ -33,7 +33,7 @@
 - 团队约束建议：单个 storyboard 限制为单 Feature owner；多人改同一 storyboard 必须串行；新页面优先 SwiftUI 或独立 xib 而非塞入大 storyboard。
 
 ### Asset Catalog / 二进制资源
-- 大图、字体、视频不进 git，走 Git LFS 或独立资源仓 + SPM resource bundle；进 git 的资源必须先压缩、统一规格（@2x / @3x 命名固定）。
+- 大型或高频变更的二进制资源应按仓库体积、clone 成本和构建链选择 Git LFS、独立资源仓或资源包；体积可控且需要随源码原子发布的资源可以直接进 git。入库前统一压缩、授权与命名规格。
 - 二进制资源冲突时不存在"自动合并"，唯一策略：双方协商保留哪份，删另一份。
 
 ## 依赖与锁文件提交策略
@@ -44,8 +44,9 @@
 - 选项一旦确定写进 README，团队所有人保持一致；中途切换必须一次性全员清理本地 Pods + 切换 .gitignore。
 
 ### SPM
-- `Package.resolved` **必须**提交（Xcode 工程下放在 `*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/`）。冲突时优先以**更新的版本**为准并本地 `Resolve Package Versions` 复核；不得手 merge 该文件 hash。
-- 私有 SPM 依赖必须用版本锁定（exact / from），禁止 `branch: "main"`，否则锁文件无法保证可复现。
+- App、可执行产品和需要可复现构建的工作区通常提交 `Package.resolved`；可复用 library package 是否提交按发布与 CI 策略决定。文件位置随 Xcode project/workspace 或 SwiftPM 使用方式变化，不依赖单一路径。
+- `Package.resolved` 冲突先确认目标分支的 `Package.swift`、Xcode package requirement 与兼容约束，再删除冲突标记并让同一工具链重新 resolve；以构建和测试通过的依赖图为准，不按“版本更新”简单取舍，也不手工拼 revision hash。
+- 私有 SPM 依赖优先使用语义化版本范围或 `exact` requirement；`from` 是版本范围，不等同锁定。长期依赖可复现性由 requirement、`Package.resolved`、制品可用性和 CI 工具链共同保证；仅临时集成才使用 branch requirement，并记录退出条件。
 
 ### 混合（Pods + SPM）
 - 两边版本求并集，避免同一 lib 双源装载；冲突表现为「编译能过但运行时符号冲突 / 启动慢」。

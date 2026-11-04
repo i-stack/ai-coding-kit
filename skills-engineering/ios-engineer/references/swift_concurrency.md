@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-05 -->
+<!-- last-verified: 2026-11 -->
 # Swift 并发架构
 
 ## 适用场景
@@ -9,6 +9,7 @@
 - 任务取消、状态同步、并发 Bug 排查
 
 ## 总原则
+- 先声明 Swift language mode、Strict Concurrency Checking 和 deployment target；Swift 6 模式下按完整数据竞争安全规则审查，Swift 5 模式下也不能把警告当作可忽略问题。
 - 把并发问题理解为“隔离、所有权、取消、顺序”问题，而不是“线程切换技巧”问题。
 - 必须使用结构化并发。
 - UI 状态和 UI 更新必须受 `@MainActor` 约束。

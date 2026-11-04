@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-07 -->
+<!-- last-verified: 2026-11 -->
 # Push Notifications Engineering Specification
 
 > This is an English mirror of the authoritative Chinese `references/notifications.md`.
@@ -16,18 +16,18 @@
 - During cold start, if `registerForRemoteNotifications()` is not called in `didFinishLaunching`, the token may be expired and unable to refresh.
 
 ## Payload Structure
-- APNs payload top-level `aps` dictionary is system-reserved; business data goes under custom keys, NOT at the same level as `aps` (to avoid future field conflicts).
+- The top-level APNs `aps` dictionary holds only Apple-defined notification fields; custom business keys MUST be siblings of `aps` and use a stable namespace so they are not confused with system fields. Payloads MUST NOT carry unencrypted sensitive data.
 - `mutable-content: 1` + Notification Service Extension allows rich media attachment processing (images / videos / audio), but processing timeout is ~30 seconds; `contentHandler` MUST be called promptly in `didReceive(_:withContentHandler:)`.
 - Silent push (`content-available: 1`) does NOT guarantee delivery ordering; do NOT rely on its ordering for business logic.
 
 ## Route Navigation
 - Notification tap navigation should NOT hardcode route mapping in `AppDelegate` / `SceneDelegate`; instead, use `route` / `deepLink` fields in the notification payload to drive navigation.
 - When user taps a historical notification, the target content may have been removed; route handling MUST defend against invalid deep links.
-- When notification arrives while App is in foreground, banner is NOT shown by default; need `UNUserNotificationCenterDelegate.presentationOptions` to return `.banner` / `.list` / `.sound` / `.badge`.
+- When a notification arrives while the App is in the foreground, a banner is NOT shown by default; return `.banner` / `.list` / `.sound` / `.badge` from `userNotificationCenter(_:willPresent:withCompletionHandler:)` (or the corresponding async delegate method).
 
 ## Notification Extensions
 - Notification Service Extension runs in an independent process; shared files or `UserDefaults(suiteName:)` require App Group; accessing shared Keychain items requires both main App and Extension to configure the same Keychain Access Group — do NOT assume App Group is sufficient for Keychain sharing.
-- Extension memory is limited (~24MB iOS 15+); when handling large images or videos, prefer passing URLs over raw data.
+- Extension memory and execution-time budgets are managed dynamically by the system; do not design against a fixed MB cap. When handling large images or videos, control decode peaks, call the content handler promptly, and prefer downloading to a temporary file URL before creating an attachment instead of holding raw data.
 - Notification Content Extension is for customizing the expanded notification UI; its lifecycle is managed by the system; do NOT initiate long-running network requests within it.
 
 ## Common Anti-Patterns
@@ -41,4 +41,4 @@
 - [ ] Rich media push (mutable-content) completes processing within 30 seconds in Extension.
 - [ ] Notification tap routing handles invalid/expired deep links.
 - [ ] Foreground notification presentation behavior matches expectations (banner / no banner).
-- [ ] Extension crash rate < 0.1%.
+- [ ] Extension crash rate, timeout rate, and attachment-processing success rate have project baselines and release gates; thresholds come from product SLOs and production data.

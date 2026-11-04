@@ -1,9 +1,9 @@
-<!-- last-verified: 2026-07 -->
+<!-- last-verified: 2026-11 -->
 # 隐私权限工程规范
 
 ## 使用规则
 - 涉及定位、相机、相册、麦克风、通讯录、HealthKit、ATT 追踪、本地网络等受保护权限时必须使用本文件。
-- 每个权限必须补充对应的 `Info.plist` 描述文案（`*UsageDescription` key），缺漏将导致审核拒绝或运行时 crash。
+- 访问受保护资源前必须确认该 API 所需的 entitlement、capability、Privacy Manifest 和 `Info.plist` purpose string；缺少必需 purpose string 的 API 访问可能触发运行时终止或审核问题。不是所有授权状态都对应 `*UsageDescription` key。
 - 默认输出"权限类型 → 请求时机 → 拒绝降级 → plist 文案 → 审核风险"五段。
 
 ## 权限请求最佳实践
@@ -24,12 +24,24 @@
 | 通讯录 | `NSContactsUsageDescription` | 用于邀请好友 |
 | ATT 追踪 | `NSUserTrackingUsageDescription` | 用于为您提供个性化广告 |
 | 蓝牙 | `NSBluetoothAlwaysUsageDescription` | 用于连接智能设备 |
+| 本地网络 | `NSLocalNetworkUsageDescription` | 用于发现并连接同一局域网内的设备 |
+| Face ID | `NSFaceIDUsageDescription` | 用于验证身份并保护账户操作 |
+| 语音识别 | `NSSpeechRecognitionUsageDescription` | 用于将语音内容转换为文字 |
+| HealthKit 读取 | `NSHealthShareUsageDescription` | 用于读取用户明确选择的健康数据 |
+| HealthKit 写入 | `NSHealthUpdateUsageDescription` | 用于保存用户确认的健康数据 |
+
+具体 key 以目标 SDK 中对应 framework 文档为准；日历、提醒事项等 key 可能随 SDK 演进而细分，不能凭记忆复用旧 key。
+
+## Privacy Manifest 与 Required Reason API
+- App 与纳入发布包的第三方 SDK 都要检查 `PrivacyInfo.xcprivacy`；声明实际收集的数据、用途、tracking 与 required-reason API 使用原因。
+- manifest 声明必须与代码、SDK 行为、App Store Connect 隐私问卷和服务端数据流一致；不能用宽泛声明替代实际盘点。
+- 依赖升级时重新检查签名、privacy manifest 和 required-reason API 变化，并在 Archive 产物上验证最终聚合结果。
 
 ## ATT 追踪（AppTrackingTransparency）
 - iOS 14.5+ 必须通过 `ATTrackingManager.requestTrackingAuthorization` 获取用户授权后才能获取 IDFA。
 - ATT 弹窗只允许出现一次系统弹窗（苹果限制）；如果 dismissed 后想再弹，必须从系统设置的对应 app 页面手动操作。
 - ATT 状态为 `notDetermined` 时调用 `requestTrackingAuthorization` 会触发系统弹窗；`denied` 状态下再次调用不会触发弹窗（直接返回 denied），不应依赖弹窗覆盖来重新申请。
-- 建议：在 ATT 弹窗前先弹一个 pre-permission 说明弹窗，告知用户为什么需要追踪，提升授权率。
+- 可在不误导、不施压且不模拟系统弹窗的前提下提供上下文说明；pre-permission 不是 ATT 的系统要求，也不能承诺一定提升授权率。
 
 ## 审核拒审风险
 - 缺少对应的 `*UsageDescription` key 会导致访问隐私 API 时运行时崩溃。
@@ -40,5 +52,5 @@
 ## 常见反模式
 - 在 `viewDidLoad` 或 `init` 中同步请求权限——必须响应用户行为。
 - 使用被拒绝权限的功能时直接 assert / fatalError——必须给出降级路径。
-- ATT 弹窗在启动时直接弹出而无 pre-permission 说明——审核可拒。
+- 在缺少用户上下文时启动即请求 ATT，或用奖励、阻断功能、误导性文案诱导授权——体验差并可能触发审核问题。
 - 缺少 `NSLocationWhenInUseUsageDescription` 而只配置了 `Always`——定位功能直接不可用。
