@@ -6,6 +6,7 @@
 - **prompt-optimizer 契约对齐**：入口与详规统一为四文件归档（`QUESTION.md` / `CLARIFICATION.md` / `OPTIMIZED.md`，`PROMPT-OPTIMIZATION.md` 仅存一行标题）；POPT-005 写明确认前不回答原问题；盘问委托范围为 `plan-grill` PG-000~PG-003（不委托 PG-004）；触发词以 SKILL.md「入口语义」为准；POPT-004 字段名为目标 / 上下文 / 具体要求 / 期望输出；`references/` 两份文档的 `last-verified` 更新为 2026-11，详规「真值来源」写明各端副本由 `scripts/sync-skills.sh` 同步。刷新 `skills-engineering/.integrity/prompt-optimizer.sha256`。
 - **prompt-optimizer 补齐行为契约**：POPT-005 增加固定确认锚点与「用户显式跳过确认」例外（仍须展示优化稿、标注「未确认假设」、基于优化稿作答；改写改变对象或事实前提时硬否决）；POPT-002 与 HR-004 对齐（历史澄清结论仅作待验证线索，据此跳过盘问须标注来源）；POPT-004 增加改写验收判据与改写示例；POPT-006 的 `OPTIMIZED.md` 容纳确认版 / 修正版 / 豁免确认版，`CLARIFICATION.md` 记录豁免。`behavior-evals/scenarios.json` 增加 5 个 prompt-optimizer 场景，`invocation.md` 触发词行补上位词，`workbuddy/catalog.json` 上架示例与触发词对齐。刷新 `skills-engineering/.integrity/prompt-optimizer.sha256` 并同步 CodeBuddy 端副本。
 - **prompt-optimizer 补盘问链路行为门禁**：`behavior-evals/scenarios.json` 增加 3 个场景（阻塞性歧义须一次一问且同轮不改写、无歧义不得盘问、非阻塞歧义须标「未澄清假设」）；详规 POPT-003 显式写明盘问输出沿用 `plan-grill` 的 `Q: / 推荐: / 理由:` 格式且「问完即停」。刷新 `skills-engineering/.integrity/prompt-optimizer.sha256` 并同步 CodeBuddy 端副本。
+- **prompt-optimizer 收口测试可验证性**：详规 POPT-003 增加 PG-000 第②项「逐字段替换测试」判据与正反例表，判否项须写「未澄清假设」；`plan-reviews/tests/search.test.ts` 增加离线向量检索单测（cosine 排序 / limit / threshold / planId 过滤 / 空向量忽略），使语义召回的检索链路在无 embedding 账号时可验证；`behavior-evals/run.py` 对单个 Agent 调用的超时或异常单独记录为 `exit_code=1`，不再中断整批，使 `evaluate.py` 能归类为 infrastructure_failure；同步 prompt-optimizer 契约到 Claude / Codex / Gemini / CodeBuddy 四端。刷新 `skills-engineering/.integrity/prompt-optimizer.sha256`。
 
 ## 2026-11-04
 

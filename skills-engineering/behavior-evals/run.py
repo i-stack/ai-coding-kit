@@ -35,9 +35,15 @@ def main() -> int:
     with args.output.open("w", encoding="utf-8") as stream:
         for scenario in scenarios:
             started = time.monotonic()
-            proc = subprocess.run(command(args.agent, scenario["prompt"]), cwd=ROOT, stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=args.timeout, check=False)
-            failures += int(proc.returncode != 0)
-            record = {"id":scenario["id"],"agent":args.agent,"output":proc.stdout,"stderr":proc.stderr,"exit_code":proc.returncode,"latency_ms":round((time.monotonic()-started)*1000)}
+            try:
+                proc = subprocess.run(command(args.agent, scenario["prompt"]), cwd=ROOT, stdin=subprocess.DEVNULL, text=True, capture_output=True, timeout=args.timeout, check=False)
+                stdout, stderr, exit_code = proc.stdout, proc.stderr, proc.returncode
+            except subprocess.TimeoutExpired:
+                stdout, stderr, exit_code = "", f"timeout after {args.timeout}s", 1
+            except OSError as exc:
+                stdout, stderr, exit_code = "", f"agent invocation failed: {exc}", 1
+            failures += int(exit_code != 0)
+            record = {"id":scenario["id"],"agent":args.agent,"output":stdout,"stderr":stderr,"exit_code":exit_code,"latency_ms":round((time.monotonic()-started)*1000)}
             stream.write(json.dumps(record, ensure_ascii=False)+"\n"); stream.flush()
     return 1 if failures else 0
 

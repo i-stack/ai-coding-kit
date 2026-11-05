@@ -8,6 +8,7 @@ import { clusterSimilarChunks } from "../src/merge.js";
 import { parseReviewLog, scanPlansDir } from "../src/parser.js";
 import type { EmbeddedChunk } from "../src/types.js";
 import { CURRENT_SCHEMA_VERSION, migrateIndex } from "../src/migrations.js";
+import { VectorIndex, cosineSimilarity } from "../src/vector.js";
 
 const tempRoots: string[] = [];
 
@@ -558,3 +559,45 @@ function writeCheckpoint(
 	fs.writeFileSync(path.join(dir, "CHECKPOINT.md"), content);
 	return dir;
 }
+
+describe("VectorIndex semantic ranking (offline, no embedding API)", () => {
+	const makeIndex = () => {
+		const index = new VectorIndex();
+		index.add("near", "plan-a", "goal", "订单查询接口偶发超时 P99 3s", [1, 0.2, 0]);
+		index.add("mid", "plan-a", "approach", "登录接口限流 Redis 按 IP", [0.6, 0.8, 0]);
+		index.add("far", "plan-b", "goal", "与查询无关的文档", [0, 0, 1]);
+		return index;
+	};
+
+	it("ranks chunks by cosine similarity to the query vector", () => {
+		const results = makeIndex().search([1, 0, 0], { scoreThreshold: 0.1 });
+		expect(results.map((r) => r.chunkId)).toEqual(["near", "mid"]);
+		expect(results[0].score).toBeGreaterThan(results[1].score);
+		expect(results[0].text).toContain("P99 3s");
+	});
+
+	it("applies limit, threshold and planId filters", () => {
+		const index = makeIndex();
+		expect(index.size).toBe(3);
+		expect(index.search([1, 0, 0], { limit: 1 })).toHaveLength(1);
+		expect(index.search([1, 0, 0], { scoreThreshold: 0.9 })).toHaveLength(1);
+		expect(index.search([0, 0, 1], { planId: "plan-a" })).toHaveLength(2);
+	});
+
+	it("ignores chunks without embeddings on load", () => {
+		const index = new VectorIndex();
+		index.load([
+			{ id: "empty", planId: "p", section: "goal", text: "no vector", embedding: [] },
+			{ id: "filled", planId: "p", section: "goal", text: "has vector", embedding: [1, 0] },
+		] as unknown as EmbeddedChunk[]);
+		expect(index.size).toBe(1);
+	});
+
+	it("computes cosine similarity and guards invalid vectors", () => {
+		expect(cosineSimilarity([1, 0], [1, 0])).toBeCloseTo(1);
+		expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0);
+		expect(cosineSimilarity([1, 0], [-1, 0])).toBeCloseTo(-1);
+		expect(cosineSimilarity([0, 0], [1, 0])).toBe(0);
+		expect(() => cosineSimilarity([1], [1, 0])).toThrow(/dimension mismatch/i);
+	});
+});
