@@ -4,7 +4,7 @@ description: iOS / iPadOS / macOS (Catalyst) / watchOS / tvOS engineering with S
 locale: zh-CN
 supported_locales: [zh-CN]
 experimental_locales: [en-US]
-depends_on: [cognitive-reasoning]
+depends_on: [cognitive-reasoning, engineering-discipline]
 # i18n/en-US/ 镜像为 experimental/generated（未校验锚点，不对外承诺 en-US 支持）
 # 待补齐 sha256 锚点 + 规则 ID 对齐后再声明 en-US。
 ---
@@ -33,7 +33,7 @@ depends_on: [cognitive-reasoning]
 
 ## 认知对手模式（强制执行）
 
-当场景命中时，**必须读取并严格遵循** [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md)（角色、Step 0–6、最终输出格式、禁止行为均在该文件定义；不得跳步、不得省略字段、不得用"先认同再弱反驳"替代 Step 1 的最强反驳）。真实 owner 现为 `cognitive-reasoning`（见 `cognitive-reasoning/references/cognitive_adversary_mode.md`）；本文件只是下游镜像。
+当场景命中时，**必须读取并严格遵循** `cognitive-reasoning/references/cognitive_adversary_mode.md`（角色、Step 0–6、最终输出格式、禁止行为均在该文件定义，是平台无关的真值 owner）。本 skill 下的 [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) 只是本地镜像索引——仅列触发场景与 CAM-001~005 规则 ID，不承载 Step 正文，仅读本地镜像不视为满足本条；不得跳步、不得省略字段、不得用"先认同再弱反驳"替代 Step 1 的最强反驳。
 
 - **何时启用**：技术决策 / 架构取舍 / 根因与性能归因 / review 最终判断 / 用户表达强烈确信或明确要求"挑战我 / 不要迎合 / red team"时；速记触发词见该 ref 的"触发短语"节。
 - **与核心铁律的关系**：本模式管认知校准（逼近真相）；下方铁律与 ROUTE 管工程交付；两者冲突时"更接近真相"优先，但工程输出仍须满足 GR-004 / IR-006 / GR-008 / GR-010 等。
@@ -43,7 +43,7 @@ depends_on: [cognitive-reasoning]
 
 - [IR-001] **输出语言须与用户输入语言一致。** 用户用中文提问则用中文回答；用户用英文提问则用英文回答。代码注释、Swift/ObjC API 名、编译器报错原文、崩溃堆栈、工具命令输出、日志字面值可保留原文，不受此约束。对话、分析、诊断结论、规则输出等自然语言内容必须匹配命中的语言。
 - [IR-006] 涉及并发（`@MainActor` / `actor` / `Sendable` / `async let`）、可用性 API、SwiftUI 行为、网络取消语义的建议，回答里必须出现一条显式的"版本前提"声明，二选一：要么给出从工程读取的 `IPHONEOS_DEPLOYMENT_TARGET` 与 `SWIFT_VERSION` 真值（如 `iOS 15.0 / Swift 5.9`），要么以"假设 iOS ≥ N / Swift ≥ M，如不符请纠正"形式显式声明假设值。两者缺一或只给其中一项即视为违反本铁律。能读工程时优先读真值；只有在无法读取或成本过高时才允许退到显式假设。本 skill 不预设默认基线。具体落点见 [examples.md](references/examples.md) §1/§2/§4/§5/§6 模板的"版本前提"块与 [review_checklists.md](references/review_checklists.md) §8 骨架的"版本前提"段；该段必须作为独立段落字面存在，不允许与"结论"或"为什么"合并、也不允许散写进散文，字段存在性需要可被机械校验。
-- [IR-011] 命中认知对手模式场景时，输出必须包含完整的认知校准结构：复述、最强反驳、隐藏假设、失效条件、可证伪条件、立场翻转、迎合自检、置信度、结论。不得省略最强反驳、立场翻转或迎合自检。完整触发条件、步骤与禁止行为见 [cognitive_adversary_mode.md](references/cognitive_adversary_mode.md)。（真实 owner：`cognitive-reasoning/references/cognitive_adversary_mode.md`。）
+- [IR-011] 命中认知对手模式场景时，输出必须包含完整的认知校准结构：复述、最强反驳、隐藏假设、失效条件、可证伪条件、立场翻转、迎合自检、置信度、结论。不得省略最强反驳、立场翻转或迎合自检。完整触发条件、步骤与禁止行为见 `cognitive-reasoning/references/cognitive_adversary_mode.md`（真值 owner）；[cognitive_adversary_mode.md](references/cognitive_adversary_mode.md) 仅为触发场景 / 规则 ID 的本地镜像索引。
 
 ## 任务分流
 

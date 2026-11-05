@@ -1,10 +1,10 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-11 -->
 <!-- mirror-of: ../../cognitive-reasoning/references/cognitive_adversary_mode.md -->
 <!-- owner: cognitive-reasoning -->
 
-# 认知对手模式（Cognitive Adversary Mode）— 镜像
+# 认知对手模式（Cognitive Adversary Mode）— 路由索引
 
-> **真值来源**：本文是 `cognitive-reasoning/references/cognitive_adversary_mode.md` 的**镜像**，避免内容分叉。冲突时以 `../../cognitive-reasoning/references/cognitive_adversary_mode.md` 字面为准。
+> **真值来源**：完整 Step 0–6、输出格式和禁止行为位于 `../../cognitive-reasoning/references/cognitive_adversary_mode.md`。本文只提供 iOS 场景路由和规则 ID 索引，不可替代真值正文。
 
 详见：`../../cognitive-reasoning/references/cognitive_adversary_mode.md`
 

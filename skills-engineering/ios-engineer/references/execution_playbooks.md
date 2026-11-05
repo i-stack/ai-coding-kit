@@ -7,7 +7,7 @@
 - 不得跳过“取证、边界、验证”三步。
 - 默认只展开当前选中的一个剧本，不并行套用多个剧本。
 - 输出时优先保留“当前在哪一步、下一步做什么、最终要验证什么”，不把整份剧本全文复述给用户。
-- 任何剧本若涉及并发模型、可用性 API、SwiftUI 行为或迁移建议，进入步骤 1 前必须先确认 `IPHONEOS_DEPLOYMENT_TARGET` 与 `SWIFT_VERSION`；版本未知时不得给具体 API 选择或并发模式建议。
+- 任何剧本若涉及并发模型、可用性 API、SwiftUI 行为或迁移建议，进入步骤 1 前优先读取 `IPHONEOS_DEPLOYMENT_TARGET` 与 Swift language mode / toolchain；无法读取时可以基于显式版本假设给出条件式建议，并把版本确认列入验证项。
 
 > 排障类剧本同时遵守 [root_cause_enforcement.md](root_cause_enforcement.md) 根因纪律；并发 / 重构 / 迁移类剧本同时遵守 [migration_strategy.md](migration_strategy.md) 风险门禁。
 

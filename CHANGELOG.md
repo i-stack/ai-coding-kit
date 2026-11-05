@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-05
+
+- **ios-engineer references 规则校准**：完整审核 30 份 iOS reference，保留既有路由与输出契约，统一区分平台事实、安全硬约束、项目默认和启发式建议。性能阈值改为刷新率 / 设备矩阵 / 项目基线；根因纪律允许有观测、回滚和退出条件的生产止血；并发规则允许有 owner 的生命周期根任务及经证明的锁/串行执行器；DTO/ViewState/错误分层支持按复杂度裁剪；Review 阻塞、迁移兼容层、测试轮次、团队 ownership 和工具预算均改为风险分级。同步校准 WidgetKit、MetricKit、Core Data、APNs、StoreKit 与 Privacy Manifest 的时效语义，并将 CAM 文件明确为路由索引。
+- **prompt-optimizer 契约对齐**：入口与详规统一为四文件归档（`QUESTION.md` / `CLARIFICATION.md` / `OPTIMIZED.md`，`PROMPT-OPTIMIZATION.md` 仅存一行标题）；POPT-005 写明确认前不回答原问题；盘问委托范围为 `plan-grill` PG-000~PG-003（不委托 PG-004）；触发词以 SKILL.md「入口语义」为准；POPT-004 字段名为目标 / 上下文 / 具体要求 / 期望输出；`references/` 两份文档的 `last-verified` 更新为 2026-11，详规「真值来源」写明各端副本由 `scripts/sync-skills.sh` 同步。刷新 `skills-engineering/.integrity/prompt-optimizer.sha256`。
+- **prompt-optimizer 补齐行为契约**：POPT-005 增加固定确认锚点与「用户显式跳过确认」例外（仍须展示优化稿、标注「未确认假设」、基于优化稿作答；改写改变对象或事实前提时硬否决）；POPT-002 与 HR-004 对齐（历史澄清结论仅作待验证线索，据此跳过盘问须标注来源）；POPT-004 增加改写验收判据与改写示例；POPT-006 的 `OPTIMIZED.md` 容纳确认版 / 修正版 / 豁免确认版，`CLARIFICATION.md` 记录豁免。`behavior-evals/scenarios.json` 增加 5 个 prompt-optimizer 场景，`invocation.md` 触发词行补上位词，`workbuddy/catalog.json` 上架示例与触发词对齐。刷新 `skills-engineering/.integrity/prompt-optimizer.sha256` 并同步 CodeBuddy 端副本。
+- **prompt-optimizer 补盘问链路行为门禁**：`behavior-evals/scenarios.json` 增加 3 个场景（阻塞性歧义须一次一问且同轮不改写、无歧义不得盘问、非阻塞歧义须标「未澄清假设」）；详规 POPT-003 显式写明盘问输出沿用 `plan-grill` 的 `Q: / 推荐: / 理由:` 格式且「问完即停」。刷新 `skills-engineering/.integrity/prompt-optimizer.sha256` 并同步 CodeBuddy 端副本。
+
 ## 2026-11-04
 
 - **修正 ios-engineer 技术 references**: 校准 APNs 自定义字段层级、WidgetKit provider 语义、Extension 动态资源预算、SwiftData 默认容器与隔离模型、StoreKit 2 权益恢复/交易完成/优惠类型、隐私清单与 purpose string；修复 SwiftUI/Observation/actor 模板、SPM 冲突处理、跨 Apple 平台 destination 选择和模拟器/真机验证边界。10 份 zh reference 与对应 en-US 镜像的 `last-verified` 更新为 2026-11。`run-ios-tests.sh` 自动发现改为按 `-showdestinations` 选择 available Simulator，不再写死 iPhone 16；仅有 UDID 时从 destination 解析 platform，解析不到则只用 `id=`，不默认 `iOS Simulator`。Privacy Manifest 补齐 Required Reason API 五类 type key 与 reason code：活动键盘为 `54BD.1`；SDK 包装码仅 `0A2A.1` / `C56D.1`；`B728.1` 仅健康研究 App；并写明系统启动时间 `35F9.1` / `8FFB.1` / `3D61.1` 的出设备限制。允许用途以 Apple 官方条文为准。ViewModel 模板默认 `@Observable`，`ObservableObject` 作为 iOS 16 / UIKit Combine 兼容路径。刷新 `skills-engineering/.integrity/ios-engineer.sha256`，并补齐已提交但基线滞后的 `doc-hygiene.sha256`。

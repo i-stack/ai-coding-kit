@@ -22,7 +22,7 @@
 ### project.pbxproj 冲突
 - 根因：pbxproj 是单文件 plist，新增文件、调整 Build Phase、修改 Capabilities 都会写入同一文件，多人并行改最易冲突。
 - 三级处理顺序（从轻到重）：
-  1. **小冲突**：手动按 UUID + isa 字段对齐，保留双方新增节点；用 `xcodeproj` Ruby gem 或 `xUnique` 之类工具规整后再 diff 复核。
+  1. **小冲突**：手动按 UUID + isa 字段对齐，保留双方新增节点；如团队已有受维护且兼容当前 Xcode 工程格式的工程文件工具，可规整后再 diff 复核，不临时引入未经验证的工具处理唯一工程副本。
   2. **中冲突**：双方在 Xcode 关闭工程的前提下用 `git checkout --ours` / `--theirs` 选一边，再把另一边变更手动重做（新增文件重新拖入 / 重新勾 Target Membership）。
   3. **不可解**：作为冲突预防，团队约定「新增文件 / 改 Build Phase 的 PR 串行合入」，长期方案是迁向 SPM + 模块化以减少根 pbxproj 改动。
 - 强制规则：解决完 pbxproj 冲突后**必须本地完整 build 一次**才能 push，不允许"看起来没冲突"就推送。
@@ -53,13 +53,13 @@
 - 锁文件冲突按各自策略处理，不互相替代。
 
 ## 分支模型与 hotfix
-- 默认 trunk-based + 短分支：`main` 是可发布主线，feature 分支寿命 ≤ 5 天，超期必须分阶段合入或砍小。
+- 默认 trunk-based + 短分支：`main` 保持可发布，feature 分支尽量短命；具体时限由团队发布节奏定义，超过团队阈值时分阶段合入或缩小范围。
 - gitflow 仅在「同时维护多个 LTS 版本」时使用；否则其 `develop` / `release` 分支会拉长冲突窗口。
 - Hotfix 分支必须从「线上 tag」切出（非 `main` HEAD），修完合回 `main` 并 cherry-pick 到所有受影响的发布分支；不得只合到 main 就认为修完。
 - 任何分支策略都必须配套：发布点打 annotated tag（含版本号 + commit + 修改人），dSYM 与 tag 一一对应（详见 [build_release_and_ci.md](build_release_and_ci.md) 发布与灰度节）。
 
 ## 提交与 PR 粒度
-- 单 commit 主题单一：功能 / 重构 / 样式不混；commit message 第一行 ≤ 72 字符 + 动词起始（add / fix / refactor / chore），body 解释**为什么**而非"做了什么"。
+- 单 commit 主题单一：功能 / 重构 / 样式不混；commit message 遵守仓库既有格式和长度约束，摘要清楚说明目标，body 解释**为什么**而非重复 diff。
 - 涉及 pbxproj 改动的 commit 单独提交，便于 revert 时不带源码。
 - PR 拆分粒度与团队 PR 规则同步见 [team_collaboration.md](team_collaboration.md) PR 规则节；本节只补充 iOS 特化点：
   - 「新增模块 / Target」单独 PR，不与业务改动混。

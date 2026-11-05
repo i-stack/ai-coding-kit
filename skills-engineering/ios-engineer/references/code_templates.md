@@ -251,7 +251,18 @@ struct APIClient: APIClientProtocol {
 
     func send<T: Decodable>(_ endpoint: Endpoint<T>) async throws -> T {
         let request = try endpoint.makeURLRequest()
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as URLError where error.code == .cancelled {
+            throw CancellationError()
+        } catch {
+            throw NetworkError.transport(error)
+        }
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
@@ -383,7 +394,9 @@ actor FeatureStore<Value: Sendable> {
 
 落地示例（构造注入）：
 ```swift
-final class FeatureViewModel: ObservableObject {
+import Combine
+
+final class ExampleFeatureViewModel: ObservableObject {
     private let useCase: FeatureUseCaseProtocol
     private let logger: LoggerProtocol
 
@@ -406,9 +419,9 @@ final class FeatureViewModel: ObservableObject {
 | **async/await + child task** | 默认选择：一次性请求、有限步骤、需要取消 | 作用域内结构化并发、错误用 throw | 顶层 `Task {}` 是 unstructured task，生命周期仍需显式拥有和取消 | 长生命周期事件流 → 用 AsyncSequence 或 Combine |
 | **AsyncSequence / AsyncStream** | 数据流（WebSocket / 通知 / 长轮询）、需结构化并发取消 | 与 async/await 一致的取消模型、背压可控 | 早期 iOS 版本支持差；需要操作符时 API 远不如 Combine 丰富 | 需要 debounce / throttle / merge / zip 等复杂操作 → 暂用 Combine |
 | **Combine** | 已有 Combine 代码、复杂事件流操作符、UIKit 老路径桥接 | 操作符丰富、与 UIKit `@Published` 集成成熟 | subscription 生命周期需显式管理，与严格并发隔离衔接成本较高 | 新的一次性异步流程优先 async/await；既有事件流无需为迁移而重写 |
-| **callback / completion handler** | 必须桥接 Objective-C API 或老 SDK | 兼容性好 | 易遗漏调用、错误处理松散、Sendable 风险大 | 新代码全部拒绝；如必须，包一层 `withCheckedThrowingContinuation` 暴露 async API |
-| **GCD（DispatchQueue）** | 极少数仍需手控队列优先级 / 串行屏障的场景 | 历史成熟、QoS 可控 | 与 Swift 并发隔离割裂、易破坏 actor 隔离 | 几乎全部拒绝；用 `Task` + actor 替代 |
-| **OperationQueue** | 复杂依赖编排、需要批量取消 / 暂停 | 任务依赖图、可观察进度 | 与 async/await 集成差、Sendable 风险 | 默认拒绝；用 `TaskGroup` 表达依赖 |
+| **callback / completion handler** | Objective-C API、委托式框架或尚未提供 async 接口的 SDK | 兼容性好 | 易遗漏调用、错误处理松散、Sendable 风险大 | 对外可稳定暴露 async 接口且无需保留回调契约时，优先桥接为 async API |
+| **GCD（DispatchQueue）** | 与既有队列隔离、barrier、底层 C/Objective-C 库或精确 QoS 集成 | 历史成熟、QoS 可控 | 与 Swift 并发隔离衔接成本高 | 新业务状态优先 actor；保留 GCD 时明确队列所有权与跨域边界 |
+| **OperationQueue** | 需要暂停、恢复、依赖图、进度观察或 Objective-C 互操作的任务系统 | 任务依赖图、可观察进度 | 与 async/await 集成成本较高 | 仅需作用域内并行聚合时优先 `TaskGroup` |
 
 新代码默认顺序：
 1. async/await + Task → 一次性流程

@@ -27,6 +27,8 @@
 - Watch App 需要控制启动、交互延迟、内存和能耗；阈值按目标设备矩阵与实测基线设定，不使用跨型号固定内存上限。
 
 ## 跨 Target 数据共享
+以下 App Group / Keychain Group 方式适用于同一设备、同一应用家族的 App 与 Extension；iPhone App 与 Watch App 跨设备同步使用 WatchConnectivity 或服务端同步，不能把 App Group 当作跨设备共享通道。
+
 | 共享方式 | 适用场景 | 限制 |
 |---------|---------|------|
 | App Group UserDefaults | 非敏感简单键值（配置开关、轻量状态） | 不保证实时同步；不存 token、密码等凭证 |
@@ -43,4 +45,4 @@
 - 在主 App 的 `viewDidLoad` 中假定 App Group UserDefaults 已被 Extension 写入——Extension 可能尚未运行。
 - Widget `getTimeline` 中进行重请求和复杂 image processing——应在主 App 中预处理并通过 App Group 共享。
 - Share Extension 中通过 Keychain 直接读主 App 的 token（未配置 Keychain Group）——Extension 不可访问主 App 的 Keychain。
-- Widget 刷新间隔设太短（< 5 分钟）——系统会节流刷新频率。
+- Widget timeline entry 应至少相隔约 5 分钟；实际刷新还受动态预算、用户使用模式和系统合并策略影响，不能把请求时间当作精确执行承诺。

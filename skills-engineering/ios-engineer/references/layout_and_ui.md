@@ -68,6 +68,8 @@
 - 关键控件提供准确的 `accessibilityLabel`、`accessibilityHint`、`accessibilityTraits`。
 - 焦点顺序、朗读内容和可点击区域必须可用。
 - 图片和图标要区分装饰性资源与有语义资源。
+- 验证 Dynamic Type、VoiceOver、Switch Control、键盘/焦点导航以及 Reduce Motion / Reduce Transparency 等用户设置对核心路径的影响；具体矩阵按产品支持设备与交互方式裁剪。
+- 自定义控件必须保留可发现的语义、状态和值，并提供与视觉操作等价的无障碍动作；触控目标以 Apple HIG 和项目设计系统为准，不凭单一固定尺寸覆盖所有平台。
 
 ## 常见反模式
 - 通过写死宽高、额外加空白 View、疯狂调优先级解决布局问题。

@@ -292,14 +292,14 @@
       "description_zh": "把模糊提问改写成结构化高质量提示词：先召回相似历史，再盘问澄清真实需求，透明展示供你确认，确认后才基于它回答。",
       "description_en": "Rewrite vague requests into structured, high-quality prompts: recall similar past questions, clarify the real need, show the rewritten prompt for approval, then answer from it.",
       "examples_zh": [
-        "帮我把这个问题改得更好",
-        "优化我这段 prompt",
-        "先澄清我的真实需求再回答"
+        "帮我优化提问：登录接口要加限流",
+        "优化这个 prompt",
+        "改写我的问题，让它更清楚"
       ],
       "examples_en": [
-        "Rewrite my question so it works better",
+        "Help me refine this question: add rate limiting to the login API",
         "Optimize this prompt",
-        "Clarify what I actually need before answering"
+        "Rewrite my question to make it clearer"
       ],
       "pricing": { "mode": "one-time", "cny": 9.9, "note": "低价买断引流" },
       "deps": ["plan-grill", "historical-recall"],

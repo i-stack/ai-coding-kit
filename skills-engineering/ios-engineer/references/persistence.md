@@ -15,12 +15,12 @@
 
 ## Core Data（通用）
 - 常规项目优先使用 `NSPersistentContainer`（iOS 10+）管理 Core Data stack；只有确有多 store、自定义协调或遗留兼容需求时才手动构造 stack，并补充启动、迁移和并发测试。
-- `viewContext` 绑定主队列；写操作使用 `performBackgroundTask` 或 `newBackgroundContext()`。
+- `viewContext` 绑定主队列；大批量、可能阻塞 UI 或无需立即驱动当前界面的写操作使用 `performBackgroundTask` 或 `newBackgroundContext()`。小规模 UI 编辑可以在 `viewContext.perform` 内完成，但不得执行同步网络或长耗时工作。
 - `NSManagedObject` 不跨 context 传递：在 context A 中获取的对象不能直接在 context B 中使用；必须通过 `objectID` 在目标 context 中重新 fetch。
 - `NSFetchedResultsController` 用于列表场景的增量刷新；delegate 回调在主线程，内部不应做重计算。
 
 ## Schema 迁移
-- 轻量级迁移（Lightweight Migration）：仅修改属性名、类型（兼容转换）、增加/删除可选属性时可自动处理；在 `NSPersistentStoreDescription` 中设置 `shouldMigrateStoreAutomatically = true` + `shouldInferMappingModelAutomatically = true`。
+- 轻量级迁移（Lightweight Migration）：仅当 Core Data 能从源/目标模型差异推断映射时使用，例如带 renaming identifier 的重命名、满足默认值/可选性约束的属性增删及官方支持的兼容变化；不能仅凭“类型看似兼容”判断。启用自动迁移后仍需用真实旧库副本逐版本验证。
 - 重量级迁移（Heavyweight Migration）：涉及实体拆分/合并、关系重构、属性类型不兼容变更时，必须提供 `NSMappingModel` 或使用渐进式迁移（多版本链）。
 - SwiftData 迁移通过 `VersionedSchema` 与 `SchemaMigrationPlan` 声明版本链；轻量变化可使用 lightweight stage，复杂变化需要 custom stage，并用真实旧库副本验证逐版本升级。
 - 迁移前必须备份数据库文件；迁移失败时不得清空数据，应提示用户并保留原文件。
@@ -34,5 +34,5 @@
 ## 常见反模式
 - 将 `NSManagedObject` 跨线程传递或存储为属性——使用 `objectID`。
 - 迁移时不清空 persistent store 直接重建——迁移失败时数据不可逆。
-- 在 `viewContext` 中执行长时间写操作——写操作始终在后台 context。
+- 在 `viewContext` 中执行长时间或大批量写操作——这类工作应转到后台 context；小规模 UI 编辑可留在主 context。
 - SwiftData 中混用 `NSFetchedResultsController`——SwiftData 使用 `@Query` 的 Observation 机制，不兼容 FRC。

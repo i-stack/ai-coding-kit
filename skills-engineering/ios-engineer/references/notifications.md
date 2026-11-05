@@ -10,7 +10,7 @@
 - `UNUserNotificationCenter.requestAuthorization(options:)` 必须提供 `.alert` / `.badge` / `.sound` 的最小组合；provisional 授权用于软开通，不可替代正式授权。
 - 注册失败不得静默：记录错误码并给出用户可见的降级路径（如设置页引导）。
 - 主 Target 注册 token 通过 `application(_:didRegisterForRemoteNotificationsWithDeviceToken:)` 获取；token 变更时必须重新上报服务端。
-- App 冷启动时 `didFinishLaunching` 内如果未调用 `registerForRemoteNotifications()`，token 可能过期而无法刷新。
+- App 每次启动都应根据产品授权策略调用 `registerForRemoteNotifications()`，让系统在需要时提供或更新 device token；不得假设 token 永久不变，也不依赖固定刷新时刻。
 
 ## Payload 结构
 - APNs payload 顶层 `aps` 字典只放 Apple 定义的通知字段；业务自定义 key 应作为 `aps` 的同级字段，并使用稳定命名空间避免与系统字段混淆。payload 不携带未加密的敏感数据。
@@ -34,7 +34,7 @@
 
 ## 验证清单
 - [ ] 通知注册成功/失败均有日志与降级路径。
-- [ ] token 变更后服务端在 5 分钟内生效。
+- [ ] token 变更后服务端在产品定义的 SLO 内完成幂等更新；SLO 数值来自服务端能力和业务要求，不作为 APNs 平台固定值。
 - [ ] 富媒体推送（mutable-content）在 Extension 内 30 秒内完成处理。
 - [ ] 通知点击路由可处理无效/过期的 deep link。
 - [ ] 前台通知展示行为符合预期（横幅/不横幅）。

@@ -10,7 +10,7 @@
 - 权限请求必须发生在用户明确行为上下文内（如点击"拍照"按钮时请求相机），禁止在 App 启动时批量弹权限。
 - 权限被拒后的降级路径必须可见：禁用按钮、显示引导文案、提供跳转系统设置的入口。
 - iOS 权限请求只有 `notDetermined` 状态会触发系统弹窗；`denied` / `restricted` 不应重复请求系统弹窗，必须走可见降级与设置页引导；相册 `limited` 需要单独提供受限访问下的功能路径。
-- 定位权限分为 `When In Use` 和 `Always`：先申请 `When In Use`，通过后再申请 `Always`；直接申请 `Always` 极大概率被用户拒绝。
+- 定位权限分为 `When In Use` 和 `Always`：只有持续后台定位确属核心功能时才请求 `Always`，并按当前 Core Location 授权流程先建立用户上下文和前台授权。授权策略不得用未经项目数据支持的拒绝概率作结论。
 
 ## 必备案底（Info.plist）
 | 权限类型 | plist Key | 必填描述示例 |
@@ -35,7 +35,7 @@
 ## Privacy Manifest 与 Required Reason API
 - App 与纳入发布包的第三方 SDK 都要检查 `PrivacyInfo.xcprivacy`；声明实际收集的数据、用途、tracking 与 required-reason API 使用原因。
 - manifest 声明必须与代码、SDK 行为、App Store Connect 隐私问卷和服务端数据流一致；不能用宽泛声明替代实际盘点。
-- Required Reason API 在 `NSPrivacyAccessedAPITypes` 中按类别声明。reason code 大小写敏感，必须与真实调用匹配。每个 code 的允许用途、是否得出设备、是否仅限第三方 SDK，以 Apple 文档 [Describing use of required reason API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api) 为准；本表只登记类别与 code，不替代官方条文。Xcode 或审核若报未知 code，以报错中的官方链接为准。
+- Required Reason API 在 `NSPrivacyAccessedAPITypes` 中按类别声明。reason code 大小写敏感，必须与真实调用匹配。Apple 会持续更新类别和允许理由；下表只能作为检索线索，提交前必须以 [Describing use of required reason API](https://developer.apple.com/documentation/bundleresources/describing-use-of-required-reason-api) 的当前条文和 Archive 产物为准，不把本地副本当作稳定真值。
 
 | 类别 | `NSPrivacyAccessedAPIType` | Reason code |
 |------|----------------------------|-------------|

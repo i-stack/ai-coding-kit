@@ -7,7 +7,7 @@
 - 默认输出"商品获取 → 购买流程 → 收据验证 → 恢复与同步 → 订阅管理"五段。
 
 ## StoreKit 2（iOS 15+ 推荐）
-- 商品加载：`Product.products(for:)` 异步返回 `[Product]`；需处理网络失败与空结果（用户无购买权限或地区不可用）。
+- 商品加载：`Product.products(for:)` 异步返回 `[Product]`；需处理网络失败与空结果。空结果只说明当前请求没有返回可售商品，可能涉及产品标识、App Store Connect 配置、协议/税务状态、商店地区、传播延迟或测试环境，不能直接归因于用户权限。
 - 购买：通过 `product.purchase()` 返回 `Product.PurchaseResult`；`.success(.verified(transaction))` 表示购买成功且通过验证；`.success(.unverified(_,_))` 表示购买存在但签名验证失败（需手动处理）。
 - 交易监听：`Transaction.updates` 是一个 `AsyncSequence`，在 App 生命周期内监听新交易（包括跨设备同步和订阅续期）；必须在 App 启动时开始监听并持续运行。
 - 权益恢复：遍历 `Transaction.currentEntitlements` 并只接受 `.verified` 结果；消耗型补单还要检查 `Transaction.unfinished`。服务端可验证 `Transaction` / `AppTransaction` 的 JWS，并结合 App Store Server API 与 Server Notifications V2 同步状态。
@@ -18,7 +18,7 @@
 - 使用 `SKProductsRequest` 获取商品信息（delegate 模式）。
 - 使用 `SKPaymentQueue.default().add(payment)` 发起购买；通过 `SKPaymentTransactionObserver` 监听交易状态变化。
 - 收据验证：通过 `Bundle.main.appStoreReceiptURL` 获取收据文件，base64 编码后发送服务端验证。
-- 重要：`application(_:didFinishLaunchingWithOptions:)` 中开始监听 `SKPaymentQueue`；忘记添加 observer 会导致购买回调丢失。
+- 重要：`application(_:didFinishLaunchingWithOptions:)` 中尽早监听 `SKPaymentQueue`，保证及时处理交易。未完成交易会留在队列并在后续启动或恢复时再次交付，但延迟注册会推迟交付并影响用户体验。
 
 ## 收据验证双路径
 | 路径 | 适用场景 | 优点 | 风险 |
@@ -30,7 +30,7 @@
 
 ## 订阅管理
 - 订阅状态通过 `Transaction.currentEntitlements`（StoreKit 2）或收据解析（StoreKit 1）判定；不可仅依赖 `UserDefaults` 中缓存的过期时间。
-- Promoted In-App Purchase 由 StoreKit 1 的 `paymentQueue(_:shouldAddStorePayment:for:)` 等入口处理，不与订阅 Promotional Offer 混用。
+- Promoted In-App Purchase：StoreKit 2 下用 `PurchaseIntent.intents`（iOS 16.4+）异步序列接收促销购买意图；仍需兼容 StoreKit 1 的项目回退 `paymentQueue(_:shouldAddStorePayment:for:)`。两者均不与订阅 Promotional Offer 混用。
 - Promotional Offer 需要服务端使用订阅密钥生成签名，并通过 StoreKit 2 的 `Product.PurchaseOption.promotionalOffer` 参与购买；Offer Code 使用系统兑换入口或相应 StoreKit API。
 - 必须提供管理订阅的入口（如 `AppStore.showManageSubscriptions(in:)`，按部署版本选择可用 API）。
 - 订阅权益同时处理正常订阅、grace period、billing retry、过期、退款与撤销；服务端通知按 notification UUID 和 transaction ID 幂等消费。

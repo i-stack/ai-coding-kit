@@ -5,7 +5,7 @@
 ## 不处理的内容
 
 - **发送时自动拦截**：本 skill 仅主动触发（`@` 或关键词），不做「用户点击发送时自动改写输入」的 hook（本仓库无 AI prompt hook 机制）。
-- **盘问规则本身**：盘问的门控与逐问流程由 `plan-grill`（PG-000~PG-006）负责，本 skill 只委托，不内联维护第二套盘问规则。
+- **盘问规则本身**：盘问的门控与逐问流程由 `plan-grill`（PG-000~PG-003，仅 interview）负责，本 skill 只委托，不内联维护第二套盘问规则，不委托 PG-004，不产出 PLAN.md。
 - **历史召回的实现**：recall 的时序、query 构造、命令与输出边界由 `historical-recall`（HR-001~HR-005）负责，本 skill 只委托其 `recall`。
 - **调用外部 LLM 改写**：改写由承载本 skill 的宿主 AI 完成，不额外调外部模型 API。
 - **回答的论证质量与真值接地**：由 `cognitive-reasoning` 负责，本 skill 不改写也不承诺回答的事实准确性。
