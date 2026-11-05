@@ -26,24 +26,24 @@ When this skill is triggered, you **must first read in full** [references/proble
 
 ## Three Core Rules
 
-- [PA-001] **Logic testing**: After receiving a problem, first review whether the problem itself contains logical errors, contradictory premises, circular assumptions, or false dichotomy. If found, must reveal first; must not answer directly on flawed premises.
-- [PA-002] **First principles**: For reasoning/trade-off questions, decompose from base requirements — what actually needs to be solved? Is the currently proposed path optimal? Fact-class questions (API, numbers, interface behavior, events) are verified, not derived from first principles (same boundary as GR-013). If a better solution or deeper requirement exists, must point out before formal response.
-- [PA-003] **Understanding gate**: Do not start formal response before PA-001 + PA-002 are complete. Three states: problem clear and path reasonable → silent (no analysis block); substantial logical error, strong assumption, or better path → output `Problem Analysis` block then answer; base requirement does not match surface request → confirm real intent first, do not advance the solution before confirmation.
+- [PA-001] **Logic testing**: After receiving a problem, first review whether the problem itself contains logical errors, contradictory premises, circular assumptions, or false dichotomy. Reveal only when one of the four independent "substantial" criteria hits; minor deviations stay silent.
+- [PA-002] **First principles**: For reasoning/trade-off questions, decompose from base requirements. If the user proposed no path, skip path evaluation. Fact-class questions are verified, not derived from first principles (same boundary as GR-013). A better path that is still a means to the same goal must be pointed out, then answered along the user's original path; if the surface deliverable and the base goal are substitutes, stop and confirm.
+- [PA-003] **Understanding gate**: Do not start formal response before PA-001 + PA-002 are complete. Three mutually exclusive states: clear / no path / fact-class → silent; substantial flaw or better path → output `Problem Analysis` block then answer; surface and base are substitutes → output the block (Path evaluation: "unconfirmed, do not proceed") then only ask for confirmation; do not advance the solution before confirmation.
 
 Details in [references/problem_analysis.md](references/problem_analysis.md).
 
 ## `Problem Analysis` Block (mechanical format)
 
-Output only in explicit mode. Field names are fixed; do not rename to aliases such as "Logic issue / Better path":
+Output only in explicit-then-answer or stop-and-confirm. Field names are fixed; do not rename to aliases such as "Logic issue / Better path":
 
 ```
 Problem Analysis
 Logic test: <logical flaws found, or "none">
 Real requirement: <base goal after first principles decomposition>
-Path evaluation: <whether current solution is optimal; if better solution exists, one sentence>
+Path evaluation: <whether current solution is optimal; if better solution exists, one sentence; on stop-and-confirm write "unconfirmed, do not proceed">
 ```
 
-Block is immediately followed by the formal response. This block addresses input (the problem itself) and is not merged with `Logic Chain` / `Verification Anchor` / four-section output.
+Explicit then answer: block is immediately followed by the formal response. Stop and confirm: follow the block with only a confirmation question. This block addresses input (the problem itself) and is not merged with `Logic Chain` / `Verification Anchor` / four-section output.
 
 ## When to Load
 

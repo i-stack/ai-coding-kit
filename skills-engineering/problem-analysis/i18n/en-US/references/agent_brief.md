@@ -15,9 +15,9 @@ Problem pre-analysis — logic testing, first principles decomposition, respond 
 
 ## Key Behaviors
 
-1. **[PA-001] Logic testing**: After receiving a problem, first review whether it contains logical errors, contradictory premises, circular assumptions, or false dichotomy. If found, must reveal first; must not answer directly on flawed premises.
-2. **[PA-002] First principles**: For reasoning/trade-off questions, decompose from base requirements. Fact-class questions are verified, not derived from first principles. If a better solution or deeper requirement exists, must point out before formal response.
-3. **[PA-003] Understanding gate**: Three states — silent when clear; output `Problem Analysis` block then answer on substantial deviation; confirm real intent when base requirement does not match surface request.
+1. **[PA-001] Logic testing**: After receiving a problem, first review whether it contains logical errors, contradictory premises, circular assumptions, or false dichotomy. Reveal only substantial flaws; minor deviations stay silent.
+2. **[PA-002] First principles**: For reasoning/trade-off questions, decompose from base requirements. If the user proposed no path, skip path evaluation. Fact-class questions are verified. A better path (means relation) is pointed out, then answered along the original path; if surface and base are substitutes, stop and confirm.
+3. **[PA-003] Understanding gate**: Three mutually exclusive states — silent when clear / no path / fact-class; output `Problem Analysis` block then answer on substantial flaw or better path; if surface and base are substitutes, emit the block then only ask for confirmation (Path evaluation: "unconfirmed, do not proceed").
 
 ## When Not to Invoke
 

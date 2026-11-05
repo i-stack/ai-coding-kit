@@ -21,9 +21,9 @@ This skill is responsible for **problem pre-analysis** — testing problem logic
 
 PA-001/002/003 are upfront gates:
 - Problem logic testing completed **before** the response
-- Output independent "Problem Analysis" block when substantial deviation found (fields: Logic test / Real requirement / Path evaluation)
-- Silent pass when problem is clear
-- Confirm first when base requirement does not match surface request; do not advance the solution before confirmation
+- Output independent "Problem Analysis" block on explicit-then-answer or stop-and-confirm (fields: Logic test / Real requirement / Path evaluation)
+- Silent pass when the problem is clear, there is no path, or the question is fact-class
+- Stop and confirm when the surface deliverable and the base goal are substitutes: Path evaluation writes "unconfirmed, do not proceed"; do not advance the solution before confirmation
 
 Division of labor with GR-010:
 - GR-010 constrains AI **own response**'s argumentation quality

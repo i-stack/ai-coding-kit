@@ -89,17 +89,17 @@
       "version": "1.0.0",
       "display_name": "问题前置分析",
       "display_name_en": "Problem Analysis",
-      "description_zh": "先检验问题再动手：逻辑一致性检验、第一性原理拆解、充分理解后再作答，避免把错误前提当成需求直接实现。",
-      "description_en": "Analyze before acting: logic-consistency checks, first-principles decomposition, and an explicit restatement of the real problem before any solution is proposed.",
+      "description_zh": "先检验问题再动手：逻辑一致性检验、第一性原理拆解。问题清晰时静默；仅在实质缺陷、更优路径或目标互相替代时才复述问题。",
+      "description_en": "Analyze before acting: check premises and decompose the real requirement. Stay silent when the problem is clear; restate only on a substantial flaw, a better path, or a substitute-goal mismatch.",
       "examples_zh": [
         "先帮我检验这个需求提法是否成立",
-        "用第一性原理拆解这个性能问题",
-        "我这个判断哪里逻辑不自洽"
+        "列表滚动卡顿要改成分页，先看路径是否最优",
+        "这是要上链存证，还是只要可审计日志？"
       ],
       "examples_en": [
         "Check whether this requirement statement even holds",
-        "Decompose this performance problem from first principles",
-        "Where is my reasoning inconsistent?"
+        "The list stutters; we were going to paginate — is that the right path?",
+        "Do we need blockchain anchoring, or just an auditable log?"
       ],
       "pricing": { "mode": "free", "cny": 0, "note": "免费引流" },
       "deps": [],

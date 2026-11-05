@@ -2,6 +2,7 @@
 
 ## 2026-11-05
 
+- **problem-analysis 三态可执行化**：PA-001「实质」改为四条独立判据（矛盾 / 循环 / 虚假二分 / 未说明强假设），轻微偏差静默。PA-002 用「手段 vs 替代」区分更优路径与停确认：分页仍能达成流畅度做出块后作答；上链与可审计日志互相替代则停确认（路径评估固定写「未确认，不推进」）。用户未提出路径或事实类问题跳过需求树，默认静默。`rule_index.md` 字段 owner 按 PA-001/002/003 拆开。WorkBuddy catalog 改为「问题清晰时静默」。`behavior-evals` 去掉强制「第一性原理」出字，补静默 / 更优路径 / 停确认 / 事实题四条契约。
 - **plan-reviews 锁外 embedding 快照 mtime**：`sync` 提交写入准备时的快照 mtime；若提交前文件已变则丢弃该 prepared artifact，避免旧内容被标成已同步。
 - **plan-reviews 可视化 XSS / 锁等待 / plan-grill 英文触发语**：知识图谱 tooltip 对 `plan.title` 走 `escapeHtml`；`sync` 的 embedding 在索引锁外执行，并发 recall 不再被 15s 超时拖死 5s 锁；plan-grill 中英文入口保留 `lock plan` / `grill my solution` / `interrogate the plan` / `lock plan first` / `don't write code yet`，并与中文触发语并存。
 - **plan-grill / plan-reviews 审查修复**：`reset()` 在索引锁内全量重建；`merge()` 与 `sync()` 共用目录锁；技术实体提取去掉全局 `/g` 正则；merge 折叠只消耗成员 chunk，保留同 plan 未合并命中。PLAN.md 解析接受 Risks/Goal 短标题与中文 H2；embedding 请求 15s 超时；可视化 JSON 转义 `</script>`。extractor 不再声称抽取 review-log flaw。plan-grill 补 `references/rule_index.md`，OUT-OF-SCOPE 改为 `auto-code-review` / 平台 engineer，AGENT-BRIEF 触发语与 SKILL.md 对齐，PG-005 写明按平台模板填 architecture-analysis.md。
