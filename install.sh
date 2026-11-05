@@ -3,7 +3,7 @@
 # ai-coding-kit 初始化脚本
 #
 # clone 项目后运行一次，完成本地配置初始化：
-#   - 从 env/*.example 模板复制出缺失的本地配置（config/backup/review/secrets/user-profile.json）
+#   - 从 env/*.example 模板复制出缺失的本地配置（config/review/secrets/user-profile.json）
 #     （幂等：目标已存在则跳过，绝不覆盖你已填好的真实配置）
 #   - 不自动创建 user-profile.md：它是含占位符的「内容模板」，若自动复制会被
 #     sync-user-profile.sh 当成真实画像同步成假的全局用户画像。需要画像时再手动

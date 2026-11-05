@@ -21,6 +21,9 @@ import type {
 	PlanEntityType,
 } from "./types.js";
 
+/** Drop lexical hits below this score so embedding fallback does not inject weak token overlap. */
+export const KEYWORD_SCORE_THRESHOLD = 0.25;
+
 export class SearchEngine {
 	private store: PlanStore;
 	private embed: EmbeddingService;
@@ -51,7 +54,10 @@ export class SearchEngine {
 				limit: query.limit ?? 5,
 				planId: query.planId,
 				scoreThreshold: 0.35,
-			}).map((hit) => ({ ...hit, matchType: "semantic" as const }));
+			}).map((hit) => {
+				const chunk = this.store.getChunk(hit.chunkId);
+				return { ...hit, matchType: "semantic" as const, promptInjectionSuspected: chunk?.promptInjectionSuspected, promptInjectionSignals: chunk?.promptInjectionSignals };
+			});
 		} catch (err) {
 			console.warn(`[plan-reviews] Semantic search failed: ${(err as Error).message}`);
 			return this.keywordSearch(query);
@@ -62,7 +68,7 @@ export class SearchEngine {
 		return this.store.searchChunksTextScored(query.query, {
 			limit: query.limit ?? 5,
 			planId: query.planId,
-		}).map(({ chunk, score, matchedTerms }) => ({
+		}).filter(({ score }) => score >= KEYWORD_SCORE_THRESHOLD).map(({ chunk, score, matchedTerms }) => ({
 			chunkId: chunk.id,
 			planId: chunk.planId,
 			section: chunk.section,
@@ -70,6 +76,8 @@ export class SearchEngine {
 			score,
 			matchType: "keyword" as const,
 			matchedTerms,
+			promptInjectionSuspected: chunk.promptInjectionSuspected,
+			promptInjectionSignals: chunk.promptInjectionSignals,
 		}));
 	}
 
@@ -80,7 +88,7 @@ export class SearchEngine {
 		);
 		if (matchedPoints.length === 0) return hits;
 
-		const consumedPlans = new Set(matchedPoints.flatMap((point) => point.planIds));
+		const consumedChunkIds = new Set(matchedPoints.flatMap((point) => point.memberChunkIds));
 		const mergedHits = matchedPoints.map((point) => {
 			const memberHits = hits.filter((hit) => point.memberChunkIds.includes(hit.chunkId));
 			return {
@@ -91,9 +99,11 @@ export class SearchEngine {
 				score: Math.max(...memberHits.map((hit) => hit.score)),
 				matchType: "merged" as const,
 				sourcePlanIds: point.planIds,
+				promptInjectionSuspected: memberHits.some((hit) => hit.promptInjectionSuspected),
+				promptInjectionSignals: [...new Set(memberHits.flatMap((hit) => hit.promptInjectionSignals ?? []))],
 			};
 		});
-		return [...mergedHits, ...hits.filter((hit) => !consumedPlans.has(hit.planId))];
+		return [...mergedHits, ...hits.filter((hit) => !consumedChunkIds.has(hit.chunkId))];
 	}
 
 	async graphSearch(query: SearchQuery): Promise<GraphSearchResult[]> {
@@ -149,7 +159,11 @@ export class SearchEngine {
 					: hit.matchType === "merged"
 						? `(merged-score=${hit.score.toFixed(2)}, sources=${hit.sourcePlanIds?.join(",") ?? ""})`
 						: `(lexical=${hit.score.toFixed(2)})`;
-				lines.push(`- ${scoreLabel}${planLabel}: ${truncate(hit.text, 200)}`);
+				const trustLabel = hit.promptInjectionSuspected ? ` [PROMPT-INJECTION-SUSPECTED:${hit.promptInjectionSignals?.join(",")}]` : " [UNTRUSTED-HISTORY]";
+				const kindLabel = this.store.getPlan(hit.planId)?.kind === "checkpoint"
+					? " [进行中 checkpoint]"
+					: "";
+				lines.push(`- ${scoreLabel}${planLabel}${kindLabel}${trustLabel}: ${truncate(hit.text, 200)}`);
 			}
 			lines.push("");
 		}
@@ -159,8 +173,11 @@ export class SearchEngine {
 			const seenRelations = new Set<string>();
 
 			for (const r of response.graph) {
+				const graphKindLabel = this.store.getPlan(r.entity.planId)?.kind === "checkpoint"
+					? " [checkpoint]"
+					: "";
 				lines.push(
-					`### [${r.entity.type}] ${r.entity.name} (plan: ${r.entity.planId})`,
+					`### [${r.entity.type}] ${r.entity.name} (plan: ${r.entity.planId}${graphKindLabel})`,
 				);
 				if (r.entity.description) {
 					lines.push(`  ${truncate(r.entity.description, 150)}`);

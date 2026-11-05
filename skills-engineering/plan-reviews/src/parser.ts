@@ -37,13 +37,13 @@ const SECTION_PATTERNS: Array<{
 	key: keyof PlanSections;
 	regex: RegExp;
 }> = [
-	{ key: "goal", regex: /^##\s+Goal\s*$/im },
-	{ key: "constraints", regex: /^##\s+Constraints\s*[&]\s*assumptions\s*$/im },
-	{ key: "approach", regex: /^##\s+Approach\s*$/im },
-	{ key: "decisions", regex: /^##\s+Key\s+decisions\s*[&]\s*tradeoffs\s*$/im },
-	{ key: "validation", regex: /^##\s+Validation\s+plan\s*$/im },
-	{ key: "risks", regex: /^##\s+Risks\s*\/\s*non-blocking\s+open\s+questions\s*$/im },
-	{ key: "outOfScope", regex: /^##\s+Out\s+of\s+scope\s*$/im },
+	{ key: "goal", regex: /^##\s+(?:Goal|目标)\s*$/im },
+	{ key: "constraints", regex: /^##\s+(?:Constraints\s*[&]\s*assumptions|Constraints|约束(?:与假设)?)\s*$/im },
+	{ key: "approach", regex: /^##\s+(?:Approach|方案)\s*$/im },
+	{ key: "decisions", regex: /^##\s+(?:Key\s+decisions\s*[&]\s*tradeoffs|Key\s+decisions|Decisions|关键决策)\s*$/im },
+	{ key: "validation", regex: /^##\s+(?:Validation\s+plan|Validation|验证(?:计划)?)\s*$/im },
+	{ key: "risks", regex: /^##\s+(?:Risks\s*\/\s*non-blocking\s+open\s+questions|Risks|风险)\s*$/im },
+	{ key: "outOfScope", regex: /^##\s+(?:Out\s+of\s+scope|范围外)\s*$/im },
 ];
 
 /**
@@ -192,6 +192,13 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 		if (entry.name.startsWith(".")) continue;
 
 		const planPath = path.join(plansDir, entry.name);
+
+		// ── Checkpoint artifact (checkpoint-persist) ──
+		if (entry.name === "checkpoint") {
+			scanCheckpointDir(planPath, artifacts);
+			continue;
+		}
+
 		const planFile = path.join(planPath, "PLAN.md");
 		const reviewFile = path.join(planPath, "PLAN-REVIEW-LOG.md");
 		const architectureFile = path.join(planPath, "architecture-analysis.md");
@@ -240,7 +247,13 @@ export function scanPlansDir(rootDir: string): PlanArtifact[] {
 		} else {
 			// ── Code-review artifact (auto-code-review) ──
 			const codeReviewArtifact = parseCodeReview(entry.name, planPath);
-			if (codeReviewArtifact) artifacts.push(codeReviewArtifact);
+			if (codeReviewArtifact) {
+				artifacts.push(codeReviewArtifact);
+			} else {
+				// ── Prompt-optimization artifact (prompt-optimizer) ──
+				const promptOptArtifact = parsePromptOptimization(entry.name, planPath);
+				if (promptOptArtifact) artifacts.push(promptOptArtifact);
+			}
 		}
 	}
 
@@ -341,6 +354,237 @@ function parseCodeReview(
 }
 
 /**
+ * Parse a prompt-optimizer directory into a PlanArtifact.
+ *
+ * A prompt-optimization directory stores each archive field in its own file so
+ * arbitrary user text (which may contain `## 澄清结论` / `## 优化后提示词` or
+ * any other Markdown) never collides with field delimiters:
+ *   - PROMPT-OPTIMIZATION.md → manifest carrying the `# <title>` line
+ *   - QUESTION.md            → 原始提问 (the user's original question)
+ *   - CLARIFICATION.md       → 澄清结论 (clarification outcome)
+ *   - OPTIMIZED.md           → 优化后提示词 (the optimized prompt)
+ *
+ * Returns null unless at least one field file is present. A lone manifest
+ * (the retired single-file layout) is refused, never indexed as an empty
+ * artifact.
+ */
+function parsePromptOptimization(
+	id: string,
+	planPath: string,
+): PlanArtifact | null {
+	const manifestFile = path.join(planPath, "PROMPT-OPTIMIZATION.md");
+	const questionFile = path.join(planPath, "QUESTION.md");
+	const clarificationFile = path.join(planPath, "CLARIFICATION.md");
+	const optimizedFile = path.join(planPath, "OPTIMIZED.md");
+
+	const hasManifest = fs.existsSync(manifestFile);
+	const hasFieldFiles =
+		fs.existsSync(questionFile) ||
+		fs.existsSync(clarificationFile) ||
+		fs.existsSync(optimizedFile);
+	if (!hasFieldFiles) {
+		// A lone manifest without field files is the retired single-file layout;
+		// refuse to index it as an empty-but-valid-looking artifact.
+		if (hasManifest) {
+			console.warn(
+				`[plan-reviews] Skipping legacy single-file prompt-optimization archive at ${planPath}; ` +
+					`migrate to per-field files (QUESTION.md / CLARIFICATION.md / OPTIMIZED.md) to index it.`,
+			);
+		}
+		return null;
+	}
+
+	try {
+		const readText = (file: string): string =>
+			fs.existsSync(file)
+				? fs.readFileSync(file, "utf-8").replace(/\r\n/g, "\n").trim()
+				: "";
+
+		// Title lives in the manifest's first H1 line; fall back to the dir id.
+		let title = id;
+		if (hasManifest) {
+			const h1 = readText(manifestFile).match(/^#\s+(.+?)\s*$/m);
+			if (h1) title = h1[1].trim();
+		}
+
+		const goal = readText(questionFile);
+		const constraints = readText(clarificationFile);
+		const approach = readText(optimizedFile);
+
+		const sections: PlanSections = {
+			title,
+			goal,
+			constraints,
+			approach,
+			decisions: "",
+			validation: "",
+			risks: "",
+			outOfScope: "",
+		};
+
+		return {
+			id,
+			path: planPath,
+			sections,
+			hasReview: false,
+			resolution: "pending",
+			reviewers: [],
+			createdAt: extractDateFromId(id),
+			kind: "prompt-optimization",
+		};
+	} catch (err) {
+		console.warn(`[plan-reviews] Failed to parse prompt-optimization ${id}: ${(err as Error).message}`);
+		return null;
+	}
+}
+
+/**
+ * Parse a checkpoint-persist artifact directory into a PlanArtifact.
+ *
+ * A checkpoint directory (`.plan-reviews/checkpoint/<task-slug>/CHECKPOINT.md`)
+ * carries mid-flight intermediate conclusions produced by the global
+ * `checkpoint-persist` skill. Unlike a finished PLAN.md, it is "in progress":
+ *   - title     ← `# Checkpoint: <主题>` heading (fallback: directory name)
+ *   - goal      ← `## 任务摘要` (task summary)
+ *   - decisions ← `## 已产出结论` (conclusions + decisions produced so far)
+ *   - risks     ← `- 未决问题：` lines extracted from conclusions
+ *   - approach  ← `## 下一步` (remaining items to analyze)
+ *
+ * Returns null if the directory has no CHECKPOINT.md.
+ */
+function parseCheckpoint(slug: string, taskDir: string): PlanArtifact | null {
+	const checkpointFile = path.join(taskDir, "CHECKPOINT.md");
+	if (!fs.existsSync(checkpointFile)) return null;
+
+	try {
+		const content = fs.readFileSync(checkpointFile, "utf-8").replace(/\r\n/g, "\n");
+		const titleMatch = content.match(/^#\s+(?:Checkpoint\s*:\s*)?(.+?)\s*$/m);
+		const title = titleMatch ? titleMatch[1].trim() : slug;
+		const summary = extractMarkdownSection(content, "任务摘要");
+		const conclusions = extractMarkdownSection(content, "已产出结论");
+		const next = extractMarkdownSection(content, "下一步");
+		// Drop blank placeholders (无 / N/A / none / …) so a template default is
+		// never indexed as a real risk; leave risks empty when nothing remains.
+		const openQuestions = filterBlankValues(extractLabeledLines(conclusions, "未决问题"));
+
+		const sections: PlanSections = {
+			title,
+			goal: summary,
+			constraints: "",
+			approach: next,
+			decisions: conclusions,
+			validation: "",
+			risks: openQuestions,
+			outOfScope: "",
+		};
+
+		return {
+			// Namespace checkpoint ids with a reserved prefix so an in-progress
+			// checkpoint can never collide with a finished plan sharing the same
+			// directory slug (PlanStore / sync / chunks / entities all key on planId).
+			id: `checkpoint:${slug}`,
+			path: taskDir,
+			sections,
+			hasReview: false,
+			resolution: "pending",
+			reviewers: [],
+			createdAt:
+				extractDateFromId(slug) !== "unknown"
+					? extractDateFromId(slug)
+					: isoDateFromMtime(checkpointFile),
+			kind: "checkpoint",
+		};
+	} catch (err) {
+		console.warn(`[plan-reviews] Failed to parse checkpoint ${slug}: ${(err as Error).message}`);
+		return null;
+	}
+}
+
+/**
+ * Scan `.plan-reviews/checkpoint/` for per-task checkpoint directories.
+ * Each sub-directory containing a CHECKPOINT.md becomes a checkpoint artifact.
+ */
+function scanCheckpointDir(checkpointDir: string, artifacts: PlanArtifact[]): void {
+	if (!fs.existsSync(checkpointDir)) return;
+
+	let entries: fs.Dirent[];
+	try {
+		entries = fs.readdirSync(checkpointDir, { withFileTypes: true });
+	} catch {
+		return;
+	}
+
+	for (const entry of entries) {
+		if (!entry.isDirectory()) continue;
+		if (entry.name.startsWith(".")) continue;
+
+		const taskDir = path.join(checkpointDir, entry.name);
+		const artifact = parseCheckpoint(entry.name, taskDir);
+		if (artifact) artifacts.push(artifact);
+	}
+}
+
+/**
+ * Extract the body of a `## <header>` Markdown section (up to the next `## `).
+ */
+function extractMarkdownSection(content: string, header: string): string {
+	const pattern = new RegExp(`^##\\s+${header}\\s*$`, "m");
+	const match = pattern.exec(content);
+	if (!match || match.index === undefined) return "";
+
+	const start = match.index + match[0].length;
+	const rest = content.slice(start);
+	const next = rest.match(/^##\s+/m);
+	const end = next ? start + (next.index ?? 0) : content.length;
+	return content.slice(start, end).trim();
+}
+
+/**
+ * Extract the values of all `- <label>：<value>` lines within a section body.
+ */
+function extractLabeledLines(section: string, label: string): string {
+	const pattern = new RegExp(`^\\s*-\\s*${label}\\s*[：:]\\s*(.+)$`, "gm");
+	const lines: string[] = [];
+	let m: RegExpExecArray | null;
+	while ((m = pattern.exec(section)) !== null) {
+		lines.push(m[1].trim());
+	}
+	return lines.join("\n");
+}
+
+/**
+ * Drop blank placeholders (无 / 暂无 / N/A / none / …) from newline-joined lines.
+ * Returns the remaining non-blank lines; empty string when nothing remains.
+ */
+function filterBlankValues(lines: string): string {
+	return lines
+		.split("\n")
+		.map((line) => line.trim())
+		.filter((line) => line !== "" && !isBlankValue(line))
+		.join("\n");
+}
+
+/**
+ * Recognize a value that semantically means "no open question" (template default),
+ * so it is never indexed as a real risk entity.
+ */
+function isBlankValue(value: string): boolean {
+	const normalized = value.replace(/[。.；;]\s*$/u, "").trim().toLowerCase();
+	return ["无", "暂无", "没有", "none", "n/a", "na", "null", "nil", "-", "—", "~"].includes(normalized);
+}
+
+/**
+ * ISO date (YYYY-MM-DD) from a file's mtime, for artifacts without a date prefix.
+ */
+function isoDateFromMtime(file: string): string {
+	try {
+		return new Date(fs.statSync(file).mtimeMs).toISOString().slice(0, 10);
+	} catch {
+		return "unknown";
+	}
+}
+
+/**
  * Check if a plan file has been modified since the given timestamp.
  */
 export function getPlanMtime(planPath: string): number {
@@ -353,6 +597,11 @@ export function getPlanMtime(planPath: string): number {
 	const questionFile = path.join(planPath, "QUESTION.md");
 	const responseFile = path.join(planPath, "RESPONSE.md");
 	const summaryFile = path.join(planPath, "SUMMARY.md");
+	const promptOptFile = path.join(planPath, "PROMPT-OPTIMIZATION.md");
+	const promptClarificationFile = path.join(planPath, "CLARIFICATION.md");
+	const promptOptimizedFile = path.join(planPath, "OPTIMIZED.md");
+	// checkpoint-persist artifacts
+	const checkpointFile = path.join(planPath, "CHECKPOINT.md");
 
 	let mtime = 0;
 	if (fs.existsSync(planFile)) {
@@ -378,6 +627,18 @@ export function getPlanMtime(planPath: string): number {
 	}
 	if (fs.existsSync(summaryFile)) {
 		mtime = Math.max(mtime, fs.statSync(summaryFile).mtimeMs);
+	}
+	if (fs.existsSync(promptOptFile)) {
+		mtime = Math.max(mtime, fs.statSync(promptOptFile).mtimeMs);
+	}
+	if (fs.existsSync(promptClarificationFile)) {
+		mtime = Math.max(mtime, fs.statSync(promptClarificationFile).mtimeMs);
+	}
+	if (fs.existsSync(promptOptimizedFile)) {
+		mtime = Math.max(mtime, fs.statSync(promptOptimizedFile).mtimeMs);
+	}
+	if (fs.existsSync(checkpointFile)) {
+		mtime = Math.max(mtime, fs.statSync(checkpointFile).mtimeMs);
 	}
 	return mtime;
 }

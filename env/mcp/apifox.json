@@ -10,11 +10,11 @@
     "env": {
         "APIFOX_ACCESS_TOKEN": "${apifox.token}"
     },
+    "capabilities": {"authority": "read", "reversible": true, "data_sensitivity": "internal", "parallel_safe": true, "fallback": "read the checked-in API specification", "verification": "compare results with the source API project"},
     "platforms": [
         "claude",
         "codex",
         "codebuddy",
-        "gemini",
         "cline",
         "continue"
     ]

@@ -36,6 +36,12 @@ run_step "skill structure" \
 run_step "skill behavior" \
   bash "${SCRIPT_DIR}/validate-skill-behavior.sh"
 
+run_step "source-of-truth and freshness" \
+  python3 "${SCRIPT_DIR}/validate-source-freshness.py"
+
+run_step "behavior eval contract tests" \
+  python3 -m unittest discover -s "${SCRIPT_DIR}/../behavior-evals" -p "test_*.py"
+
 run_step "preamble sync dry-run" \
   bash "${SCRIPT_DIR}/sync-agent-preamble.sh" --dry-run
 
@@ -44,6 +50,9 @@ run_step "sync verification" \
 
 run_step "skill integrity check-only" \
   bash "${SCRIPT_DIR}/validate-skill-integrity.sh" --check-only
+
+run_step "doc-hygiene DH-002 banned-phrase scan" \
+  bash "${SCRIPT_DIR}/validate-doc-hygiene.sh"
 
 run_step "codebuddy/global coordination tests" \
   python3 tests/test_codebuddy_sync.py

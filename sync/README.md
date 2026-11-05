@@ -76,6 +76,14 @@ Each `env/mcp/<name>.json`:
   "command": "npx",
   "args": ["-y", "my-mcp-package"],
   "env": {},
+  "capabilities": {
+    "authority": "read",
+    "reversible": true,
+    "data_sensitivity": "internal",
+    "parallel_safe": true,
+    "fallback": "local read-only inspection",
+    "verification": "compare with the authoritative source"
+  },
   "platforms": ["claude", "codex", "codebuddy"]
 }
 ```
@@ -83,6 +91,7 @@ Each `env/mcp/<name>.json`:
 - `type`: `"stdio"` (requires `command`/`args`) or `"sse"` (requires `url`/`headers`)
 - `platforms`: optional filter — omit to sync to all platforms, or list specific platforms
 - `env`: environment variables passed to the MCP server process
+- `capabilities`: required execution contract covering authority, reversibility, data sensitivity, parallel safety, fallback, and verification
 - Secrets: use `${platform.field}` syntax, resolved from nested `env/secrets.json` at sync time
 
 ## Platform Config Files
@@ -195,17 +204,36 @@ python3 sync/cli/main.py sync --target all  # sync all (Python direct)
 python3 sync/cli/main.py sync --target codex  # single platform
 ```
 
-## 可选 MCP 服务器
+## 跳过 skill 分发
 
-开箱即用的服务器在 `env/mcp/`。**非默认、社区/高级**服务器放在 `env/optional_mcps/`，用 `sync/scripts/optional_mcps.sh` 按需启用：
+`sync` 会把每个 skill 目录分发到各平台的 `skills/` 目录，并用 `shutil.rmtree` 清理
+`.tmp-sync` / `.backup-sync` 临时目录。在带有批量删除保护的环境中（如 CodeBuddy 的
+safe-delete，阈值 500），这些递归删除会被拦截并中断同步。此时可设置环境变量跳过
+skill 分发（MCP / 模型 / 设置同步不受影响）：
 
 ```bash
-bash sync/scripts/optional_mcps.sh list                       # 查看可选服务器与启用状态
-bash sync/scripts/optional_mcps.sh enable puppeteer           # 启用 -> 下次 sync.sh 生效
-bash sync/scripts/optional_mcps.sh disable puppeteer          # 停用
+SKIP_SKILL_SYNC=1 bash sync.sh
 ```
 
-`disable` 带护栏：只移除由本工具启用的服务器，绝不删除仓库默认的 `env/mcp/*.json`。详见 `env/optional_mcps/README.md`。
+普通用户与 CI 无需设置该变量，默认行为不变。
+
+## 可选 MCP 服务器
+
+开箱即用的服务器和**非默认、社区/高级**服务器都在 `env/mcp/`。后者以显式 `"enabled": false`
+标记**默认不同步**（`load_all_mcp()` 按 `mcp_enabled()` 过滤；停用时还会把已写入各平台
+配置的该服务器清理掉）：
+
+```json
+// env/mcp/puppeteer.json
+{
+    "name": "puppeteer",
+    "enabled": false,
+    "command": "..."
+}
+```
+
+启用：把 `enabled` 改为 `true` 或删除该字段，下次 `bash sync.sh` 生效；停用：改回 `false`。
+当前可选服务器：`puppeteer`、`filesystem-extra`、`wechat-bridge`（详见 `env/README.md`）。
 
 ## Design Principles
 

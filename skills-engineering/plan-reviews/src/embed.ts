@@ -10,6 +10,8 @@
 
 import type { PlanReviewsConfig } from "./config.js";
 
+export const EMBEDDING_TIMEOUT_MS = 15_000;
+
 export class EmbeddingService {
 	private apiKey: string;
 	private baseUrl: string;
@@ -60,6 +62,7 @@ export class EmbeddingService {
 				model: this.model,
 				input,
 			}),
+			signal: AbortSignal.timeout(EMBEDDING_TIMEOUT_MS),
 		});
 
 		if (!response.ok) {

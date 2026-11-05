@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-11 -->
 # 测试执行与失败修复
 
 ## 适用场景
@@ -10,9 +10,9 @@
 目标不是“补几个测试”，而是构建可靠的测试体系，并在测试暴露缺陷后进行最小可验证修复，直到核心业务逻辑具备可上线信心。本文件不承担测试层次划分与测试场景模板设计，那归 [testing_strategy.md](testing_strategy.md)。
 
 ## 项目背景
-- 这是 iOS 工程，不要使用 macOS 目标进行编译或测试。
-- 如果出现 “building for macOS” 或 macOS 相关编译失败，优先检查 scheme / destination / platform 设置。
-- 编译与测试必须使用 iPhone 模拟器或真机目标。
+- 先从 scheme、`SUPPORTED_PLATFORMS` 和产品类型确定目标平台；iOS/iPadOS 使用对应 simulator 或 device，watchOS/tvOS/visionOS 使用各自 simulator/device，Mac Catalyst 使用 Catalyst destination。
+- 对 iOS-only target，如果出现 “building for macOS” 或 macOS 相关编译失败，优先检查 scheme / destination / platform 设置；纯 Swift package 若明确支持 macOS，可用 macOS 测试作为补充，但不能替代 iOS 平台验证。
+- 编译与测试使用与产品声明一致且当前可用的 destination，不把 iPhone 作为所有 Apple 平台任务的固定目标。
 - 优先使用 XCTest / XCUITest / 项目现有测试框架，不引入不必要的新依赖。
 
 ## 验证命令
@@ -23,32 +23,32 @@
 | 优先级 | 方式 | 适用场景 |
 |--------|------|----------|
 | **1. MCP** | `XcodeBuildMCP`（构建 / 跑测试 / 读 Build Settings） | 交互式 agent 排障，自动读取项目 `.xcodebuildmcp/config.yaml` |
-| **2. 自适应脚本** | `scripts/run_ios_tests.sh`（自动发现 workspace/scheme/simulator） | CI 流水线、本地手动回归、MCP 不可用时的回退 |
+| **2. 自适应脚本** | `scripts/run-ios-tests.sh`（自动发现 workspace/scheme/simulator） | CI 流水线、本地手动回归、MCP 不可用时的回退 |
 | **3. 裸 xcodebuild** | 手动拼 `xcodebuild test ...` | 调试特定参数、MCP 和脚本均不覆盖的极端场景 |
 
 交互式 iOS 工程任务优先走 [mcp_control.md](mcp_control.md) 的 `XcodeBuildMCP` 映射；下列命令是 MCP 不可用、MCP 能力不覆盖、或需要沉淀到 CI / 脚本时的回退示例，不是默认首选路径。
 
 ### 自适应脚本（推荐用于 CI / 本地手动回归）
-脚本位于 `skills-engineering/ios-engineer/scripts/run_ios_tests.sh`，会自动发现项目配置：
+脚本位于 `skills-engineering/ios-engineer/scripts/run-ios-tests.sh`，会自动发现项目配置：
 
 ```sh
 # 复制到项目 scripts/ 目录（或直接引用 skill 路径）
-cp skills-engineering/ios-engineer/scripts/run_ios_tests.sh scripts/run_ios_tests.sh
+cp skills-engineering/ios-engineer/scripts/run-ios-tests.sh scripts/run-ios-tests.sh
 
 # 跑全部测试
-./scripts/run_ios_tests.sh
+./scripts/run-ios-tests.sh
 
 # 只跑指定测试类
-./scripts/run_ios_tests.sh STMarkdownFixTests
+./scripts/run-ios-tests.sh STMarkdownFixTests
 
 # 手动覆盖配置
-WORKSPACE=MyApp.xcworkspace SCHEME=MyApp SIMULATOR_NAME="iPhone 16 Pro" ./scripts/run_ios_tests.sh
+WORKSPACE=MyApp.xcworkspace SCHEME=MyApp SIMULATOR_NAME="iPhone 16 Pro" ./scripts/run-ios-tests.sh
 ```
 
 配置发现逻辑（按优先级）：
 1. **环境变量** `WORKSPACE` / `SCHEME` / `SIMULATOR_NAME` —— 手动覆盖
 2. **`.xcodebuildmcp/config.yaml`** —— 由 `xmcp-init.sh` 自动生成，与 XcodeBuildMCP 共享配置
-3. **自动发现** —— 查找 `.xcworkspace` → `xcodebuild -list` 获取 scheme → 默认 `iPhone 16` 模拟器
+3. **自动发现** —— 查找 `.xcworkspace` / `.xcodeproj` → `xcodebuild -list` 获取 scheme → 从 `-showdestinations` 或已安装 runtime 中选择与目标平台匹配的 available destination；不存在时明确报缺失 runtime，不写死设备型号
 
 脚本自动检测 `xcbeautify`，若已安装则美化输出 + 生成 JUnit 报告；否则使用原始 `xcodebuild` 输出。
 
@@ -114,10 +114,10 @@ WORKSPACE=MyApp.xcworkspace SCHEME=MyApp SIMULATOR_NAME="iPhone 16 Pro" ./script
 禁止为了测试大规模重写模块。
 
 4. 执行流程
-必须按以下流程循环，最多 3 轮：
+必须按以下流程循环。默认最多 3 轮；若每轮都有新的可验证证据、改动仍在既定预算内且没有扩大风险，可以继续，但必须说明继续依据。连续 3 轮没有实质进展时停止并报告阻塞：
 - 分析：识别核心业务逻辑入口，梳理依赖关系、状态流、错误路径、异步边界，明确单测/集成测试/UI 测试边界，并给出测试计划。
 - 生成测试：新增或补全测试文件，每个测试具备 Arrange / Act / Assert 结构；异步测试设置明确 expectation / timeout；并发或取消逻辑验证过期结果不会污染当前状态。
-- 执行测试：使用 iPhone 模拟器或真机执行 build / test；不要使用 macOS destination；如果 destination 不存在，先列出可用模拟器或改用当前可用 iPhone 模拟器；记录执行命令和关键失败信息。
+- 执行测试：使用与 target 平台匹配的 simulator/device/Catalyst destination 执行 build / test；如果 destination 不存在，先列出 available destinations 并选择同平台目标，不能静默切换到不同平台；记录执行命令和关键失败信息。
 - 失败分析：不要盲改，先判断失败类型是测试写错、产品代码缺陷、环境/scheme/destination 问题、异步时序问题还是依赖未隔离，并按四段式（根因 / 为什么 / 修法 / 验证）输出结论。
 - 修复：优先最小修复；不允许绕过测试、删除断言、放宽断言来让测试通过；不允许用 force unwrap / force cast / fatalError 掩盖问题；UI 或状态更新必须保证在主线程；异步任务必须明确创建者、持有者、取消时机和释放时机。
 - 回归测试：重新执行相关测试；必要时执行更大范围测试；最多循环 3 次；如果 3 次后仍失败，停止继续扩大修改，输出阻塞原因和建议。
@@ -129,7 +129,7 @@ WORKSPACE=MyApp.xcworkspace SCHEME=MyApp SIMULATOR_NAME="iPhone 16 Pro" ./script
 - 覆盖率：如果能获取覆盖率，输出整体覆盖率和关键模块覆盖率；如果无法获取覆盖率，说明原因，并给出替代判断依据。
 - 缺陷与修复：发现了哪些真实缺陷，修复了哪些问题，是否有为了可测试性进行重构，重构是否改变线上行为。
 - 风险点：未覆盖路径、仍可能存在的边界风险、环境或 CI 风险、异步/并发/状态残留风险。
-- 上线判断：是否可以上线 Yes / No，理由必须具体；如果是 No，说明上线前必须完成哪些事项。
+- 技术发布建议：基于本次可见证据给出“建议发布 / 不建议发布 / 证据不足”，理由必须具体；最终上线授权仍归项目发布负责人。若不建议发布或证据不足，列出发布前必须完成的事项。
 
 ## 工作原则
 - 以可靠性为目标，不以测试数量为目标。

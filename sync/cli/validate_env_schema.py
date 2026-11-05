@@ -18,7 +18,6 @@ from platforms.codex import _HOST_SKIP as _CODEX_HOST_SKIP
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ENV_DIR = REPO_ROOT / "env"
 MCP_DIR = ENV_DIR / "mcp"
-OPTIONAL_MCP_DIR = ENV_DIR / "optional_mcps"
 PLATFORMS_DIR = ENV_DIR / "platforms"
 
 # ── MCP server schema ────────────────────────────────────────────────────────
@@ -27,6 +26,15 @@ MCP_VALID_TYPES = {"stdio", "sse"}
 MCP_KNOWN_FIELDS = {
     "name", "type", "command", "args", "env", "url", "headers",
     "platforms", "_comment",
+    "capabilities",
+    "enabled",
+}
+
+MCP_AUTHORITIES = {"read", "local-write", "external-write"}
+MCP_SENSITIVITY = {"public", "internal", "secret"}
+MCP_CAPABILITY_FIELDS = {
+    "authority", "reversible", "data_sensitivity", "parallel_safe",
+    "fallback", "verification",
 }
 
 
@@ -68,6 +76,29 @@ def validate_mcp_file(path: Path) -> list[str]:
     platforms = data.get("platforms")
     if platforms is not None and not isinstance(platforms, list):
         errors.append(f"{path.name}: 'platforms' must be a list")
+
+    # Check enabled is a boolean if present
+    enabled = data.get("enabled")
+    if enabled is not None and not isinstance(enabled, bool):
+        errors.append(f"{path.name}: 'enabled' must be a boolean")
+
+    capabilities = data.get("capabilities")
+    if not isinstance(capabilities, dict):
+        errors.append(f"{path.name}: 'capabilities' must be an object")
+    else:
+        unknown_capabilities = set(capabilities) - MCP_CAPABILITY_FIELDS
+        if unknown_capabilities:
+            errors.append(f"{path.name}: unknown capability fields: {', '.join(sorted(unknown_capabilities))}")
+        if capabilities.get("authority") not in MCP_AUTHORITIES:
+            errors.append(f"{path.name}: capabilities.authority must be one of {sorted(MCP_AUTHORITIES)}")
+        if capabilities.get("data_sensitivity") not in MCP_SENSITIVITY:
+            errors.append(f"{path.name}: capabilities.data_sensitivity must be one of {sorted(MCP_SENSITIVITY)}")
+        for field in ("reversible", "parallel_safe"):
+            if not isinstance(capabilities.get(field), bool):
+                errors.append(f"{path.name}: capabilities.{field} must be a boolean")
+        for field in ("fallback", "verification"):
+            if not isinstance(capabilities.get(field), str) or not capabilities[field].strip():
+                errors.append(f"{path.name}: capabilities.{field} must be a non-empty string")
 
     # Warn about unknown fields
     unknown = set(data.keys()) - MCP_KNOWN_FIELDS
@@ -206,22 +237,16 @@ def main(argv: list[str] | None = None) -> int:
 
     all_errors: list[str] = []
 
-    # Validate MCP files (env/mcp + env/optional_mcps)
+    # Validate MCP files (env/mcp)
     if not args.platforms_only:
-        mcp_dirs = [MCP_DIR]
-        if OPTIONAL_MCP_DIR.is_dir():
-            mcp_dirs.append(OPTIONAL_MCP_DIR)
-        total_mcp = 0
-        for d in mcp_dirs:
-            if not d.is_dir():
-                all_errors.append(f"{d.relative_to(REPO_ROOT)}/: no JSON files found")
-                continue
-            for f in sorted(d.glob("*.json")):
-                if d is OPTIONAL_MCP_DIR and f.name == "enabled.json":
-                    continue  # registry 文件，不是 MCP 定义
+        if not MCP_DIR.is_dir():
+            all_errors.append(f"{MCP_DIR.relative_to(REPO_ROOT)}/: no JSON files found")
+        else:
+            total_mcp = 0
+            for f in sorted(MCP_DIR.glob("*.json")):
                 all_errors.extend(validate_mcp_file(f))
                 total_mcp += 1
-        print(f"Checked {total_mcp} MCP file(s) (incl. optional_mcps).")
+            print(f"Checked {total_mcp} MCP file(s).")
 
     # Validate platform files
     if not args.mcp_only and PLATFORMS_DIR.is_dir():

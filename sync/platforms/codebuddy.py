@@ -3,13 +3,23 @@ from pathlib import Path
 from typing import Any
 
 from core import recall
-from core.common import api_enabled as _api_enabled, read_json_object, sync_json_mcp, write_json
+from core.common import (
+    api_enabled as _api_enabled,
+    is_managed_entry,
+    merge_managed_entries,
+    read_json_object,
+    skill_sync_disabled,
+    sync_json_mcp,
+    write_json,
+)
 from core.paths import (
     claude_skills_base,
     codebuddy_mcp_path,
     codebuddy_models_path,
     codebuddy_root_dir,
     codebuddy_skills_base,
+    workbuddy_root_dir,
+    workbuddy_skills_base,
 )
 
 # ── Standalone historical recall (used only when preamble.mode=recall) ──
@@ -83,61 +93,23 @@ def _merge_model_entries(
 ) -> list[Any]:
     """Merge config-managed model entries into existing entries by id.
 
-    - Config-managed entries (identified by ``id``) appear first in config order.
-    - Existing entries with the same id are silently updated (config wins).
-    - User-added entries not in config are preserved after config entries.
-    - Non-dict entries with no id are preserved at the very end.
+    Delegates to the shared marker engine so empty config prunes managed
+    entries the same way as other platforms.
     """
-    if not config_entries:
-        return existing_entries
-
-    config_by_id: dict[str, dict[str, Any]] = {}
-    for m in config_entries:
-        if isinstance(m, dict) and "id" in m:
-            config_by_id[m["id"]] = m
-
-    result: list[Any] = []
-
-    # Config-managed entries first (in config order)
-    for m in config_entries:
-        if isinstance(m, dict) and "id" in m:
-            result.append(m)
-
-    # User-added entries from existing (not in config), preserving order
-    for m in existing_entries:
-        if not isinstance(m, dict) or "id" not in m:
-            continue
-        mid = m["id"]
-        if mid not in config_by_id:
-            result.append(m)
-
-    # Trailing non-standard entries
-    for m in existing_entries:
-        if not isinstance(m, dict) or "id" not in m:
-            result.append(m)
-
-    return result
+    return merge_managed_entries(existing_entries, config_entries, key_field="id")
 
 
 def _merge_available_models(
     existing_available: list[Any], config_available: list[Any]
 ) -> list[Any]:
-    """Merge config-managed availableModels with user-added entries.
+    """Replace availableModels wholesale with the config list.
 
-    - Config-managed IDs appear first and replace any existing duplicates.
-    - User-added IDs not in the config are preserved after config entries.
-    - An explicitly empty list from config means "clear all managed models".
+    availableModels is a plain string list with no per-item marker, so the
+    config is the single source of truth: any user/UI-added IDs not in the
+    config are dropped on the next sync. An explicitly empty list from config
+    means "clear all enabled models".
     """
-    if not config_available:
-        # Config explicitly set availableModels to [] — sync the empty list.
-        # (The caller already guards against the None case, so an empty list
-        # here means "set to empty", not "no config".)
-        return []
-
-    config_ids = set(config_available)
-    # User-added IDs not managed by our config
-    user_ids = [m for m in existing_available if m not in config_ids]
-    return list(config_available) + user_ids
+    return list(config_available)
 
 
 def _sync_models(cfg: dict[str, Any]) -> None:
@@ -146,14 +118,20 @@ def _sync_models(cfg: dict[str, Any]) -> None:
     available_models = cfg.get("availableModels")
     models_path = codebuddy_models_path()
 
-    # No model config at all: clean up any previously synced managed keys.
+    # No model config at all: clean up any previously synced managed entries.
     if models is None and available_models is None:
         existing = read_json_object(models_path)
         removed = False
-        for key in ("models", "availableModels"):
-            if key in existing:
-                existing.pop(key, None)
-                removed = True
+        # Drop only our managed model entries, keeping user/system entries.
+        existing_entries = existing.get("models")
+        if isinstance(existing_entries, list) and any(is_managed_entry(m) for m in existing_entries):
+            existing["models"] = [m for m in existing_entries if not is_managed_entry(m)]
+            if not existing["models"]:
+                existing.pop("models", None)
+            removed = True
+        if "availableModels" in existing:
+            existing.pop("availableModels", None)
+            removed = True
         if removed:
             write_json(models_path, existing)
             print(f"[codebuddy] Removed managed models config from {models_path} (model config absent).")
@@ -193,23 +171,17 @@ def _sync_models(cfg: dict[str, Any]) -> None:
 
 
 
-def _sync_skills() -> None:
-    claude_skills_dir = claude_skills_base()
-    codebuddy_skills_dir = codebuddy_skills_base()
-    if not claude_skills_dir.exists():
-        print(f"[codebuddy] Claude skills directory not found: {claude_skills_dir} — skipping skill sync.")
-        return
-
-    codebuddy_skills_dir.mkdir(parents=True, exist_ok=True)
+def _sync_skills_to(claude_skills_dir: Path, target_skills_dir: Path, label: str) -> None:
+    target_skills_dir.mkdir(parents=True, exist_ok=True)
     synced: list[str] = []
 
     for skill_dir in sorted(claude_skills_dir.iterdir()):
         if not skill_dir.is_dir() or not (skill_dir / "SKILL.md").exists():
             continue
 
-        dest = codebuddy_skills_dir / skill_dir.name
-        tmp = codebuddy_skills_dir / f".{skill_dir.name}.tmp-sync"
-        backup = codebuddy_skills_dir / f".{skill_dir.name}.backup-sync"
+        dest = target_skills_dir / skill_dir.name
+        tmp = target_skills_dir / f".{skill_dir.name}.tmp-sync"
+        backup = target_skills_dir / f".{skill_dir.name}.backup-sync"
 
         if tmp.exists():
             shutil.rmtree(tmp)
@@ -233,7 +205,25 @@ def _sync_skills() -> None:
                 shutil.rmtree(backup)
         synced.append(skill_dir.name)
 
-    print(f"Synced {len(synced)} skills to {codebuddy_skills_dir}: {', '.join(synced) or '(none)'}.")
+    print(f"Synced {len(synced)} skills to {target_skills_dir} ({label}): {', '.join(synced) or '(none)'}.")
+
+
+def _sync_skills() -> None:
+    if skill_sync_disabled():
+        print("[codebuddy] SKIP_SKILL_SYNC=1 — skipping skill sync.")
+        return
+    claude_skills_dir = claude_skills_base()
+    if not claude_skills_dir.exists():
+        print(f"[codebuddy] Claude skills directory not found: {claude_skills_dir} — skipping skill sync.")
+        return
+
+    _sync_skills_to(claude_skills_dir, codebuddy_skills_base(), "codebuddy")
+
+    workbuddy_root = workbuddy_root_dir()
+    if workbuddy_root.exists():
+        _sync_skills_to(claude_skills_dir, workbuddy_skills_base(), "workbuddy")
+    else:
+        print(f"[codebuddy] WorkBuddy root not found: {workbuddy_root} — skipping workbuddy skill sync.")
 
 
 def sync(mcp_servers: dict[str, Any], cfg: dict[str, Any]) -> None:

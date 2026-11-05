@@ -73,7 +73,15 @@ Let users "confirm / refute / skip" rather than thinking from scratch. Recommend
 
 ### PG-004 Lock Output
 
-After decision tree is parsed and consensus reached with user, write to `PLAN.md`:
+After the decision tree is resolved and consensus is reached, treat the current project or workspace root as `<workspace-root>` and persist the plan as follows:
+
+1. Generate a stable, semantic kebab-case `<plan-slug>` for this plan; reuse it throughout the grilling session and subsequent `cross-model-review` work.
+2. Use an available filesystem write tool to create `<workspace-root>/.plan-reviews/<plan-slug>/`, including missing parent directories. Merely rendering the Markdown in the conversation does not count as persistence.
+3. Write the plan to `<workspace-root>/.plan-reviews/<plan-slug>/PLAN.md`. Do not write `PLAN.md` at the workspace root or into the skill repository or another project.
+4. Before replying, read the target file back and verify that it exists under the current workspace root and that all seven second-level sections below exist with substantive content. The plan is "locked" only after both writing and verification succeed.
+5. If filesystem tools are unavailable, the workspace is read-only, required authorization is denied, or verification fails, report the target path and failure reason and keep the state "not locked". Never render the plan only in chat and then claim it was written or locked.
+
+`PLAN.md` format:
 
 ```markdown
 # Plan: <one-sentence title>
@@ -103,11 +111,11 @@ After decision tree is parsed and consensus reached with user, write to `PLAN.md
 - <Things explicitly not done>
 ```
 
-After writing, inform user: "PLAN.md is locked. For adversarial cross-model review, relay to `cross-model-review`."
+After writing and successful read-back verification, report the actual relative path: "`.plan-reviews/<plan-slug>/PLAN.md` is locked. For adversarial cross-model review, relay to `cross-model-review`."
 
 ### PG-005 Architecture Analysis Delegation
 
-When PG-003 explores the codebase, if it involves **cross-file/cross-module dependency analysis** (e.g., tracing class call chains, understanding inter-module coupling, evaluating modification impact), plan-grill does not produce architecture analysis itself — because plan-grill is platform-agnostic and lacks architecture knowledge for any language or framework.
+When PG-003 explores the codebase, if it involves **cross-file/cross-module dependency analysis** (e.g., tracing class call chains, understanding inter-module coupling, evaluating modification impact), plan-grill does not invent language/framework architecture conclusions. When a platform engineer skill is loaded, it reads the source files and writes `architecture-analysis.md` using that skill's "quick architecture analysis" template.
 
 **Trigger conditions**:
 - PG-003 discovers dependency relationships between multiple source files during code exploration
@@ -129,8 +137,8 @@ When PG-003 explores the codebase, if it involves **cross-file/cross-module depe
 - Do not make any language/framework-level architecture inferences.
 
 **Notes**:
-- plan-grill itself does not analyze any language/framework's architecture; it only does grilling and plan locking.
-- Architecture analysis is the platform engineer's responsibility; each platform has its own module division, layering approaches, and focus dimensions.
+- When a platform engineer is loaded, plan-grill fills architecture-analysis.md from that template; when none is loaded, it only describes dependencies in PLAN.md text.
+- The architecture analysis template is provided by the platform engineer; each platform has its own module division, layering approaches, and focus dimensions.
 - Produced architecture-analysis.md must be explicitly referenced via PLAN.md; cross-model-review only uses PLAN.md and its referenced files as stable entry points.
 
 ### PG-006 History Recall (delegated to global historical-recall)
@@ -166,7 +174,8 @@ Before grilling ends, go through:
 - [ ] Did every question get a recommended answer + reasoning?
 - [ ] Were there questions that could have been answered by checking code but asked the user instead? (Should change to checking code)
 - [ ] Does the decision tree still have unresolved leaves?
-- [ ] Are all seven PLAN.md sections filled substantively, no placeholders?
+- [ ] Was `.plan-reviews/<plan-slug>/PLAN.md` written with a filesystem tool and read back, confirming that it is under the current workspace root with all seven sections filled substantively and no placeholders?
+- [ ] If writing or read-back verification failed, was the plan kept "not locked" with the target path and failure reason reported?
 - [ ] Are blocking open questions cleared? Are non-blocking risks recorded?
 - [ ] When cross-file dependency analysis is involved, has platform engineer been delegated to produce architecture-analysis.md? (PG-005)
 

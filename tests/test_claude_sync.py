@@ -147,6 +147,9 @@ class ClaudeSyncTests(unittest.TestCase):
         self.assertIn("sample", data["mcpServers"])
         self.assertEqual(data["mcpServers"]["sample"]["command"], "echo")
         self.assertEqual(data["mcpServers"]["sample"]["args"], ["hello"])
+        self.assertEqual(
+            data["mcpServers"]["sample"]["_managed_by"], "ai-coding-kit"
+        )
 
     def test_claude_json_preserves_existing_top_level_keys(self) -> None:
         """Existing top-level keys in ~/.claude.json must survive the sync."""
@@ -323,7 +326,7 @@ class ClaudeSyncTests(unittest.TestCase):
         # Secrets should have been resolved
         self.assertEqual(settings["env"]["ANTHROPIC_AUTH_TOKEN"], "sk-ant-test-token")
         self.assertEqual(settings["env"]["ANTHROPIC_BASE_URL"], "https://claude.example/v1")
-        self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-4-8")
+        self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_OPUS_MODEL"], "claude-opus-5")
         self.assertEqual(settings["env"]["ANTHROPIC_DEFAULT_SONNET_MODEL"], "claude-sonnet-5")
         self.assertEqual(
             settings["env"]["ANTHROPIC_DEFAULT_HAIKU_MODEL"],

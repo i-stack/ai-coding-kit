@@ -11,7 +11,7 @@ For every non-trivial build/modify/solution request, first perform requirements 
 ## When to Invoke
 
 - **Conditional auto**: Non-trivial requests still have blocking decisions that cannot be found from code/context
-- **User forced trigger**: User says `【盘问】` / "grill me" / "lock plan" / "grill my solution"
+- **User forced trigger**: User says `【盘问】` / `/plan-grill` / `/grill-me` / "grill me" / "lock plan" / "grill my solution" / "interrogate the plan" / "lock plan first" / "don't write code yet" / "锁定计划" / "盘问我的方案" / "盘我" / "拷问方案" / "先锁计划" / "先别写代码" / "stress-test the plan" / "requirements interview"
 - **Relay from problem-analysis**: After problem-analysis completes, problem is clear, need to lock implementation solution
 
 ## Key Behaviors
@@ -21,7 +21,7 @@ For every non-trivial build/modify/solution request, first perform requirements 
 3. One question at a time (PG-001), each question with recommended answer + reasoning (PG-002).
 4. For questions answerable by checking code, check directly, don't ask user (PG-003).
 5. When PG-003 involves cross-file/cross-module dependency analysis and platform engineer is loaded, pause grilling, delegate quick architecture analysis and write `architecture-analysis.md` path back to PLAN.md (PG-005).
-6. After decision tree is parsed and user confirms, write PLAN.md (PG-004), seven sections filled substantively.
+6. After the decision tree is resolved and the user confirms, use a filesystem write tool to create `.plan-reviews/<plan-slug>/PLAN.md` under the current workspace root, then read it back and verify all seven sections (PG-004). If writing or verification fails, report the block and never claim it is locked.
 7. Do not execute plan before confirmation.
 
 ## When Not to Invoke

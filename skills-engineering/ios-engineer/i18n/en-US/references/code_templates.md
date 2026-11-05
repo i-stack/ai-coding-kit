@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-11 -->
 # Production Code Templates
 
 > This is an English mirror of the authoritative Chinese `references/code_templates.md`.
@@ -24,11 +24,69 @@
 
 ## ViewModel Template
 Applicable to:
-- UIKit MVVM
-- SwiftUI state-driven pages
+- SwiftUI state-driven pages (Observation by default)
+- UIKit MVVM / iOS 16 and below (ObservableObject)
 - List, form, detail page state orchestration
 
+> Version prerequisite: iOS 17+ / Swift 5.9+ uses `@Observable`; the view holds the instance with `@State`. iOS 16 and below, or a UIKit Combine path, uses `ObservableObject` + `@Published`.
+
+iOS 17+ Observation:
+
 ```swift
+import Foundation
+import Observation
+
+@MainActor
+@Observable
+final class FeatureViewModel {
+    private(set) var viewState: ViewState = .idle
+
+    private let useCase: FeatureUseCaseProtocol
+    @ObservationIgnored private var loadTask: Task<Void, Never>?
+
+    init(useCase: FeatureUseCaseProtocol) {
+        self.useCase = useCase
+    }
+
+    deinit {
+        loadTask?.cancel()
+    }
+
+    func load() {
+        loadTask?.cancel()
+        loadTask = Task { [weak self] in
+            guard let self else { return }
+            self.viewState = .loading
+
+            do {
+                let output = try await self.useCase.execute()
+                guard !Task.isCancelled else { return }
+                self.viewState = .loaded(output)
+            } catch is CancellationError {
+                return
+            } catch {
+                self.viewState = .failed(.from(error))
+            }
+        }
+    }
+}
+
+extension FeatureViewModel {
+    enum ViewState: Equatable {
+        case idle
+        case loading
+        case loaded(FeatureOutput)
+        case failed(ViewError)
+    }
+}
+```
+
+SwiftUI ownership: `@State private var viewModel = FeatureViewModel(useCase: useCase)`. Do not let `loadTask` participate in Observation tracking; mark it `@ObservationIgnored`.
+
+iOS 16 and below / UIKit Combine:
+
+```swift
+import Combine
 import Foundation
 
 @MainActor
@@ -262,7 +320,7 @@ Applicable to:
 ```swift
 import Foundation
 
-actor FeatureStore<Value> {
+actor FeatureStore<Value: Sendable> {
     private var storage: Value
 
     init(initialValue: Value) {
@@ -273,7 +331,7 @@ actor FeatureStore<Value> {
         storage
     }
 
-    func update(_ transform: (inout Value) -> Void) {
+    func update(_ transform: @Sendable (inout Value) -> Void) {
         transform(&storage)
     }
 }
@@ -293,19 +351,19 @@ Applicable to:
 
 | Wrapper | Ownership | Applicable Scenarios | Typical Anti-Pattern |
 |--------|--------|----------|------------|
-| `@State` | View-owned; resets on view rebuild | Temporary local UI state (toggle, text editing, animation progress) | Using `@State` for domain models; lost when leaving view; propagated across views |
+| `@State` | Held by the view identity; recomputing `body` for the same identity does not reset it | Temporary local UI state; on iOS 17+ it may also hold a view-owned `@Observable` reference | Stuffing a cross-screen source of truth into local state without a boundary |
 | `@Binding` | References upper-level `@State` / `@Bindable` | Child view needs to write back to parent state | Propagating `@Binding` across multiple layers (should extract ViewModel) |
 | `@StateObject` (iOS 14+) | View owns ObservableObject instance | ViewModel / Store owned within view lifecycle (iOS 16 and below) | Rebuilding ViewModel with `@StateObject` in intermediate views; state gets swallowed |
 | `@ObservedObject` | Externally passed ObservableObject | Shared object injected by parent view | Creating instance with `@ObservedObject` in parent view (view rebuild reconstructs it) |
 | `@Bindable` (iOS 17+) | References `@Observable` class | Child view needs binding to `@Observable` object properties | Mixing with old ObservableObject |
-| `@Observable` macro (iOS 17+) | Type itself; no propertyWrapper needed | Default choice for new code; view directly holds it | Still wrapping with `@StateObject` (redundant and semantically confusing) |
+| `@Observable` macro (iOS 17+) | The type provides Observation; ownership is still decided by where the instance is stored | Observable models in new code; store a view-owned instance in `@State`, pass injected instances directly | Recreating the instance in a computed property, losing identity and state |
 | `@Environment` / `@EnvironmentObject` | Environment injection | Services / themes / routes shared across multiple layers | Stuffing business domain models into environment (implicit dependencies hard to trace) |
 | `@SceneStorage` / `@AppStorage` | System persistence | UI preference persistence (not domain data) | Using `@AppStorage` for sensitive data or large objects |
 
 Selection decision tree:
 - Temporary data for current view only → `@State`
-- View-owned ViewModel: iOS 17+ → `@Observable` + regular storage; iOS 16- → `@StateObject`
-- Observable passed from parent view → `@Observed` (old) / pass directly (new + `@Bindable` for binding)
+- View-owned ViewModel: iOS 17+ → `@Observable` + `@State`; iOS 16 and below → `ObservableObject` + `@StateObject`
+- Observable passed from parent view → `@ObservedObject` (legacy) / pass directly (Observation; use `@Bindable` in the child when bindings are needed)
 - Shared across multiple layers → `@Environment` (inject services) / route struct; avoid `@EnvironmentObject` implicit dependencies
 - Persist preferences → `@AppStorage`; persist domain data → go through Repository + persistence layer
 
@@ -316,15 +374,15 @@ Applicable to:
 
 | Method | Applicable Scenarios | Advantages | Costs | When to Reject |
 |------|----------|------|------|----------|
-| **Constructor Injection** (default) | 90% of business dependencies | Compile-time checking, explicit dependencies, testable | Top-level assembly location code is verbose (Composition Root) | Almost never reject; only exception is circular dependencies must be broken first |
+| **Constructor Injection** (default) | Business dependencies with a clear lifetime and a controllable creation point | Compile-time checking, explicit dependencies, testable | Composition Root assembly code may grow | Circular dependencies must be split first; objects created by framework deserialization may need another entry |
 | **Property Injection** (var + Optional) | SwiftUI `@Environment` injection, UIKit storyboard deserialization scenarios | Compatible with framework limitations | Nullable at init time; runtime crash if forgotten to inject | Use constructor injection when possible within business control |
-| **Container / Service Locator** (Resolver / Factory / Swinject) | Extremely many modules + Composition Root can no longer manually write assembly | Centralized registration, auto-resolution | Weak compile-time checking, implicit dependency relationships, easy to hide circular dependencies | Small-to-medium projects / module count < 30 / team < 5 people → reject; constructor injection sufficient |
+| **Container / Service Locator** (Resolver / Factory / Swinject) | The dependency graph is complex and handwritten Composition Root already has measurable maintenance cost | Centralized registration, auto-resolution | Weak compile-time checking, implicit dependency relationships, easy to hide circular dependencies | Reject when there is no dependency graph, startup validation, or test substitution plan |
 
 Mandatory rules:
 - Always write constructor injection first. Only consider containers when Composition Root manual assembly code exceeds maintenance threshold.
 - Container introduction must be accompanied by: dependency relationship graph documentation + container configuration testable + startup full-resolution validation (fail fast; avoid discovering missing registrations at runtime).
 - Singletons / `static shared` do not count as injection; they are implicit global dependencies; prohibited from being directly held at ViewModel / UseCase / Repository layer; must be passed through constructor via protocol (even if the upper layer injects `.shared`).
-- Reject `@propertyWrapper Injected`: not verifiable at compile time, IDE navigation fails, replacement requires reflection during testing.
+- Use `@propertyWrapper Injected` only when registration can be located statically, test dependencies can be overridden explicitly, and the full graph is validated at launch; otherwise prefer constructor injection.
 
 Implementation example (constructor injection):
 ```swift
@@ -344,13 +402,13 @@ Applicable to:
 - New code choosing concurrency model
 - Old callback / Combine code migration decisions
 
-> Version prerequisite: iOS 15+ / Swift 5.5+ (async/await); iOS 13/14 fall back to Combine or callback. Sendable / actor isolation strict checking requires Swift 5.10+. See [swift_concurrency.md](swift_concurrency.md).
+> Version prerequisite: iOS 15+ / Swift 5.5+ can use async/await directly; lower deployment targets are evaluated against the project toolchain, back-deployment support, and dependency constraints. `Sendable` / actor isolation diagnostic strength is jointly decided by Swift language mode and Strict Concurrency Checking; Swift 6 mode checks full data-race safety by default. See [swift_concurrency.md](swift_concurrency.md).
 
 | Model | Applicable Scenarios | Advantages | Costs | When to Reject |
 |------|----------|------|------|----------|
-| **async/await + Task** | Default choice: one-shot requests, finite steps, cancellation needed | Structured concurrency, clear cancellation semantics, errors via throw | Not good at long-lived event streams | Long-lived event streams → use AsyncSequence or Combine |
+| **async/await + child task** | Default choice: one-shot requests, finite steps, cancellation needed | Structured concurrency inside the scope; errors via throw | A top-level `Task {}` is unstructured and still needs an explicit owner and cancellation | Long-lived event streams → use AsyncSequence or Combine |
 | **AsyncSequence / AsyncStream** | Data streams (WebSocket / notifications / long polling), need structured concurrency cancellation | Consistent cancellation model with async/await, backpressure controllable | Early iOS version support poor; operator API far less rich than Combine when needed | Need debounce / throttle / merge / zip and other complex operators → use Combine for now |
-| **Combine** | Existing Combine code, complex event stream operators, UIKit legacy path bridging | Rich operators, mature integration with UIKit `@Published` | Confused cancellation semantics (subscription lifecycle), Sendable unfriendly, official iteration stalled | New code default not selected; unless operators truly cannot be expressed with AsyncSequence |
+| **Combine** | Existing Combine code, complex event stream operators, UIKit legacy path bridging | Rich operators, mature integration with UIKit `@Published` | Subscription lifetime must be managed explicitly; bridging to strict concurrency isolation is costly | Prefer async/await for new one-shot async flows; do not rewrite an existing event stream just to migrate |
 | **callback / completion handler** | Must bridge Objective-C API or old SDK | Good compatibility | Easy to miss calls, loose error handling, high Sendable risk | All new code rejected; if must, wrap with `withCheckedThrowingContinuation` to expose async API |
 | **GCD (DispatchQueue)** | Rare scenarios still needing manual queue priority / serial barrier control | Historically mature, QoS controllable | Isolated from Swift concurrency, easy to break actor isolation | Almost all rejected; use `Task` + actor instead |
 | **OperationQueue** | Complex dependency orchestration, need batch cancellation / pause | Task dependency graph, observable progress | Poor integration with async/await, Sendable risk | Default rejected; use `TaskGroup` to express dependencies |

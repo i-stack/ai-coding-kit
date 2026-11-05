@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-11 -->
 # Build, Release & CI Governance
 
 > This is an English mirror of the authoritative Chinese `references/build_release_and_ci.md`.
@@ -46,8 +46,8 @@ Diagnostic flow: match error signals top-to-bottom; once a layer is hit, resolve
 
 ### Simulator vs. Device Build Strategy
 - First clarify whether the failure is related to simulator SDK, architecture, system capabilities, or third-party binary dependencies.
-- If simulator cannot complete compilation verification, must switch to device build to continue verification, rather than directly declaring it cannot compile.
-- After switching to device build, must record the simulator failure reason and device verification scope; avoid misidentifying platform differences as "code is fully correct".
+- If the simulator cannot complete compilation verification, first decide whether the issue is destination/runtime, architecture, platform API, binary dependency, or source. Switch to a generic iOS device or a physical device only when the problem is device-platform related and device/signing conditions exist.
+- When using a device or generic device for extra verification, record the simulator failure reason and the device verification scope so platform differences are not mistaken for "the code is fully correct". If no device/signing is available, list it as uncovered.
 - If the issue only appears on device or only on simulator, must treat it as a platform difference issue for separate analysis; do not conflate with general build failure.
 
 ## Dependency Governance

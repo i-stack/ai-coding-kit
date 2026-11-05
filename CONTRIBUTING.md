@@ -16,35 +16,32 @@ cp env/secrets.json.example env/secrets.json
 运行验证：
 
 ```bash
-cd skills-engineering/ios-engineer
-bash scripts/validate.sh
+bash skills-engineering/scripts/validate-global-skills.sh
 ```
 
 ---
 
 ## 贡献 Reference（新增 / 修改知识条目）
 
-ios-engineer 采用**提案驱动**的演进流程，所有对 reference 或 SKILL.md 的变更必须先创建提案：
+ios-engineer 的规则变更直接改 `SKILL.md` 与 `references/*.md`，由机械门禁保证质量：
 
 ```bash
-# 1. 创建提案骨架
-bash skills-engineering/ios-engineer/scripts/create_skill_proposal.sh \
-  "feat: 新增 CarPlay 适配参考"
+# 1. 实现变更（修改 references/ 或 SKILL.md）
 
-# 2. 编辑 evolution/proposals/<id>.md，填写动机、变更范围、影响分析
+# 2. 结构门 + 文档卫生门
+bash skills-engineering/scripts/validate-skill-structure.sh ios-engineer
+bash skills-engineering/scripts/validate-doc-hygiene.sh skills-engineering/ios-engineer/SKILL.md
 
-# 3. 实现变更（修改 references/ 或 SKILL.md）
+# 3. 刷新完整性基线（与内容变更同一次提交）
+bash skills-engineering/scripts/validate-skill-integrity.sh ios-engineer
 
-# 4. 运行完整验证
-bash skills-engineering/ios-engineer/scripts/validate_skill_evolution.sh
-
-# 5. 提交 PR，proposal 和变更一起提交
+# 4. 提交 PR，变更理由写进 commit message
 ```
 
 ### Reference 编写规范
 
 - 每个 reference 文件首行必须包含 `<!-- last-verified: YYYY-MM -->`
-- 所有规则 ID（如 `IR-001`、`ROUTE-005`）必须在 `rule_index.md` 中注册
+- 所有规则 ID（如 `IR-001`、`ROUTE-005`）在 `SKILL.md` 内唯一声明，字面细则写在其指向的 reference
 - 禁止跨文件重复定义核心概念（unique ownership 原则）
 - 退役术语不得在任何 reference 中重新出现（retired term regression 检查）
 
@@ -85,16 +82,17 @@ type 取值：
 示例：
 ```
 ref: 新增 CarPlay 场景适配 reference
-evolve: promote v74 — 修复 concurrency reference 中版本前提缺失
-chore: CI 加入 rule_id 双向一致性检查
+docs(ios-engineer): 修复 concurrency reference 中版本前提缺失
+chore(ci): CI 改为运行全仓结构校验
 ```
 
 ---
 
 ## PR 要求
 
-- 涉及 `SKILL.md` 或 `references/*.md` 的变更必须绑定 `evolution/proposals/` 中的 proposal
-- CI 必须全部通过（Rule IDs / Scenario Specs / Ref Freshness / Snapshot Consistency）
+- 所有技能：`SKILL.md` / `references/*.md` 变更须通过结构门与 DH-002 卫生门
+- CI 必须全部通过（结构校验 / Reference Freshness / 全仓回归测试）
+- 完整性基线（`skills-engineering/.integrity/*.sha256`）须与内容变更同一次提交刷新
 - 至少 1 位 [CODEOWNERS](./.github/CODEOWNERS) 批准
 
 ---
@@ -103,8 +101,8 @@ chore: CI 加入 rule_id 双向一致性检查
 
 | 组件 | 文件 | 用途 |
 |------|------|------|
-| 规则注册表 | `rule_index.md` | 所有规则 ID 的单一事实来源 |
-| 自进化 | `self_evolution.md` | 技能演进闭环流程 |
-| Usage Ledger | `usage_ledger.md` | 任务命中观测 |
+| 规则声明 | `SKILL.md` | 规则 ID 的唯一声明点（细则在各自 reference） |
 | 认知对手 | `cognitive_adversary_mode.md` | 反 AI 迎合机制 |
-| 验证场景 | `validation_scenarios.md` + `evolution/scenarios/` | 回归验证集 |
+| 结构门 | `skills-engineering/scripts/validate-skill-structure.sh` | 引用/链接/孤儿/体积校验 |
+| 文档卫生 | `skills-engineering/scripts/validate-doc-hygiene.sh` | DH-002 禁用词扫描 |
+| 完整性基线 | `skills-engineering/.integrity/*.sha256` | 内容哈希防意外改动 |

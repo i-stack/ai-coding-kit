@@ -1,10 +1,12 @@
 {
     "name": "moonvy",
     "type": "stdio",
+	"enabled": false,
     "command": "node",
     "args": [
         "~/Desktop/github/moonvy-design-mcp/server.js"
     ],
+    "capabilities": {"authority": "read", "reversible": true, "data_sensitivity": "internal", "parallel_safe": true, "fallback": "inspect exported design files", "verification": "compare returned design metadata with the source project"},
     "platforms": [
         "claude",
         "codex",

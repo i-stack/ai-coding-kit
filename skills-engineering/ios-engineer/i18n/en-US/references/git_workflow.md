@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-11 -->
 # Git Workflow (iOS Engineering Specialization)
 
 > This is an English mirror of the authoritative Chinese `references/git_workflow.md`.
@@ -36,7 +36,7 @@
 - Team constraint suggestion: limit single storyboard to single Feature owner; multiple people modifying same storyboard must be serial; new pages prefer SwiftUI or standalone xib rather than stuffing into large storyboard.
 
 ### Asset Catalog / Binary Resources
-- Large images, fonts, videos do not go into git; use Git LFS or separate resource repo + SPM resource bundle; resources entering git must be compressed first and unified in spec (@2x / @3x naming fixed).
+- Large or frequently changing binary resources should use Git LFS, a separate resource repo, or a resource bundle, chosen by repo size, clone cost, and the build chain. Resources that are size-bounded and need atomic release with source may go into git. Compress, license, and name them consistently before check-in.
 - Binary resource conflicts have no "auto-merge"; only strategy: both sides negotiate which to keep, delete the other.
 
 ## Dependency & Lock File Commit Strategy
@@ -47,8 +47,9 @@
 - Once the decision is written into README, all team members stay consistent; switching mid-way requires everyone to clean local Pods + switch .gitignore at once.
 
 ### SPM
-- `Package.resolved` **must** be committed (under Xcode projects located at `*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/`). When conflicting, prefer the **newer version** and verify locally with `Resolve Package Versions`; must not hand-merge the file's hashes.
-- Private SPM dependencies must use version pinning (exact / from); `branch: "main"` is prohibited; otherwise the lock file cannot guarantee reproducibility.
+- Apps, executable products, and workspaces that need reproducible builds usually commit `Package.resolved`. Whether a reusable library package commits it depends on publish and CI policy. File location varies with Xcode project/workspace or SwiftPM usage; do not assume a single path.
+- On `Package.resolved` conflicts, first confirm the target branch's `Package.swift`, Xcode package requirements, and compatibility constraints, then delete conflict markers and let the same toolchain re-resolve. The dependency graph that builds and tests wins; do not pick "the newer version" by default, and do not hand-stitch revision hashes.
+- Prefer semantic version ranges or an `exact` requirement for private SPM dependencies. `from` is a version range, not a lock. Long-term reproducibility comes from the requirement, `Package.resolved`, artifact availability, and the CI toolchain together. Use a branch requirement only for temporary integration, and record the exit condition.
 
 ### Hybrid (Pods + SPM)
 - Both sides' versions must be unioned; avoid same lib loaded from dual sources; conflict manifests as "compilation passes but runtime symbol conflict / slow launch".

@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-05 -->
+<!-- last-verified: 2026-09 -->
 # problem-analysis Out of Scope
 
 > This is an English mirror of the authoritative Chinese `OUT-OF-SCOPE.md`.
@@ -9,17 +9,21 @@ This skill is responsible for **problem pre-analysis** — testing problem logic
 ## What Is Not Handled
 
 - **Response content correctness**: Handled by corresponding domain skills.
-- **External verification of conclusions**: Handled by `epistemic-integrity` (GR-011/012).
-- **Response argumentation structure**: Handled by `logical-reasoning` (GR-010).
+- **External verification of conclusions**: Handled by `cognitive-reasoning` (GR-011~013).
+- **Response argumentation structure**: Handled by `cognitive-reasoning` (GR-010).
+- **Adversarial challenge of user conclusions**: Handled by `cognitive-reasoning` (CAM-001~005).
+- **Implementation decision-tree grilling**: Handled by `plan-grill` (PG-000) after this skill completes.
 - **Engineering output structure**: Handled by `engineering-discipline` (GR-002/004).
 - **Pure mechanical execution**: Tasks without judgment components like formatting code, direct translation do not need pre-analysis.
+- **Deriving empirical facts from first principles**: Fact-class questions are verified (GR-013); this skill does not grow a requirements tree from APIs/numbers/events.
 
 ## Boundary Explanation
 
 PA-001/002/003 are upfront gates:
 - Problem logic testing completed **before** the response
-- Output independent "Problem Analysis" block when deviation found
-- Silent pass when problem is clear
+- Output independent "Problem Analysis" block on explicit-then-answer or stop-and-confirm (fields: Logic test / Real requirement / Path evaluation)
+- Silent pass when the problem is clear, there is no path, or the question is fact-class
+- Stop and confirm when the surface deliverable and the base goal are substitutes: Path evaluation writes "unconfirmed, do not proceed"; do not advance the solution before confirmation
 
 Division of labor with GR-010:
 - GR-010 constrains AI **own response**'s argumentation quality

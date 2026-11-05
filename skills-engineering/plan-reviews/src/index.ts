@@ -132,6 +132,7 @@ export class PlanReviewsKB {
 
 // Re-export types for consumers
 export type { PlanReviewsConfig } from "./config.js";
+export { CURRENT_SCHEMA_VERSION, detectPromptInjection, migrateIndex } from "./migrations.js";
 export type {
 	SearchQuery,
 	SearchResponse,

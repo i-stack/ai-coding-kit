@@ -64,7 +64,12 @@ if os.path.isfile(invocation_path):
 # MULTILINE is required: `^` must anchor each line, not just the file start
 # (otherwise the frontmatter wins and owned_ids comes back empty, silently
 # skipping the whole check).
-RULE_BULLET = re.compile(r'^\s*-\s+\*?\[([A-Z]+-\d+)\]\*?', re.M)
+# Supports BOTH single ids `- [GR-010]` AND range shorthand
+# `- [CAM-001~005]` / `- [CE-001~013]` (inclusive, same prefix). A range is
+# expanded into every individual id so each one is validated separately — this
+# is what makes the gate actually check all 22 ids instead of just the 4 that
+# happened to be written out long-form.
+RULE_BULLET = re.compile(r'^\s*-\s+\*?\[([A-Z]+-\d+(?:~\d+)?)\]\*?', re.M)
 # A rule id is "defined" only by a STRUCTURED anchor in THIS skill's own
 # references/*.md — never by a bare substring, and never by ios-engineer's
 # references (which must not backstop another skill's ids). Supported anchors:
@@ -122,7 +127,27 @@ for skill_dir in skills:
     # ios-engineer's references (which would let a non-iOS skill's id be silently
     # backstopped). Result: a skill that declares `[GR-999]` in SKILL.md but never
     # defines it in references/ now correctly FAILs.
-    owned_ids = RULE_BULLET.findall(skill_text)
+    # A skill ships its rule IDs either through a registry (references/rule_index.md,
+    # whose `| ID | active |` rows are the structured definition anchor) or inline in
+    # SKILL.md only. The bidirectional registry check needs the registry to compare
+    # against, so a skill without one is skipped explicitly (never silently passed).
+    if not os.path.isfile(os.path.join(refs_dir, "rule_index.md")):
+        print("  [skip] no references/rule_index.md — rule-id registry check not applicable")
+        owned_ids = []
+    else:
+        owned_ids = RULE_BULLET.findall(skill_text)
+    # Expand any range shorthand `PREFIX-START~END` into individual ids so the
+    # bidirectional check validates every id, not just the long-form ones.
+    expanded_ids = []
+    for m in owned_ids:
+        if '~' in m:
+            prefix, rest = m.split('-', 1)
+            start_s, end_s = rest.split('~')
+            for n in range(int(start_s), int(end_s) + 1):
+                expanded_ids.append(f"{prefix}-{n:03d}")
+        else:
+            expanded_ids.append(m)
+    owned_ids = expanded_ids
     if owned_ids:
         defined = set()               # structured anchors: heading / bracket / ACTIVE table row
         defined_active_table = set()  # active table rows (redundant with `defined`, kept for clarity)
@@ -179,7 +204,42 @@ for skill_dir in skills:
     else:
         print("  [ok] load/skip gating present")
 
-    # --- Check 4: cross-skill hard link dead-end risk (WARN, non-iOS only) ---
+    # --- Check 4: depends_on closure reachability (FAIL if declared dep missing) ---
+    # Machine-resolvable dependency declaration. Replaces the old "WARN-only hard
+    # link" check: text-level cross-skill deps are now explicit via frontmatter
+    # `depends_on`, and we verify the closure is actually present at the same
+    # parent skills dir (not merely a dead-end hard link).
+    # IMPORTANT: parse `depends_on` ONLY from the YAML frontmatter, never from
+    # SKILL.md body prose. Body examples such as "`depends_on: [doc-hygiene]`"
+    # (inside a description / 何时加载 note) must not be mistaken for a real
+    # machine-resolvable dependency.
+    fm_text = skill_text
+    FM_RE = re.compile(r'^---\n(.*?)\n---\n', re.DOTALL)
+    fm_m = FM_RE.search(skill_text)
+    if fm_m:
+        fm_text = fm_m.group(1)
+    m = re.search(r'depends_on:\s*(.+)', fm_text)
+    declared_deps = []
+    if m:
+        raw = m.group(1).strip()
+        if raw not in ("[]", "[] "):
+            declared_deps = [d.strip().strip("[]").strip()
+                             for d in raw.strip("[]").split(",") if d.strip()]
+    if declared_deps:
+        missing = [d for d in declared_deps
+                   if not os.path.isdir(os.path.join(SE_DIR, d))]
+        if missing:
+            print(f"  FAIL: depends_on declares {declared_deps} but missing at "
+                  f"same parent: {missing} (sync the dependent skill too)")
+            fails += 1
+        else:
+            print(f"  [ok] depends_on closure reachable: {declared_deps}")
+    else:
+        print("  [ok] no depends_on declared")
+
+    # --- Check 4b: legacy hard cross-skill link audit (WARN) ---
+    # Kept for migration visibility: once all deps move to depends_on, this should
+    # go to zero. We no longer only look at ios-engineer.
     if name != "ios-engineer":
         scanned = [skill_md] + ref_md_files
         hard_links = []
@@ -189,25 +249,75 @@ for skill_dir in skills:
                     if CROSS_LINK.search(ln):
                         hard_links.append(os.path.relpath(fp, SE_DIR))
         if hard_links:
-            print(f"  WARN: hard cross-skill link to ios-engineer in "
-                  f"{sorted(set(hard_links))} — dead-ends if ios-engineer not synced to same parent")
+            print(f"  WARN: legacy hard cross-skill link in "
+                  f"{sorted(set(hard_links))} — prefer depends_on closure; "
+                  f"dead-ends if target not synced to same parent")
             warns += 1
 
-    # --- Check 5: i18n en-US mirror coverage (WARN) ---
+    # --- Check 5: i18n en-US policy (WARN; policy-aware) ---
+    # Policy (see README.md "i18n" + runtime-loading-contract.md):
+    #  - A skill that declares `supported_locales: [..., en-US]` MUST ship a
+    #    complete mirror (structural hard gate: source version + rule IDs + titles
+    #    + mechanical anchors + source hash). Missing mirror -> WARN (fallback zh-CN).
+    #  - A skill with an i18n/en-US/ dir but NO en-US in supported_locales is in a
+    #    transition state: mirror is treated as experimental/generated, NOT promised.
+    #    We only flag if the directory exists yet the declared source hash is absent.
     m = re.search(r'supported_locales:\s*(.+)', skill_text)
-    if m and "en-US" in m.group(1):
-        missing_mirrors = []
-        en_dir = os.path.join(skill_dir, "i18n", "en-US", "references")
+    declares_en = bool(m and "en-US" in m.group(1))
+    experimental_match = re.search(r'experimental_locales:\s*(.+)', skill_text)
+    experimental_en = bool(experimental_match and "en-US" in experimental_match.group(1))
+    en_dir = os.path.join(skill_dir, "i18n", "en-US", "references")
+    has_en_dir = os.path.isdir(en_dir)
+    if declares_en:
+        # Hard gate (not WARN): a skill that PROMISES en-US must ship a structurally
+        # complete mirror. Structural checks: (a) each zh reference has an en mirror
+        # file; (b) the mirror contains the same rule IDs (XXX-NNN) as the source;
+        # (c) the mirror carries a source-hash anchor. Semantic equivalence is NOT
+        # auto-checked (translation equivalence is unreliable to machine-verify);
+        # that remains human review per README i18n policy.
+        import hashlib
+        hard_fail = False
+        RID = re.compile(r'\b[A-Z]+-\d{3}\b')
         for rf in ref_md_files:
             base = os.path.basename(rf)
-            if not os.path.isfile(os.path.join(en_dir, base)):
-                missing_mirrors.append(base)
-        if missing_mirrors:
-            print(f"  WARN: en-US declared but {len(missing_mirrors)}/{len(ref_md_files)} "
-                  f"reference(s) lack i18n/en-US/references/ mirror (fallback to zh-CN)")
-            warns += 1
+            en_path = os.path.join(en_dir, base)
+            if not os.path.isfile(en_path):
+                print(f"  FAIL: en-US declared but missing mirror: references/{base}")
+                hard_fail = True
+                continue
+            zh_text = open(rf, encoding="utf-8").read()
+            en_text = open(en_path, encoding="utf-8").read()
+            zh_ids = set(RID.findall(zh_text))
+            en_ids = set(RID.findall(en_text))
+            missing_ids = zh_ids - en_ids
+            if missing_ids:
+                print(f"  FAIL: en-US mirror references/{base} missing rule IDs: "
+                      f"{sorted(missing_ids)}")
+                hard_fail = True
+            # source hash anchor: zh source must declare <!-- sha256:... --> and the
+            # en mirror must echo it (verifiable structural binding).
+            zh_hash = re.search(r'<!--\s*sha256:\s*([0-9a-f]{64})\s*-->', zh_text)
+            en_hash = re.search(r'<!--\s*sha256:\s*([0-9a-f]{64})\s*-->', en_text)
+            if not zh_hash:
+                print(f"  FAIL: references/{base} missing <!-- sha256:... --> source anchor "
+                      f"(required for en-US promise)")
+                hard_fail = True
+            elif not en_hash or en_hash.group(1) != zh_hash.group(1):
+                print(f"  FAIL: en-US mirror references/{base} sha256 mismatch/absent")
+                hard_fail = True
+        if hard_fail:
+            fails += 1
         else:
-            print(f"  [ok] en-US mirror complete ({len(ref_md_files)} reference(s))")
+            print(f"  [ok] en-US mirror structural gate passed ({len(ref_md_files)} reference(s))")
+    elif has_en_dir and experimental_en:
+        print("  [ok] en-US mirror explicitly marked experimental (not promised)")
+    elif has_en_dir:
+        print(f"  WARN: i18n/en-US/ present but en-US NOT in supported_locales — "
+              f"treat mirror as experimental/generated (not promised); declare "
+              f"supported_locales or remove dir")
+        warns += 1
+    else:
+        print("  [ok] no en-US mirror (single-locale, consistent)")
 
     # --- Check 6: covered by .agents/invocation.md trigger matrix (FAIL) ---
     if invocation_text and name not in invocation_text:

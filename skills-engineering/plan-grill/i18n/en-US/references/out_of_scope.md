@@ -10,8 +10,8 @@ This skill is responsible for **implementation solution grilling and locking aft
 
 - **Problem itself review**: Whether the problem contains logical errors, contradictory premises, real requirements decomposition is handled by `problem-analysis` (PA-001/002/003). plan-grill starts after problem-analysis completes.
 - **Adversarial cross-model review**: After PLAN.md is locked, adversarial review by selected reviewers is `cross-model-review`'s responsibility. plan-grill only produces PLAN.md, does not invoke reviewers.
-- **Review of written code**: Reviewing implemented code is handled by `ios-engineer/references/review_checklists.md` or `cross-model-review` (reviews plans not code).
-- **Executing the plan**: plan-grill only locks the plan, does not execute. Execution is handled by subsequent conversation or ios-engineer skill.
+- **Review of written code**: Reviewing implemented code is handled by `auto-code-review` or the loaded platform engineer's review checklist. `cross-model-review` reviews plans, not code.
+- **Executing the plan**: plan-grill only locks the plan, does not execute. Execution is handled by subsequent conversation or the loaded platform engineer skill.
 
 ## Trigger Gate
 

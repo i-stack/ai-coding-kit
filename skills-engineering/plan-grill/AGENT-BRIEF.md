@@ -7,7 +7,7 @@
 ## 何时调用
 
 - **条件自动**：非平凡请求仍存在无法从代码/上下文查明的阻塞性决策
-- **用户强制触发**：用户说 `【盘问】` / "grill me" / "锁定计划" / "盘问我的方案"
+- **用户强制触发**：用户说 `【盘问】` / `/plan-grill` / `/grill-me` / "grill me" / "lock plan" / "grill my solution" / "interrogate the plan" / "lock plan first" / "don't write code yet" / "锁定计划" / "盘问我的方案" / "盘我" / "拷问方案" / "先锁计划" / "先别写代码" / "stress-test the plan" / "requirements interview"
 - **接力 problem-analysis**：problem-analysis 完成后，问题已清晰，需要锁定实现方案
 
 ## 关键行为
@@ -17,7 +17,7 @@
 3. 一次一个问题（PG-001），每问给推荐答案 + 理由（PG-002）。
 4. 能查代码回答的，直接查，不问用户（PG-003）。
 5. PG-003 涉及跨文件/跨模块依赖分析且已加载平台 engineer 时，暂停盘问，委托快速架构分析并把 `architecture-analysis.md` 路径写回 PLAN.md（PG-005）。
-6. 决策树解析完且用户确认后，写 PLAN.md（PG-004），七段填实。
+6. 决策树解析完且用户确认后，调用文件写入工具在当前工作区根创建 `.plan-reviews/<plan-slug>/PLAN.md`，再读回验证七段完整（PG-004）；写入或验证失败时报告阻塞，禁止声称“已锁定”。
 7. 确认前不执行计划。
 
 ## 不调用的情况

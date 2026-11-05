@@ -6,6 +6,7 @@ import os
 from core.common import (
     api_enabled as _api_enabled,
     load_secrets,
+    merge_managed_dict,
     prune_managed_keys_via_sidecar,
     read_json_object,
     resolve_secrets,
@@ -74,7 +75,10 @@ def _sync_settings(
     """
     existing = read_json_object(path)
     merged = _deep_merge(existing, managed_settings)
-    merged["mcpServers"] = mcp_servers
+    existing_mcp = merged.get("mcpServers")
+    merged["mcpServers"] = merge_managed_dict(
+        existing_mcp if isinstance(existing_mcp, dict) else {}, mcp_servers
+    )
     write_json(path, merged)
     print(f"Synced Gemini settings to {path}.")
     prune_managed_keys_via_sidecar(path, set(managed_settings.keys()), sidecar_path)

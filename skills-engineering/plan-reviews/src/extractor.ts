@@ -10,10 +10,10 @@
  *   - Risk entities from the Risks section
  *   - Constraint entities from the Constraints section
  *   - Goal, OutOfScope entities
- *   - Flaw entities from PLAN-REVIEW-LOG.md
  *
  * Relationships are constructed between these entities based on
- * section co-occurrence and explicit mentions.
+ * section co-occurrence and explicit mentions. Review-log flaws are
+ * not extracted; they remain searchable as review_log chunks.
  *
  * Zero LLM calls. Zero external dependencies beyond node: crypto.
  */
@@ -34,45 +34,45 @@ import type {
  * Extracted from the Approach and Decisions sections.
  */
 const TECH_PATTERNS: Array<{ regex: RegExp; name: string; type: PlanEntityType }> = [
-	{ regex: /\bRedis\b/gi, name: "Redis", type: "service" },
-	{ regex: /\bPostgreSQL\b/gi, name: "PostgreSQL", type: "service" },
-	{ regex: /\bMySQL\b/gi, name: "MySQL", type: "service" },
-	{ regex: /\bSQLite\b/gi, name: "SQLite", type: "service" },
-	{ regex: /\bMongoDB\b/gi, name: "MongoDB", type: "service" },
-	{ regex: /\bKafka\b/gi, name: "Kafka", type: "service" },
-	{ regex: /\bRabbitMQ\b/gi, name: "RabbitMQ", type: "service" },
-	{ regex: /\bElasticsearch\b/gi, name: "Elasticsearch", type: "service" },
-	{ regex: /\bQdrant\b/gi, name: "Qdrant", type: "service" },
-	{ regex: /\bDocker\b/gi, name: "Docker", type: "technology" },
-	{ regex: /\bKubernetes\b/gi, name: "Kubernetes", type: "technology" },
-	{ regex: /\bGraphQL\b/gi, name: "GraphQL", type: "technology" },
-	{ regex: /\bREST\b/gi, name: "REST", type: "technology" },
-	{ regex: /\bWebSocket\b/gi, name: "WebSocket", type: "technology" },
-	{ regex: /\bTypeScript\b/gi, name: "TypeScript", type: "technology" },
-	{ regex: /\bJavaScript\b/gi, name: "JavaScript", type: "technology" },
-	{ regex: /\bPython\b/gi, name: "Python", type: "technology" },
-	{ regex: /\bRust\b/gi, name: "Rust", type: "technology" },
-	{ regex: /\bGo(lang)?\b/gi, name: "Go", type: "technology" },
-	{ regex: /\bSwift\b/gi, name: "Swift", type: "technology" },
-	{ regex: /\bKotlin\b/gi, name: "Kotlin", type: "technology" },
-	{ regex: /\bReact\b/gi, name: "React", type: "technology" },
-	{ regex: /\bVue(\.js)?\b/gi, name: "Vue.js", type: "technology" },
-	{ regex: /\bAngular\b/gi, name: "Angular", type: "technology" },
-	{ regex: /\bNext\.js\b/gi, name: "Next.js", type: "technology" },
-	{ regex: /\bNode\.js\b/gi, name: "Node.js", type: "technology" },
-	{ regex: /\bFastify\b/gi, name: "Fastify", type: "technology" },
-	{ regex: /\bExpress\b/gi, name: "Express", type: "technology" },
-	{ regex: /\bLua\b/gi, name: "Lua", type: "technology" },
-	{ regex: /\bHMAC\b/gi, name: "HMAC", type: "technology" },
-	{ regex: /\bCAPTCHA\b/gi, name: "CAPTCHA", type: "technology" },
-	{ regex: /\bMFA\b/gi, name: "MFA", type: "technology" },
-	{ regex: /\bJWT\b/gi, name: "JWT", type: "technology" },
-	{ regex: /\bOAuth2?\b/gi, name: "OAuth", type: "technology" },
-	{ regex: /\bgRPC\b/gi, name: "gRPC", type: "technology" },
-	{ regex: /\bPrometheus\b/gi, name: "Prometheus", type: "technology" },
-	{ regex: /\bGrafana\b/gi, name: "Grafana", type: "technology" },
-	{ regex: /\bNAT\b/gi, name: "NAT", type: "technology" },
-	{ regex: /\bIPv4\b|\bIPv6\b/gi, name: "IP Networking", type: "technology" },
+	{ regex: /\bRedis\b/i, name: "Redis", type: "service" },
+	{ regex: /\bPostgreSQL\b/i, name: "PostgreSQL", type: "service" },
+	{ regex: /\bMySQL\b/i, name: "MySQL", type: "service" },
+	{ regex: /\bSQLite\b/i, name: "SQLite", type: "service" },
+	{ regex: /\bMongoDB\b/i, name: "MongoDB", type: "service" },
+	{ regex: /\bKafka\b/i, name: "Kafka", type: "service" },
+	{ regex: /\bRabbitMQ\b/i, name: "RabbitMQ", type: "service" },
+	{ regex: /\bElasticsearch\b/i, name: "Elasticsearch", type: "service" },
+	{ regex: /\bQdrant\b/i, name: "Qdrant", type: "service" },
+	{ regex: /\bDocker\b/i, name: "Docker", type: "technology" },
+	{ regex: /\bKubernetes\b/i, name: "Kubernetes", type: "technology" },
+	{ regex: /\bGraphQL\b/i, name: "GraphQL", type: "technology" },
+	{ regex: /\bREST\b/i, name: "REST", type: "technology" },
+	{ regex: /\bWebSocket\b/i, name: "WebSocket", type: "technology" },
+	{ regex: /\bTypeScript\b/i, name: "TypeScript", type: "technology" },
+	{ regex: /\bJavaScript\b/i, name: "JavaScript", type: "technology" },
+	{ regex: /\bPython\b/i, name: "Python", type: "technology" },
+	{ regex: /\bRust\b/i, name: "Rust", type: "technology" },
+	{ regex: /\bGo(lang)?\b/i, name: "Go", type: "technology" },
+	{ regex: /\bSwift\b/i, name: "Swift", type: "technology" },
+	{ regex: /\bKotlin\b/i, name: "Kotlin", type: "technology" },
+	{ regex: /\bReact\b/i, name: "React", type: "technology" },
+	{ regex: /\bVue(\.js)?\b/i, name: "Vue.js", type: "technology" },
+	{ regex: /\bAngular\b/i, name: "Angular", type: "technology" },
+	{ regex: /\bNext\.js\b/i, name: "Next.js", type: "technology" },
+	{ regex: /\bNode\.js\b/i, name: "Node.js", type: "technology" },
+	{ regex: /\bFastify\b/i, name: "Fastify", type: "technology" },
+	{ regex: /\bExpress\b/i, name: "Express", type: "technology" },
+	{ regex: /\bLua\b/i, name: "Lua", type: "technology" },
+	{ regex: /\bHMAC\b/i, name: "HMAC", type: "technology" },
+	{ regex: /\bCAPTCHA\b/i, name: "CAPTCHA", type: "technology" },
+	{ regex: /\bMFA\b/i, name: "MFA", type: "technology" },
+	{ regex: /\bJWT\b/i, name: "JWT", type: "technology" },
+	{ regex: /\bOAuth2?\b/i, name: "OAuth", type: "technology" },
+	{ regex: /\bgRPC\b/i, name: "gRPC", type: "technology" },
+	{ regex: /\bPrometheus\b/i, name: "Prometheus", type: "technology" },
+	{ regex: /\bGrafana\b/i, name: "Grafana", type: "technology" },
+	{ regex: /\bNAT\b/i, name: "NAT", type: "technology" },
+	{ regex: /\bIPv4\b|\bIPv6\b/i, name: "IP Networking", type: "technology" },
 ];
 
 // ─── Decision extraction patterns ────────────────────────────────────
@@ -169,7 +169,7 @@ export function extractFromArtifact(artifact: PlanArtifact): ExtractionOutput {
 	// ── 1. Goal entity ──────────────────────────────────────────────
 	const goalText = artifact.sections.goal;
 	if (goalText) {
-		const goal = addEntity("goal", artifact.sections.title, goalText);
+		addEntity("goal", artifact.sections.title, goalText);
 	}
 
 	// ── 2. Constraint entities ──────────────────────────────────────
@@ -225,6 +225,7 @@ export function extractFromArtifact(artifact: PlanArtifact): ExtractionOutput {
 	const techTexts = [artifact.sections.approach, artifact.sections.decisions, artifact.diffText ?? ""].join("\n");
 	const seenTech = new Set<string>();
 	for (const pattern of TECH_PATTERNS) {
+		pattern.regex.lastIndex = 0;
 		if (pattern.regex.test(techTexts) && !seenTech.has(pattern.name)) {
 			addEntity(pattern.type, pattern.name, `Mentioned in ${artifact.id}`);
 			seenTech.add(pattern.name);
@@ -240,6 +241,7 @@ export function extractFromArtifact(artifact: PlanArtifact): ExtractionOutput {
 // ─── Helpers ─────────────────────────────────────────────────────────
 
 function extractBulletItems(text: string, pattern: RegExp): string[] {
+	pattern.lastIndex = 0;
 	const items: string[] = [];
 	let match;
 	while ((match = pattern.exec(text)) !== null) {
@@ -260,9 +262,9 @@ function limitName(text: string): string {
  *
  * Heuristics:
  *   - Each decision "uses" technologies mentioned in its text
- *   - Each risk "addresses" the goal
- *   - Each decision can reference technologies
- *   - Reviewers "found" flaws
+ *   - Each decision "addresses" the goal
+ *   - Each risk "addresses" the goal (co-occurrence; not a threaten edge)
+ *   - Each constraint "constrains" each decision
  */
 function buildRelationships(
 	entities: PlanEntity[],

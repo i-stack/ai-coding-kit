@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "target": "workbuddy-open-platform",
+  "spec_url": "https://open.workbuddy.cn/docs/skill",
+  "author": "i-stack",
+  "defaults": {
+    "version": "1.0.0",
+    "allowed-tools": "Read,Write,Edit,Glob,Grep,Bash",
+    "include": ["references", "scripts", "templates"],
+    "map_dirs": {},
+    "include_files": ["AGENT-BRIEF.md", "OUT-OF-SCOPE.md"],
+    "deps": []
+  },
+  "notes": {
+    "description": "SKILL.md frontmatter 的 description 不在此处维护，打包时直接取源 skill 的 description（触发语义单一真源），本文件只维护市场展示面字段。",
+    "pricing": "定价不在 zip 包内，上传后在开放平台「收入变现」后台选择一次性买断或按月订阅；此处仅为建议值。"
+  },
+  "skills": {
+    "ios-engineer": {
+      "route_hint": "iOS 崩溃 / 并发 / 布局 / 性能 / 审查 / 迁移",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "iOS 工程专家",
+      "display_name_en": "iOS Engineer",
+      "description_zh": "覆盖 iOS / iPadOS / macOS(Catalyst) / watchOS / tvOS 的工程技能：架构与并发建模、崩溃与野指针定位、SwiftUI/UIKit 布局错位、性能与能耗排查、代码审查、重构迁移与测试策略。每份方案强制给出「版本前提」与「残留风险」双声明。",
+      "description_en": "Senior-level Apple-platform engineering skill: architecture and Swift concurrency modeling, crash and dangling-pointer debugging, SwiftUI/UIKit layout defects, performance and energy profiling, code review, refactoring, migration and test strategy. Every deliverable ships explicit version assumptions and a residual-risk statement.",
+      "examples_zh": [
+        "帮我定位这个 EXC_BAD_ACCESS 崩溃的根因",
+        "SwiftUI 列表滚动时跳动，给出最小修复",
+        "把这段回调式网络层迁移到 async/await"
+      ],
+      "examples_en": [
+        "Find the root cause of this EXC_BAD_ACCESS crash",
+        "My SwiftUI list jumps while scrolling — give the minimal fix",
+        "Migrate this callback-based networking layer to async/await"
+      ],
+      "pricing": { "mode": "subscription", "cny": 29, "note": "Swift / Xcode 版本知识需持续更新，适合订阅" },
+      "deps": ["cognitive-reasoning", "engineering-discipline"],
+      "include": ["references"],
+      "notes": "ios-engineer/scripts/、i18n/、agents/ 为仓库工具与本地化资产，不属于运行期知识，不上架；平台仅支持 根/二级目录/文件 三段路径，依赖内联拍平为 references/dep-<dep>--*.md；references 中对 ../scripts 的链接在打包时降级为纯文本。"
+    },
+    "cognitive-reasoning": {
+      "route_hint": "论证质量、隐藏假设、最强反驳、认知拓展",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "认知与论证纪律",
+      "display_name_en": "Cognitive Reasoning Discipline",
+      "description_zh": "给 Agent 装上论证纪律：结论强度校验、外部真值接地、认知对手模式（主动寻找最强反驳）、回复末尾认知拓展尾注，防止迎合式结论与信息茧房。",
+      "description_en": "Argumentation discipline for AI agents: claim-strength checks, grounding to verifiable facts, a cognitive-adversary mode that hunts the strongest counterargument, and a short cognitive footnote that breaks filter bubbles.",
+      "examples_zh": [
+        "审查这段推理有没有隐藏假设",
+        "用最强反驳挑战我的结论",
+        "这个判断的可证伪条件是什么"
+      ],
+      "examples_en": [
+        "Check this reasoning for hidden assumptions",
+        "Challenge my conclusion with the strongest counterargument",
+        "What would falsify this judgment?"
+      ],
+      "pricing": { "mode": "subscription", "cny": 9.9, "note": "低价订阅引流，同时是 ios-engineer 的内联依赖" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "engineering-discipline": {
+      "route_hint": "工程安全、最小修复、四段式、残留风险",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "工程纪律",
+      "display_name_en": "Engineering Discipline",
+      "description_zh": "工程任务的安全网：安全合规防御、危险操作前置确认、单根因归因、四段式输出、最小修复、预算拦截与残留风险声明。",
+      "description_en": "A safety net for engineering tasks: security and compliance guardrails, confirmation before risky actions, single-root-cause attribution, structured four-part answers, minimal fixes, budget stops and residual-risk statements.",
+      "examples_zh": [
+        "执行这个改动前需要我确认什么",
+        "按最小修复原则改这个 bug",
+        "列出这次改动没覆盖到的风险"
+      ],
+      "examples_en": [
+        "What should you confirm before making this change?",
+        "Fix this bug with the minimal possible diff",
+        "List the risks this change does not cover"
+      ],
+      "pricing": { "mode": "free", "cny": 0, "note": "免费引流，用于满足「先有 1 个审核通过的免费技能」的开通收款前提" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "problem-analysis": {
+      "route_hint": "需求提法检验、第一性原理拆解",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "问题前置分析",
+      "display_name_en": "Problem Analysis",
+      "description_zh": "先检验问题再动手：逻辑一致性检验、第一性原理拆解。问题清晰时静默；仅在实质缺陷、更优路径或目标互相替代时才复述问题。",
+      "description_en": "Analyze before acting: check premises and decompose the real requirement. Stay silent when the problem is clear; restate only on a substantial flaw, a better path, or a substitute-goal mismatch.",
+      "examples_zh": [
+        "先帮我检验这个需求提法是否成立",
+        "列表滚动卡顿要改成分页，先看路径是否最优",
+        "这是要上链存证，还是只要可审计日志？"
+      ],
+      "examples_en": [
+        "Check whether this requirement statement even holds",
+        "The list stutters; we were going to paginate — is that the right path?",
+        "Do we need blockchain anchoring, or just an auditable log?"
+      ],
+      "pricing": { "mode": "free", "cny": 0, "note": "免费引流" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "plan-grill": {
+      "route_hint": "需求盘问、锁定 PLAN.md",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "需求盘问锁定计划",
+      "display_name_en": "Plan Grill",
+      "description_zh": "动手前先盘问：对非平凡需求逐问澄清阻塞性决策，一次只问一个，锁定后产出 PLAN.md，避免做完才发现方向错了。",
+      "description_en": "Interrogate the request before building: surface blocking decisions one question at a time, then lock the result into a PLAN.md so work never starts on the wrong premise.",
+      "examples_zh": [
+        "帮我把这个需求盘问清楚再动手",
+        "给我这个功能的 PLAN.md",
+        "这个需求里有哪些还没说清的决策"
+      ],
+      "examples_en": [
+        "Grill me on this requirement before you start building",
+        "Produce a PLAN.md for this feature",
+        "Which decisions in this request are still undefined?"
+      ],
+      "pricing": { "mode": "one-time", "cny": 19, "note": "流程稳定、更新少，适合买断" },
+      "deps": [],
+      "include": ["references", "templates"],
+      "map_dirs": { "examples": "templates" }
+    },
+    "cross-model-review": {
+      "route_hint": "PLAN.md 双模型对抗审查",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "跨模型对抗审查",
+      "display_name_en": "Cross-Model Review",
+      "description_zh": "把 PLAN.md 交给两个不同厂商的模型做对抗审查，主 Agent 仲裁并给出 APPROVED / REVISE 结论与逐轮审查日志。",
+      "description_en": "Send a PLAN.md to two models from different providers for adversarial review; the primary agent arbitrates and returns APPROVED / REVISE with a per-round review log.",
+      "examples_zh": [
+        "用两个模型对抗审查这份 PLAN.md",
+        "审查这个方案并给出 REVISE 理由",
+        "把审查结论写进 PLAN-REVIEW-LOG"
+      ],
+      "examples_en": [
+        "Run an adversarial review of this PLAN.md with two models",
+        "Review this plan and explain why it should be REVISE",
+        "Write the review verdict into PLAN-REVIEW-LOG"
+      ],
+      "pricing": { "mode": "subscription", "cny": 19, "note": "依赖外部 CLI 演进，适合订阅" },
+      "deps": ["plan-grill"],
+      "include": ["references", "templates"],
+      "map_dirs": { "examples": "templates" }
+    },
+    "auto-code-review": {
+      "route_hint": "改动 / PR 的跨模型审查",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "跨模型代码审查",
+      "display_name_en": "Auto Code Review",
+      "description_zh": "显式触发的跨模型代码审查：reviewer 只读运行、变更范围可追溯、最多三轮收敛，未收敛输出 deadlock 而不是假装通过；默认不改代码，授权后才修。",
+      "description_en": "Explicitly triggered cross-model code review: read-only reviewers, traceable diff scope, at most three rounds, and deadlock instead of fake approval. Code stays untouched unless you explicitly authorize a fix.",
+      "examples_zh": [
+        "/auto-review 审查本次改动",
+        "让两个模型 review 这个 PR",
+        "审查并修复这个模块的并发问题"
+      ],
+      "examples_en": [
+        "/auto-review this change",
+        "Have two models review this pull request",
+        "Review and fix the concurrency bug in this module"
+      ],
+      "pricing": { "mode": "subscription", "cny": 19, "note": "依赖外部 CLI 与历史线索，适合订阅" },
+      "deps": ["historical-recall"],
+      "include": ["references"]
+    },
+    "checkpoint-persist": {
+      "route_hint": "长任务中间结论落盘",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "中间结论落盘",
+      "display_name_en": "Checkpoint Persist",
+      "description_zh": "长任务防失忆：多子项任务每产出一个关键结论就增量写入 checkpoint 文件，上下文超窗或压缩后仍能续接。",
+      "description_en": "Anti-amnesia for long tasks: every key sub-result is appended to a checkpoint file as soon as it is produced, so work survives context compaction.",
+      "examples_zh": [
+        "这个长任务帮我边做边落盘",
+        "上下文要超了，先把已产出的结论存下来",
+        "从 checkpoint 恢复上次的进度"
+      ],
+      "examples_en": [
+        "Persist intermediate results as you work through this long task",
+        "Context is nearly full — checkpoint what we have so far",
+        "Resume the previous run from its checkpoint"
+      ],
+      "pricing": { "mode": "free", "cny": 0, "note": "免费引流" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "historical-recall": {
+      "route_hint": "召回项目历史决策线索",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "历史线索召回",
+      "display_name_en": "Historical Recall",
+      "description_zh": "动手前先召回历史：每个任务开始时 best-effort 检索 .plan-reviews/ 里的既往决策与审查线索。依赖本机已构建的 ai-coding-kit plan-reviews CLI（skills-engineering/plan-reviews/dist/cli.js）；CLI 不存在时门控跳过、不阻断任务。",
+      "description_en": "Recall before acting: best-effort retrieval of past decisions and review findings from .plan-reviews/. Requires a locally built ai-coding-kit plan-reviews CLI (skills-engineering/plan-reviews/dist/cli.js); if the CLI is missing the gate skips without blocking the task.",
+      "examples_zh": [
+        "开工前先召回这个项目的历史决策",
+        "之前有没有讨论过这个方案",
+        "把相关历史线索作为待验证上下文给我"
+      ],
+      "examples_en": [
+        "Recall this project's past decisions before starting",
+        "Have we discussed this approach before?",
+        "Give me the relevant historical findings as unverified context"
+      ],
+      "pricing": { "mode": "free", "cny": 0, "note": "免费引流。召回依赖本机已构建的 plan-reviews CLI；未构建时门控跳过。同时是 auto-code-review / prompt-optimizer 的内联依赖" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "doc-hygiene": {
+      "route_hint": "文档最终态表述、去过程叙事",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "文档卫生",
+      "display_name_en": "Doc Hygiene",
+      "description_zh": "文档只写最终态事实：禁止把迁移过程、owner 纠正、历史承载写进 .md 正文，变更过程一律进 CHANGELOG。",
+      "description_en": "Keep docs in final-state voice: no migration narratives or change-process prose in .md bodies — the process belongs in CHANGELOG.",
+      "examples_zh": [
+        "帮我把这篇文档改成最终态表述",
+        "检查这段文档有没有过程叙事",
+        "这段改动该写进 CHANGELOG 还是文档正文"
+      ],
+      "examples_en": [
+        "Rewrite this doc in final-state voice",
+        "Check this doc for process narrative",
+        "Should this change go into CHANGELOG or the doc body?"
+      ],
+      "pricing": { "mode": "free", "cny": 0, "note": "免费引流" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "project-decision-evaluation": {
+      "route_hint": "立项 / Go-No-Go / 项目排序",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "项目决策评估",
+      "display_name_en": "Project Decision Evaluation",
+      "description_zh": "立项 / Go-No-Go / 组合排序：用证据门禁、统一评分与停止条件判断一个项目该启动、验证、暂缓还是终止，并给出复盘节奏。",
+      "description_en": "Go/No-Go and portfolio decisions: evidence gates, one scoring rubric and explicit stop conditions to decide whether to start, validate, pause or kill a project — plus a review cadence.",
+      "examples_zh": [
+        "这个方向该不该立项",
+        "给这三个候选项目排序",
+        "设定这个项目的停止条件与复盘节奏"
+      ],
+      "examples_en": [
+        "Should we green-light this direction?",
+        "Rank these three candidate projects",
+        "Define stop conditions and a review cadence for this project"
+      ],
+      "pricing": { "mode": "one-time", "cny": 29, "note": "框架完整、更新少，参考市场同类买断价" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "classics-reading": {
+      "route_hint": "古籍章句解读、争议注疏",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "古典文献解读",
+      "display_name_en": "Classics Reading",
+      "description_zh": "克制型古籍解读：版本先行、标注出处、并列争议注疏，字面义 / 注疏义 / 个人推演三层分离，「无定论、无出处」也是合法结论。",
+      "description_en": "Restrained reading of Chinese classics: source edition first, citations always given, competing commentaries side by side, and a strict split between literal meaning, commentary and personal inference — 'undetermined' is a valid answer.",
+      "examples_zh": [
+        "解释《道德经》这一章",
+        "这句古文有哪些争议注疏",
+        "区分这句话的字面义和后世推演"
+      ],
+      "examples_en": [
+        "Explain this chapter of the Daodejing",
+        "What competing commentaries exist for this line?",
+        "Separate the literal meaning from later inference"
+      ],
+      "pricing": { "mode": "one-time", "cny": 19, "note": "内容稳定，适合买断" },
+      "deps": [],
+      "include": ["references"]
+    },
+    "prompt-optimizer": {
+      "route_hint": "改写 / 优化提问与 prompt",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "提问优化器",
+      "display_name_en": "Prompt Optimizer",
+      "description_zh": "把模糊提问改写成结构化高质量提示词：先召回相似历史，再盘问澄清真实需求，透明展示供你确认，确认后才基于它回答。",
+      "description_en": "Rewrite vague requests into structured, high-quality prompts: recall similar past questions, clarify the real need, show the rewritten prompt for approval, then answer from it.",
+      "examples_zh": [
+        "帮我优化提问：登录接口要加限流",
+        "优化这个 prompt",
+        "改写我的问题，让它更清楚"
+      ],
+      "examples_en": [
+        "Help me refine this question: add rate limiting to the login API",
+        "Optimize this prompt",
+        "Rewrite my question to make it clearer"
+      ],
+      "pricing": { "mode": "one-time", "cny": 9.9, "note": "低价买断引流" },
+      "deps": ["plan-grill", "historical-recall"],
+      "include": ["references"]
+    }
+  }
+}

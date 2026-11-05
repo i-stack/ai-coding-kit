@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-07 -->
+<!-- last-verified: 2026-11 -->
 # 计划盘问（Plan Grill）
 
 > **真值来源**：本文件为唯一详规正文。`plan-grill/SKILL.md` 为入口；各端完整副本由 `scripts/sync-skills.sh` 同步到 `~/.codex/skills/`、`~/.claude/skills/`、`~/.cursor/skills/`、`~/.gemini/skills/`；Cursor 项目内另由 `sync-agent-preamble.sh` 生成 `.cursor/rules/plan-grill.mdc`。
@@ -70,7 +70,15 @@ Q: <问题>
 
 ### PG-004 锁定产出
 
-决策树解析完且与用户达成共识后，写入 `PLAN.md`：
+决策树解析完且与用户达成共识后，以当前项目或工作区的根目录为 `<工作区根>`，执行以下落盘动作：
+
+1. 为本轮计划生成稳定、语义化的短横线 `<plan-slug>`；同一轮盘问及后续 `cross-model-review` 必须复用该 slug。
+2. 使用可用的文件写入工具创建 `<工作区根>/.plan-reviews/<plan-slug>/`（父目录不存在时一并创建）；只在对话中展示 Markdown 不算落盘。
+3. 将计划写入 `<工作区根>/.plan-reviews/<plan-slug>/PLAN.md`，不得写到工作区根的 `PLAN.md`，也不得写到 skill 仓库或其它项目目录。
+4. 回复用户前读回目标文件，验证文件存在、路径位于当前工作区根，且下列七个二级标题均存在并有实质内容。只有写入和验证均成功，计划状态才可称为“已锁定”。
+5. 文件工具不可用、工作区只读、越权审批未获准或验证失败时，明确报告目标路径与失败原因，状态保持“未锁定”；禁止仅输出计划正文后声称已写入或已锁定。
+
+`PLAN.md` 内容格式：
 
 ```markdown
 # Plan: <一句话标题>
@@ -100,11 +108,11 @@ Q: <问题>
 - <明确不做的事>
 ```
 
-写入后告知用户：「PLAN.md 已锁定。如需跨模型对抗审查，接力 `cross-model-review`。」
+写入并读回验证成功后，告知用户实际相对路径：「`.plan-reviews/<plan-slug>/PLAN.md` 已锁定。如需跨模型对抗审查，接力 `cross-model-review`。」
 
 ### PG-005 架构分析委托
 
-PG-003 探索代码库时，若涉及**跨文件/跨模块依赖分析**（如追踪类的调用链、理解模块间耦合关系、评估修改影响面），plan-grill 不亲自产出架构分析——因为 plan-grill 是平台无关的，不具备任何语言或框架的架构知识。
+PG-003 探索代码库时，若涉及**跨文件/跨模块依赖分析**（如追踪类的调用链、理解模块间耦合关系、评估修改影响面），plan-grill 不发明语言/框架架构结论。已加载平台 engineer 时，按该 skill 的「快速架构分析」模板读取源文件并写入 `architecture-analysis.md`。
 
 **触发条件**：
 - PG-003 探索代码时，分析涉及多个源文件之间的依赖关系
@@ -126,8 +134,8 @@ PG-003 探索代码库时，若涉及**跨文件/跨模块依赖分析**（如�
 - 不做任何语言/框架层面的架构推断。
 
 **注意事项**：
-- plan-grill 自身不分析任何语言/框架的架构，只做盘问和计划锁定。
-- 架构分析是平台 engineer 的职责，每个平台有自己特有的模块划分、分层方式和关注维度。
+- 已加载平台 engineer 时，plan-grill 按该模板填写 architecture-analysis.md；未加载时只在 PLAN.md 中用文字描述依赖。
+- 架构分析模板由平台 engineer 提供；每个平台有自己的模块划分、分层方式和关注维度。
 - 产出的 architecture-analysis.md 必须通过 PLAN.md 明确引用；cross-model-review 只以 PLAN.md 及其引用文件作为稳定入口。
 
 ### PG-006 历史召回（已统一至全局 historical-recall）
@@ -163,7 +171,8 @@ PG-003 探索代码库时，若涉及**跨文件/跨模块依赖分析**（如�
 - [ ] 是否每个问题都给了推荐答案 + 理由？
 - [ ] 是否有本可查代码却问了用户的问题？（应改为查代码）
 - [ ] 决策树是否还有未决叶子？
-- [ ] PLAN.md 七段是否都填实，无占位符？
+- [ ] 是否已通过文件工具写入并读回 `.plan-reviews/<plan-slug>/PLAN.md`，确认它位于当前工作区根，且七段填实、无占位符？
+- [ ] 若写入或读回验证失败，是否保持“未锁定”并报告了目标路径与失败原因？
 - [ ] blocking open questions 是否已清空？non-blocking risks 是否已记录？
 - [ ] 涉及跨文件依赖分析时，是否已委托平台 engineer 产出 architecture-analysis.md？（PG-005）
 

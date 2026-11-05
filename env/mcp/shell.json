@@ -6,6 +6,7 @@
         "-y",
         "shell-mcp-server"
     ],
+    "capabilities": {"authority": "local-write", "reversible": false, "data_sensitivity": "internal", "parallel_safe": false, "fallback": "use the sandboxed command runner", "verification": "check command exit status and inspect declared outputs"},
     "platforms": [
         "claude",
         "codex",

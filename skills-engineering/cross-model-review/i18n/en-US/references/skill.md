@@ -41,4 +41,4 @@ Details in [references/cross_model_review.md](references/cross_model_review.md).
 | `plan-grill` (PG-001~004) | Grilling to lock PLAN.md (Act 1) |
 | **cross-model-review (this skill)** | Adversarial cross-model review of PLAN.md (Act 2) |
 | `problem-analysis` (PA-001~003) | Problem review, before plan-grill |
-| `epistemic-integrity` (GR-011~013) | Epistemic grounding discipline during main agent arbitration |
+| `cognitive-reasoning` (GR-011~013) | Epistemic grounding discipline during main agent arbitration |

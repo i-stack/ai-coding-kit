@@ -10,13 +10,23 @@ bash install-hooks.sh
 
 会将 `core.hooksPath` 指向此目录，启用以下守卫。
 
-## pre-commit — 规则变更必须绑定治理记录
+## pre-commit — 技能变更分级守卫
 
-拦截对以下文件的未治理变更：
-- `skills-engineering/ios-engineer/SKILL.md`
-- `skills-engineering/ios-engineer/references/*.md`
+对所有 `skills-engineering/` 下的技能变更实施分级守卫：
 
-如果这些文件被 staged，同一个 commit 必须包含对应的 proposal 和 approval 记录。
+1. **结构门（所有技能）**：任何 `SKILL.md` / `AGENT-BRIEF.md` / `OUT-OF-SCOPE.md` /
+   `references/*.md` 变更必须通过 `validate-skill-structure.sh`（frontmatter、行数、
+   链接、孤儿引用）。
+2. **DH-002 卫生门（所有技能）**：变更的运行期入口文档须通过
+   `validate-doc-hygiene.sh` 禁用词扫描。
+3. **跨技能协调门**：`.agents/*.md`（invocation/composition 矩阵）或
+   `source-truth.json` 变更须通过 `validate-skill-behavior.sh` 一致性校验。
+
+`SKILL_BYPASS=1` 跳过全部守卫（仅限紧急修复）。
+
+**删除与部分暂存同样受守卫**：删除状态（`git diff --cached --diff-filter=D`）
+同样触发门禁（删除 `SKILL.md` FAIL 结构门；删除 `references/*.md` 不得留下
+悬空链接）；守卫文件禁止部分暂存（staged 版本必须与工作树一致）。
 
 ## pre-push — 推送前强制同步并校验
 

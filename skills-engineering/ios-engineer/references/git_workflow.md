@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-06 -->
+<!-- last-verified: 2026-11 -->
 # Git 工作流（iOS 工程特化）
 
 ## 目录
@@ -22,7 +22,7 @@
 ### project.pbxproj 冲突
 - 根因：pbxproj 是单文件 plist，新增文件、调整 Build Phase、修改 Capabilities 都会写入同一文件，多人并行改最易冲突。
 - 三级处理顺序（从轻到重）：
-  1. **小冲突**：手动按 UUID + isa 字段对齐，保留双方新增节点；用 `xcodeproj` Ruby gem 或 `xUnique` 之类工具规整后再 diff 复核。
+  1. **小冲突**：手动按 UUID + isa 字段对齐，保留双方新增节点；如团队已有受维护且兼容当前 Xcode 工程格式的工程文件工具，可规整后再 diff 复核，不临时引入未经验证的工具处理唯一工程副本。
   2. **中冲突**：双方在 Xcode 关闭工程的前提下用 `git checkout --ours` / `--theirs` 选一边，再把另一边变更手动重做（新增文件重新拖入 / 重新勾 Target Membership）。
   3. **不可解**：作为冲突预防，团队约定「新增文件 / 改 Build Phase 的 PR 串行合入」，长期方案是迁向 SPM + 模块化以减少根 pbxproj 改动。
 - 强制规则：解决完 pbxproj 冲突后**必须本地完整 build 一次**才能 push，不允许"看起来没冲突"就推送。
@@ -33,7 +33,7 @@
 - 团队约束建议：单个 storyboard 限制为单 Feature owner；多人改同一 storyboard 必须串行；新页面优先 SwiftUI 或独立 xib 而非塞入大 storyboard。
 
 ### Asset Catalog / 二进制资源
-- 大图、字体、视频不进 git，走 Git LFS 或独立资源仓 + SPM resource bundle；进 git 的资源必须先压缩、统一规格（@2x / @3x 命名固定）。
+- 大型或高频变更的二进制资源应按仓库体积、clone 成本和构建链选择 Git LFS、独立资源仓或资源包；体积可控且需要随源码原子发布的资源可以直接进 git。入库前统一压缩、授权与命名规格。
 - 二进制资源冲突时不存在"自动合并"，唯一策略：双方协商保留哪份，删另一份。
 
 ## 依赖与锁文件提交策略
@@ -44,21 +44,22 @@
 - 选项一旦确定写进 README，团队所有人保持一致；中途切换必须一次性全员清理本地 Pods + 切换 .gitignore。
 
 ### SPM
-- `Package.resolved` **必须**提交（Xcode 工程下放在 `*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/`）。冲突时优先以**更新的版本**为准并本地 `Resolve Package Versions` 复核；不得手 merge 该文件 hash。
-- 私有 SPM 依赖必须用版本锁定（exact / from），禁止 `branch: "main"`，否则锁文件无法保证可复现。
+- App、可执行产品和需要可复现构建的工作区通常提交 `Package.resolved`；可复用 library package 是否提交按发布与 CI 策略决定。文件位置随 Xcode project/workspace 或 SwiftPM 使用方式变化，不依赖单一路径。
+- `Package.resolved` 冲突先确认目标分支的 `Package.swift`、Xcode package requirement 与兼容约束，再删除冲突标记并让同一工具链重新 resolve；以构建和测试通过的依赖图为准，不按“版本更新”简单取舍，也不手工拼 revision hash。
+- 私有 SPM 依赖优先使用语义化版本范围或 `exact` requirement；`from` 是版本范围，不等同锁定。长期依赖可复现性由 requirement、`Package.resolved`、制品可用性和 CI 工具链共同保证；仅临时集成才使用 branch requirement，并记录退出条件。
 
 ### 混合（Pods + SPM）
 - 两边版本求并集，避免同一 lib 双源装载；冲突表现为「编译能过但运行时符号冲突 / 启动慢」。
 - 锁文件冲突按各自策略处理，不互相替代。
 
 ## 分支模型与 hotfix
-- 默认 trunk-based + 短分支：`main` 是可发布主线，feature 分支寿命 ≤ 5 天，超期必须分阶段合入或砍小。
+- 默认 trunk-based + 短分支：`main` 保持可发布，feature 分支尽量短命；具体时限由团队发布节奏定义，超过团队阈值时分阶段合入或缩小范围。
 - gitflow 仅在「同时维护多个 LTS 版本」时使用；否则其 `develop` / `release` 分支会拉长冲突窗口。
 - Hotfix 分支必须从「线上 tag」切出（非 `main` HEAD），修完合回 `main` 并 cherry-pick 到所有受影响的发布分支；不得只合到 main 就认为修完。
 - 任何分支策略都必须配套：发布点打 annotated tag（含版本号 + commit + 修改人），dSYM 与 tag 一一对应（详见 [build_release_and_ci.md](build_release_and_ci.md) 发布与灰度节）。
 
 ## 提交与 PR 粒度
-- 单 commit 主题单一：功能 / 重构 / 样式不混；commit message 第一行 ≤ 72 字符 + 动词起始（add / fix / refactor / chore），body 解释**为什么**而非"做了什么"。
+- 单 commit 主题单一：功能 / 重构 / 样式不混；commit message 遵守仓库既有格式和长度约束，摘要清楚说明目标，body 解释**为什么**而非重复 diff。
 - 涉及 pbxproj 改动的 commit 单独提交，便于 revert 时不带源码。
 - PR 拆分粒度与团队 PR 规则同步见 [team_collaboration.md](team_collaboration.md) PR 规则节；本节只补充 iOS 特化点：
   - 「新增模块 / Target」单独 PR，不与业务改动混。

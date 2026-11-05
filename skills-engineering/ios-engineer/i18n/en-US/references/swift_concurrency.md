@@ -1,4 +1,4 @@
-<!-- last-verified: 2026-05 -->
+<!-- last-verified: 2026-11 -->
 # Swift Concurrency Architecture
 
 > This is an English mirror of the authoritative Chinese `references/swift_concurrency.md`.
@@ -12,6 +12,7 @@ For designing, implementing, and reviewing:
 - Task cancellation, state sync, concurrency bug investigation
 
 ## General Principles
+- Declare the Swift language mode, Strict Concurrency Checking, and deployment target first. Review Swift 6 mode against full data-race safety rules; in Swift 5 mode, concurrency warnings are still not ignorable.
 - Understand concurrency issues as "isolation, ownership, cancellation, ordering" problems, not "thread switching tricks".
 - MUST use structured concurrency.
 - UI state and UI updates MUST be constrained by `@MainActor`.

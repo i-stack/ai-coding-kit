@@ -26,11 +26,13 @@ import type {
 	PlanEntityType,
 	SearchQuery,
 } from "./types.js";
+import { CURRENT_SCHEMA_VERSION, migrateIndex } from "./migrations.js";
 
 // ─── Empty state factory ──────────────────────────────────────────────
 
 function emptyIndex(): KbIndexData {
 	return {
+		schemaVersion: CURRENT_SCHEMA_VERSION,
 		plans: [],
 		entities: [],
 		relations: [],
@@ -57,9 +59,10 @@ export class PlanStore {
 		try {
 			if (fs.existsSync(this.indexPath)) {
 				const raw = fs.readFileSync(this.indexPath, "utf-8");
-				const parsed = JSON.parse(raw);
+				const parsed = migrateIndex(JSON.parse(raw));
 				// Cautious hydration: ensure all keys exist
 				return {
+					schemaVersion: parsed.schemaVersion,
 					plans: Array.isArray(parsed.plans) ? parsed.plans.map(normalizePlan) : [],
 					entities: Array.isArray(parsed.entities) ? parsed.entities : [],
 					relations: Array.isArray(parsed.relations) ? parsed.relations : [],
@@ -69,9 +72,14 @@ export class PlanStore {
 				};
 			}
 		} catch (err) {
+			if ((err as Error).message.startsWith("Unsupported knowledge-base schema")) throw err;
 			console.warn(`[plan-reviews] Failed to load index, starting fresh: ${(err as Error).message}`);
 		}
 		return emptyIndex();
+	}
+
+	reload(): void {
+		this.data = this._load();
 	}
 
 	save(): void {
@@ -80,7 +88,7 @@ export class PlanStore {
 			fs.mkdirSync(dir, { recursive: true });
 		}
 		// Atomic write: write to temp file, then rename
-		const tmp = `${this.indexPath}.tmp`;
+		const tmp = `${this.indexPath}.${process.pid}.tmp`;
 		fs.writeFileSync(tmp, JSON.stringify(this.data, null, 2), "utf-8");
 		fs.renameSync(tmp, this.indexPath);
 	}
@@ -228,6 +236,10 @@ export class PlanStore {
 
 	getStoredChunks(): EmbeddedChunk[] {
 		return [...this.data.chunks];
+	}
+
+	getChunk(chunkId: string): EmbeddedChunk | undefined {
+		return this.data.chunks.find((chunk) => chunk.id === chunkId);
 	}
 
 	setMergedKnowledge(points: KbIndexData["mergedKnowledge"]): void {

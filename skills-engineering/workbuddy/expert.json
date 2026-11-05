@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "target": "workbuddy-open-platform",
+  "spec_url": "https://open.workbuddy.cn/docs/expert",
+  "name": "ai-engineering-experts",
+  "version": "1.0.0",
+  "expert_type": "agent",
+  "category_id": "02-Engineering",
+  "description": "Routes 13 production engineering skills - requirements grilling, cross-model adversarial review, iOS/macOS engineering, cognitive reasoning discipline and project decision evaluation - into one orchestrated workflow.",
+  "author": {
+    "name": "i-stack",
+    "email": "songshoubing7664@163.com"
+  },
+  "avatar": "avatars/expert.png",
+  "display_name": {
+    "zh": "AI 工程专家",
+    "en": "AI Engineering Expert"
+  },
+  "profession": {
+    "zh": "工程化技能调度专家",
+    "en": "Engineering Skill Orchestrator"
+  },
+  "display_description": {
+    "zh": "聚合十三个工程化技能：需求盘问锁定、跨模型对抗审查、iOS 全栈工程、认知论证纪律、项目决策评估，按场景路由、逐层加载。",
+    "en": "One expert carrying 13 production engineering skills: requirements grilling, cross-model adversarial review, iOS/macOS engineering, cognitive reasoning discipline and project decision evaluation, routed per scenario and loaded layer by layer."
+  },
+  "default_init_prompt": {
+    "zh": "帮我盘问清楚这个需求再动手",
+    "en": "Grill this requirement before you start building"
+  },
+  "tags": [
+    { "zh": "iOS 工程", "en": "iOS Engineering" },
+    { "zh": "代码审查", "en": "Code Review" },
+    { "zh": "工程方法论", "en": "Engineering Method" }
+  ],
+  "quick_prompts": [
+    { "zh": "帮我盘问清楚这个需求再动手", "en": "Grill this requirement before you start building" },
+    { "zh": "审查本次改动并给出根因", "en": "Review this change and give the root cause" },
+    { "zh": "优化我这段提问", "en": "Optimize this prompt for me" }
+  ],
+  "agent": {
+    "name": "ai-engineering-expert",
+    "description": "Orchestrator that routes each request to one of 13 production engineering skills and loads their full rule text before acting.",
+    "max_turns": 100
+  },
+  "skills": [
+    "ios-engineer",
+    "cognitive-reasoning",
+    "engineering-discipline",
+    "problem-analysis",
+    "plan-grill",
+    "cross-model-review",
+    "auto-code-review",
+    "checkpoint-persist",
+    "historical-recall",
+    "doc-hygiene",
+    "project-decision-evaluation",
+    "classics-reading",
+    "prompt-optimizer"
+  ],
+  "notes": {
+    "skills": "专家包内 13 个技能同处 skills/ 下，跨技能链接（如 ../../cognitive-reasoning/references/...）天然可解析，因此不做依赖内联；技能包才需要内联。",
+    "team": "改 expert_type 为 team 时，需要补 team_info{leadAgent, memberAgents} 并为每个成员在 workbuddy/templates/ 下准备同名 Agent 定义。",
+    "avatar_source": "源图在 workbuddy/avatars/expert.png（512×512 PNG），构建时复制进包；缺失才回退到脚本生成的渐变占位图。"
+  }
+}

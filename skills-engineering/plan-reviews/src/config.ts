@@ -68,7 +68,7 @@ function loadEmbeddingSecrets(projectRoot: string): EmbeddingSecrets {
 }
 
 export function loadConfig(overrides?: Partial<PlanReviewsConfig>): PlanReviewsConfig {
-	const projectRoot = overrides?.projectRoot ?? discoverProjectRoot();
+	const projectRoot = overrides?.projectRoot ?? discoverProjectRoot(process.cwd());
 	const embeddingModel = overrides?.embeddingModel
 		?? optionalEnv("EMBEDDING_MODEL", "bge-m3");
 	const rawVectorSize = process.env.VECTOR_SIZE ?? "";
@@ -95,17 +95,16 @@ export function loadConfig(overrides?: Partial<PlanReviewsConfig>): PlanReviewsC
 }
 
 /**
- * Walk upward from cwd to find the project root by locating
- * the .plan-reviews/ or .codebuddy/ directory.
+ * Walk upward from `startDir` to find the project root by locating
+ * a `.plan-reviews/` directory. Ancestor `.codebuddy/` directories are
+ * not a root marker — that path exists under `$HOME` on developer machines
+ * and would mis-bind the knowledge base when cwd drifts (e.g. `~/.codebuddy`).
  */
-function discoverProjectRoot(): string {
-	let dir = process.cwd();
+export function discoverProjectRoot(startDir = process.cwd()): string {
+	let dir = startDir;
 
 	for (let i = 0; i < 10; i++) {
-		if (
-			existsSync(`${dir}/.plan-reviews`)
-			|| existsSync(`${dir}/.codebuddy`)
-		) {
+		if (existsSync(`${dir}/.plan-reviews`)) {
 			return dir;
 		}
 		const parent = dir.substring(0, dir.lastIndexOf("/"));
@@ -113,6 +112,5 @@ function discoverProjectRoot(): string {
 		dir = parent;
 	}
 
-	// Fallback to cwd
-	return process.cwd();
+	return startDir;
 }

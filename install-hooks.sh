@@ -2,8 +2,8 @@
 # Install repository-managed git hooks for ai-coding-kit.
 #
 # Registers the root .githooks/ directory with this clone:
-#   - pre-commit:  SKILL evolution-proposal guard for skills-engineering/ios-engineer/
-#   - post-commit: evolution history GC (keep latest KEEP_RECENT snapshots)
+#   - pre-commit:  skill contract guards for ALL skills (structure / DH-002 /
+#                  cross-skill)
 #   - pre-push:    skill-sync chain + sync/scripts/sync_all.sh (MCP + Codex shared)
 #
 # Run this once per clone:
