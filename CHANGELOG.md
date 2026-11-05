@@ -2,6 +2,9 @@
 
 ## 2026-11-05
 
+- **plan-reviews 锁外 embedding 快照 mtime**：`sync` 提交写入准备时的快照 mtime；若提交前文件已变则丢弃该 prepared artifact，避免旧内容被标成已同步。
+- **plan-reviews 可视化 XSS / 锁等待 / plan-grill 英文触发语**：知识图谱 tooltip 对 `plan.title` 走 `escapeHtml`；`sync` 的 embedding 在索引锁外执行，并发 recall 不再被 15s 超时拖死 5s 锁；plan-grill 中英文入口保留 `lock plan` / `grill my solution` / `interrogate the plan` / `lock plan first` / `don't write code yet`，并与中文触发语并存。
+- **plan-grill / plan-reviews 审查修复**：`reset()` 在索引锁内全量重建；`merge()` 与 `sync()` 共用目录锁；技术实体提取去掉全局 `/g` 正则；merge 折叠只消耗成员 chunk，保留同 plan 未合并命中。PLAN.md 解析接受 Risks/Goal 短标题与中文 H2；embedding 请求 15s 超时；可视化 JSON 转义 `</script>`。extractor 不再声称抽取 review-log flaw。plan-grill 补 `references/rule_index.md`，OUT-OF-SCOPE 改为 `auto-code-review` / 平台 engineer，AGENT-BRIEF 触发语与 SKILL.md 对齐，PG-005 写明按平台模板填 architecture-analysis.md。
 - **historical-recall 运行时收口**：`discoverProjectRoot` 只把 `.plan-reviews/` 当项目根，祖先 `.codebuddy/` 不再误绑 KB；`recall` 增加 `--stdin`（shell-only 宿主用单引号 heredoc 传 query），路径失败退出码 0 且原因打 stderr；词法召回增加 0.25 分阈值。HR-003/HR-005 与 preamble 改为宿主可执行约定（优先 argv，否则 `--stdin`），去掉不存在的 `|| true` 兜底。`behavior-evals` 增加非平凡必须召回 / trivial 不得召回两条；WorkBuddy catalog 标明依赖本机 plan-reviews CLI。
 - **historical-recall 边界对齐**：HR-005 写明 `recall` 路径失败一律退出码 0 + stderr，其它子命令仍非零退出；OUT-OF-SCOPE 与衔接段写明不显式调用 `sync`/`merge`，但 `recall` 会写入 `.kb-index.json` 缓存。`plan-reviews/tests/cli.test.ts` 覆盖 recall 失败 exit 0、search 失败 exit 1。
 - **ios-engineer references 规则校准**：完整审核 30 份 iOS reference，保留既有路由与输出契约，统一区分平台事实、安全硬约束、项目默认和启发式建议。性能阈值改为刷新率 / 设备矩阵 / 项目基线；根因纪律允许有观测、回滚和退出条件的生产止血；并发规则允许有 owner 的生命周期根任务及经证明的锁/串行执行器；DTO/ViewState/错误分层支持按复杂度裁剪；Review 阻塞、迁移兼容层、测试轮次、团队 ownership 和工具预算均改为风险分级。同步校准 WidgetKit、MetricKit、Core Data、APNs、StoreKit 与 Privacy Manifest 的时效语义，并将 CAM 文件明确为路由索引。

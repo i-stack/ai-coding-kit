@@ -11,7 +11,7 @@ For every non-trivial build/modify/solution request, first perform requirements 
 ## When to Invoke
 
 - **Conditional auto**: Non-trivial requests still have blocking decisions that cannot be found from code/context
-- **User forced trigger**: User says `【盘问】` / "grill me" / "lock plan" / "grill my solution"
+- **User forced trigger**: User says `【盘问】` / `/plan-grill` / `/grill-me` / "grill me" / "lock plan" / "grill my solution" / "interrogate the plan" / "lock plan first" / "don't write code yet" / "锁定计划" / "盘问我的方案" / "盘我" / "拷问方案" / "先锁计划" / "先别写代码" / "stress-test the plan" / "requirements interview"
 - **Relay from problem-analysis**: After problem-analysis completes, problem is clear, need to lock implementation solution
 
 ## Key Behaviors

@@ -115,7 +115,7 @@ After writing and successful read-back verification, report the actual relative 
 
 ### PG-005 Architecture Analysis Delegation
 
-When PG-003 explores the codebase, if it involves **cross-file/cross-module dependency analysis** (e.g., tracing class call chains, understanding inter-module coupling, evaluating modification impact), plan-grill does not produce architecture analysis itself — because plan-grill is platform-agnostic and lacks architecture knowledge for any language or framework.
+When PG-003 explores the codebase, if it involves **cross-file/cross-module dependency analysis** (e.g., tracing class call chains, understanding inter-module coupling, evaluating modification impact), plan-grill does not invent language/framework architecture conclusions. When a platform engineer skill is loaded, it reads the source files and writes `architecture-analysis.md` using that skill's "quick architecture analysis" template.
 
 **Trigger conditions**:
 - PG-003 discovers dependency relationships between multiple source files during code exploration
@@ -137,8 +137,8 @@ When PG-003 explores the codebase, if it involves **cross-file/cross-module depe
 - Do not make any language/framework-level architecture inferences.
 
 **Notes**:
-- plan-grill itself does not analyze any language/framework's architecture; it only does grilling and plan locking.
-- Architecture analysis is the platform engineer's responsibility; each platform has its own module division, layering approaches, and focus dimensions.
+- When a platform engineer is loaded, plan-grill fills architecture-analysis.md from that template; when none is loaded, it only describes dependencies in PLAN.md text.
+- The architecture analysis template is provided by the platform engineer; each platform has its own module division, layering approaches, and focus dimensions.
 - Produced architecture-analysis.md must be explicitly referenced via PLAN.md; cross-model-review only uses PLAN.md and its referenced files as stable entry points.
 
 ### PG-006 History Recall (delegated to global historical-recall)

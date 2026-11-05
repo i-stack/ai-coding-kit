@@ -37,13 +37,13 @@ const SECTION_PATTERNS: Array<{
 	key: keyof PlanSections;
 	regex: RegExp;
 }> = [
-	{ key: "goal", regex: /^##\s+Goal\s*$/im },
-	{ key: "constraints", regex: /^##\s+Constraints\s*[&]\s*assumptions\s*$/im },
-	{ key: "approach", regex: /^##\s+Approach\s*$/im },
-	{ key: "decisions", regex: /^##\s+Key\s+decisions\s*[&]\s*tradeoffs\s*$/im },
-	{ key: "validation", regex: /^##\s+Validation\s+plan\s*$/im },
-	{ key: "risks", regex: /^##\s+Risks\s*\/\s*non-blocking\s+open\s+questions\s*$/im },
-	{ key: "outOfScope", regex: /^##\s+Out\s+of\s+scope\s*$/im },
+	{ key: "goal", regex: /^##\s+(?:Goal|目标)\s*$/im },
+	{ key: "constraints", regex: /^##\s+(?:Constraints\s*[&]\s*assumptions|Constraints|约束(?:与假设)?)\s*$/im },
+	{ key: "approach", regex: /^##\s+(?:Approach|方案)\s*$/im },
+	{ key: "decisions", regex: /^##\s+(?:Key\s+decisions\s*[&]\s*tradeoffs|Key\s+decisions|Decisions|关键决策)\s*$/im },
+	{ key: "validation", regex: /^##\s+(?:Validation\s+plan|Validation|验证(?:计划)?)\s*$/im },
+	{ key: "risks", regex: /^##\s+(?:Risks\s*\/\s*non-blocking\s+open\s+questions|Risks|风险)\s*$/im },
+	{ key: "outOfScope", regex: /^##\s+(?:Out\s+of\s+scope|范围外)\s*$/im },
 ];
 
 /**

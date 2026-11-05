@@ -2,13 +2,16 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { planToChunks } from "../src/extractor.js";
+import { EmbeddingService } from "../src/embed.js";
+import { extractFromArtifact, planToChunks } from "../src/extractor.js";
 import { PlanReviewsKB } from "../src/index.js";
 import { clusterSimilarChunks } from "../src/merge.js";
-import { parseReviewLog, scanPlansDir } from "../src/parser.js";
-import type { EmbeddedChunk } from "../src/types.js";
+import { parsePlan, parseReviewLog, scanPlansDir } from "../src/parser.js";
+import { INDEX_LOCK_WAIT_MS } from "../src/sync.js";
+import type { EmbeddedChunk, PlanArtifact } from "../src/types.js";
 import { CURRENT_SCHEMA_VERSION, migrateIndex } from "../src/migrations.js";
 import { VectorIndex, cosineSimilarity } from "../src/vector.js";
+import { embedJsonForScript, generateKnowledgeGraph } from "../src/visualize.js";
 
 const tempRoots: string[] = [];
 
@@ -502,6 +505,121 @@ describe("PlanReviewsKB search", () => {
 		// The "无" placeholder is dropped; only the real open question remains.
 		expect(artifact.sections.risks).toBe("分布式时钟偏移未验证。");
 	});
+
+	it("rebuilds entities on reset even when plan mtime is unchanged", async () => {
+		const root = makeTempProject();
+		const planId = "2026-07-06-reset-redis";
+		writePlan(
+			root,
+			planId,
+			"Redis Plan",
+			[
+				"## Goal",
+				"Use Redis for counters.",
+				"",
+				"## Approach",
+				"Store counters in Redis.",
+				"",
+				"## Key decisions & tradeoffs",
+				"- Use Redis.",
+			].join("\n"),
+		);
+		const kb = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "" });
+		await kb.sync();
+		expect(kb.store.searchEntities("Redis").length).toBeGreaterThan(0);
+
+		kb.store.clearPlanEntities(planId);
+		kb.store.save();
+		expect(kb.store.searchEntities("Redis")).toHaveLength(0);
+
+		await kb.reset();
+		expect(kb.store.searchEntities("Redis").length).toBeGreaterThan(0);
+	});
+
+	it("keeps unmerged sibling chunks after merge collapse", async () => {
+		const root = makeTempProject();
+		const kb = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "" });
+		writeCodeReview(root, "2026-07-07-sibling-a", {
+			question: "# 用户问题\n\nshared-merge-sibling-marker\n",
+			response: "# 摘要\n\n## 变更目的\nshared-merge-sibling-marker\n",
+			reviewLog: "VERDICT: APPROVED\n",
+			diff: "+sibling-diff-alpha-unique\n",
+		});
+		writeCodeReview(root, "2026-07-08-sibling-b", {
+			question: "# 用户问题\n\nshared-merge-sibling-marker\n",
+			response: "# 摘要\n\n## 变更目的\nshared-merge-sibling-marker\n",
+			reviewLog: "VERDICT: APPROVED\n",
+			diff: "+sibling-diff-beta-unique\n",
+		});
+		await kb.sync();
+		const points = await kb.merge();
+		expect(points.some((point) => point.planIds.length === 2)).toBe(true);
+		const block = await kb.recall("shared-merge-sibling-marker sibling-diff-alpha-unique");
+		expect(block).toContain("merged-score=");
+		expect(block).toContain("sibling-diff-alpha-unique");
+	});
+
+	it("does not mark a plan synced at a newer mtime than the prepared snapshot", async () => {
+		const original = EmbeddingService.prototype.embedBatch;
+		const planId = "2026-11-05-stale-prepare";
+		let rewritten = false;
+		try {
+			const root = makeTempProject();
+			writePlan(root, planId, "Original", "## Goal\noriginal-prepare-marker\n");
+			EmbeddingService.prototype.embedBatch = async (texts: string[]) => {
+				if (!rewritten) {
+					rewritten = true;
+					writePlan(root, planId, "Updated", "## Goal\nupdated-prepare-marker\n");
+					const later = (Date.now() + 10_000) / 1000;
+					fs.utimesSync(path.join(root, ".plan-reviews", planId, "PLAN.md"), later, later);
+				}
+				return texts.map(() => [1, 0]);
+			};
+			const kb = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "test-key" });
+			await kb.sync();
+			await kb.sync();
+			const texts = kb.store.getAllChunks().map((chunk) => chunk.text).join("\n");
+			expect(texts).toContain("updated-prepare-marker");
+			expect(texts).not.toContain("original-prepare-marker");
+		} finally {
+			EmbeddingService.prototype.embedBatch = original;
+		}
+	});
+
+	it("does not hold the index lock while embedding, so concurrent sync survives a slow embed", async () => {
+		const original = EmbeddingService.prototype.embedBatch;
+		EmbeddingService.prototype.embedBatch = async (texts: string[]) => {
+			await new Promise((resolve) => setTimeout(resolve, INDEX_LOCK_WAIT_MS + 200));
+			return texts.map(() => [1, 0]);
+		};
+		try {
+			const root = makeTempProject();
+			writePlan(root, "2026-11-05-slow-embed", "Slow Embed", "## Goal\nslow-embed-marker\n");
+			const first = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "test-key" });
+			const second = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "test-key" });
+			const [left, right] = await Promise.all([first.sync(), second.sync()]);
+			expect(left.errors).toEqual([]);
+			expect(right.errors).toEqual([]);
+			const index = JSON.parse(fs.readFileSync(path.join(root, ".plan-reviews", ".kb-index.json"), "utf-8"));
+			expect(index.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+			expect(index.plans).toHaveLength(1);
+		} finally {
+			EmbeddingService.prototype.embedBatch = original;
+		}
+	}, 20_000);
+
+	it("serializes concurrent merge and sync without corrupting the JSON index", async () => {
+		const root = makeTempProject();
+		writePlan(root, "2026-08-14-merge-lock-a", "Merge A", "## Goal\nshared lock marker\n");
+		writePlan(root, "2026-08-14-merge-lock-b", "Merge B", "## Goal\nshared lock marker\n");
+		const first = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "" });
+		const second = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "" });
+		await first.sync();
+		await Promise.all([first.merge(), second.sync()]);
+		const index = JSON.parse(fs.readFileSync(path.join(root, ".plan-reviews", ".kb-index.json"), "utf-8"));
+		expect(index.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+		expect(index.plans).toHaveLength(2);
+	});
 });
 
 function makeTempProject(): string {
@@ -616,3 +734,78 @@ describe("VectorIndex semantic ranking (offline, no embedding API)", () => {
 		expect(() => cosineSimilarity([1], [1, 0])).toThrow(/dimension mismatch/i);
 	});
 });
+
+describe("parser heading aliases", () => {
+	it("parses short Risks and canonical Goal headings", () => {
+		const sections = parsePlan("# Plan: X\n\n## Goal\nDo the thing.\n\n## Risks\n- clock skew\n");
+		expect(sections.goal).toContain("Do the thing");
+		expect(sections.risks).toContain("clock skew");
+	});
+
+	it("parses Chinese section headings", () => {
+		const sections = parsePlan("# Plan: X\n\n## 目标\n做这件事。\n\n## 风险\n- 时钟偏移\n");
+		expect(sections.goal).toContain("做这件事");
+		expect(sections.risks).toContain("时钟偏移");
+	});
+});
+
+describe("extractor technology lastIndex", () => {
+	it("extracts Redis from consecutive artifacts", () => {
+		const first = extractFromArtifact(artifactWithApproach(
+			"p1",
+			"Use Redis as the shared cache and rate-limit counter store.",
+		));
+		const second = extractFromArtifact(artifactWithApproach("p2", "Redis is the store."));
+		expect(first.entities.some((entity) => entity.name === "Redis")).toBe(true);
+		expect(second.entities.some((entity) => entity.name === "Redis")).toBe(true);
+	});
+});
+
+describe("visualize script embedding", () => {
+	it("escapes script-breaking characters in JSON", () => {
+		const embedded = embedJsonForScript({ name: "</script><script>alert(1)" });
+		expect(embedded).not.toContain("</script>");
+		expect(embedded).toContain("\\u003c/script\\u003e");
+	});
+
+	it("escapes untrusted plan titles before tooltip innerHTML", async () => {
+		const root = makeTempProject();
+		writePlan(
+			root,
+			"2026-11-05-xss-title",
+			'<img src=x onerror=alert(1)>',
+			["## Goal", "xss-goal", "", "## Approach", "Use Redis."].join("\n"),
+		);
+		const kb = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "" });
+		await kb.sync();
+		const output = generateKnowledgeGraph({
+			projectRoot: root,
+			output: path.join(root, ".plan-reviews", "knowledge-graph.html"),
+		});
+		const html = fs.readFileSync(output, "utf-8");
+		expect(html).toContain("escapeHtml(plan ? plan.title : d.planId)");
+		expect(html).not.toMatch(/tt-meta">📋 ' \+ \(plan \? plan\.title : d\.planId\)/);
+	});
+});
+
+function artifactWithApproach(id: string, approach: string): PlanArtifact {
+	return {
+		id,
+		path: `/tmp/${id}`,
+		sections: {
+			title: id,
+			goal: "",
+			constraints: "",
+			approach,
+			decisions: "",
+			validation: "",
+			risks: "",
+			outOfScope: "",
+		},
+		hasReview: false,
+		resolution: "pending",
+		reviewers: [],
+		createdAt: "2026-01-01",
+		kind: "plan",
+	};
+}

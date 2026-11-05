@@ -24,6 +24,7 @@ import type { PlanReviewsConfig } from "./config.js";
 import type { PlanStore } from "./store.js";
 import type { EmbeddingService } from "./embed.js";
 import { cosineSimilarity } from "./vector.js";
+import { withIndexLock } from "./sync.js";
 
 /** Minimum cosine similarity for two chunks to be considered the "same" knowledge. */
 export const DEFAULT_MERGE_THRESHOLD = 0.82;
@@ -80,6 +81,13 @@ export class MergeEngine {
 	 * or fewer than 2 chunks).
 	 */
 	async merge(options?: { threshold?: number }): Promise<MergedKnowledgePoint[]> {
+		return withIndexLock(this.config.indexPath, async () => {
+			this.store.reload();
+			return this._mergeLocked(options);
+		});
+	}
+
+	private async _mergeLocked(options?: { threshold?: number }): Promise<MergedKnowledgePoint[]> {
 		// Exclude in-progress checkpoint artifacts: merge consolidates finished
 		// knowledge only, never mid-flight intermediate state.
 		const checkpointPlanIds = new Set(

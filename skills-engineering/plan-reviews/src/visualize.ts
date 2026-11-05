@@ -101,10 +101,19 @@ export function generateKnowledgeGraph(options: VisualizeOptions = {}): string {
 
 // ─── HTML builder ────────────────────────────────────────────────────
 
+/** JSON safe to interpolate into a <script> tag (prevents </script> breakout). */
+export function embedJsonForScript(value: unknown): string {
+	return JSON.stringify(value)
+		.replace(/</g, "\\u003c")
+		.replace(/>/g, "\\u003e")
+		.replace(/\u2028/g, "\\u2028")
+		.replace(/\u2029/g, "\\u2029");
+}
+
 function buildHtml(data: KbIndexData, _projectRoot: string): string {
-	const entitiesJson = JSON.stringify(data.entities);
-	const relationsJson = JSON.stringify(data.relations);
-	const plansJson = JSON.stringify(data.plans);
+	const entitiesJson = embedJsonForScript(data.entities);
+	const relationsJson = embedJsonForScript(data.relations);
+	const plansJson = embedJsonForScript(data.plans);
 
 	return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -884,7 +893,7 @@ function _showNodeTooltip(event, d) {
     '<span class="tt-type" style="background:' + d.color + '33;color:' + d.color + '">' + label + '</span>',
     '<div class="tt-name">' + escapeHtml(d.name) + '</div>',
     d.description ? '<div class="tt-desc">' + escapeHtml(truncate(d.description, 180)) + '</div>' : '',
-    '<div class="tt-meta">📋 ' + (plan ? plan.title : d.planId) + '</div>',
+    '<div class="tt-meta">📋 ' + escapeHtml(plan ? plan.title : d.planId) + '</div>',
   ].join('');
   tooltip.classList.add("visible");
 }

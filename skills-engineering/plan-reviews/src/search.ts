@@ -88,7 +88,7 @@ export class SearchEngine {
 		);
 		if (matchedPoints.length === 0) return hits;
 
-		const consumedPlans = new Set(matchedPoints.flatMap((point) => point.planIds));
+		const consumedChunkIds = new Set(matchedPoints.flatMap((point) => point.memberChunkIds));
 		const mergedHits = matchedPoints.map((point) => {
 			const memberHits = hits.filter((hit) => point.memberChunkIds.includes(hit.chunkId));
 			return {
@@ -103,7 +103,7 @@ export class SearchEngine {
 				promptInjectionSignals: [...new Set(memberHits.flatMap((hit) => hit.promptInjectionSignals ?? []))],
 			};
 		});
-		return [...mergedHits, ...hits.filter((hit) => !consumedPlans.has(hit.planId))];
+		return [...mergedHits, ...hits.filter((hit) => !consumedChunkIds.has(hit.chunkId))];
 	}
 
 	async graphSearch(query: SearchQuery): Promise<GraphSearchResult[]> {

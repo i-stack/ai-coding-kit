@@ -7,7 +7,7 @@
 ## 何时调用
 
 - **条件自动**：非平凡请求仍存在无法从代码/上下文查明的阻塞性决策
-- **用户强制触发**：用户说 `【盘问】` / "grill me" / "锁定计划" / "盘问我的方案"
+- **用户强制触发**：用户说 `【盘问】` / `/plan-grill` / `/grill-me` / "grill me" / "lock plan" / "grill my solution" / "interrogate the plan" / "lock plan first" / "don't write code yet" / "锁定计划" / "盘问我的方案" / "盘我" / "拷问方案" / "先锁计划" / "先别写代码" / "stress-test the plan" / "requirements interview"
 - **接力 problem-analysis**：problem-analysis 完成后，问题已清晰，需要锁定实现方案
 
 ## 关键行为
