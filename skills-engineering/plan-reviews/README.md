@@ -9,6 +9,9 @@
 ```bash
 # 检索注入：先增量同步，再根据用户问题返回最相关历史摘要
 node dist/cli.js recall "给登录接口加速率限制"
+node dist/cli.js recall --stdin <<'HR_QUERY'
+给登录接口加速率限制
+HR_QUERY
 
 # 同步：把 .plan-reviews/ 的新归档产物增量索引进 .kb-index.json
 node dist/cli.js sync

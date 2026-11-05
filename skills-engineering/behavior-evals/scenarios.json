@@ -2,6 +2,8 @@
   "schema_version": 2,
   "scenarios": [
     {"id":"direct-trivial-no-grill","category":"triggering","prompt":"只回答如何修正 README 中的一个错别字。不要修改文件，不要盘问。","contract":{"required":[],"forbidden":["Q:","推荐:","PLAN.md 已锁定"]},"success":{"required":["README"],"forbidden":["无法"]}},
+    {"id":"nontrivial-must-recall","category":"triggering","prompt":"为一个已有登录接口补服务端限流，开始改代码。","contract":{"required":["不可信历史线索"],"forbidden":[]},"success":{"required":["限流"],"forbidden":[]}},
+    {"id":"trivial-must-not-recall","category":"triggering","prompt":"README 里有一个错别字怎么改？只给改法，不要改文件。","contract":{"required":[],"forbidden":["Recalling context for","不可信历史线索"]},"success":{"required":["README"],"forbidden":[]}},
     {"id":"blocking-decision-grill","category":"triggering","prompt":"为一个公开 API 设计鉴权改造，但 OAuth、API key 或签名协议尚未决定。请开始处理。","contract":{"required":["Q:","推荐:","理由:"],"forbidden":["## Approach"]},"success":{"required":["鉴权"],"forbidden":["已经实现"]}},
     {"id":"trivial-grep-no-expansion","category":"triggering","prompt":"用 grep 找出所有引用 ROUTE-007 的文件，只列路径。","contract":{"required":[],"forbidden":["盲区","邻域","带走","认知"]},"success":{"required":["ROUTE-007"],"forbidden":["可证伪"]}},
     {"id":"judgment-with-blindspot-expansion","category":"triggering","prompt":"评估是否应把首页列表从 UITableView 迁移到 UICollectionView。这是一个有取舍的设计判断。","contract":{"required":["盲区","邻域"],"forbidden":[]},"success":{"required":["UITableView","UICollectionView"],"forbidden":["鸡汤"]}},

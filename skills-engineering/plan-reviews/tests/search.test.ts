@@ -340,6 +340,21 @@ describe("PlanReviewsKB search", () => {
 		expect(reviewDir).toContain("full-response");
 	});
 
+	it("drops weak lexical overlap so embedding fallback does not inject noise", async () => {
+		const root = makeTempProject();
+		writePlan(
+			root,
+			"2026-11-05-unrelated-plan",
+			"Unrelated Plan",
+			"## Goal\nhistorical-recall skill uses plan-reviews CLI\n",
+		);
+		const kb = await PlanReviewsKB.init({ projectRoot: root, embeddingApiKey: "" });
+		const block = await kb.recall(
+			"WorkBuddy catalog pricing packaging subscription zip historical-recall",
+		);
+		expect(block).toBe("");
+	});
+
 	it("matches Chinese paraphrases with local CJK bigrams", async () => {
 		const root = makeTempProject();
 		writeCodeReview(root, "2026-07-07-chinese", {

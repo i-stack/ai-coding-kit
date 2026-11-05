@@ -21,6 +21,9 @@ import type {
 	PlanEntityType,
 } from "./types.js";
 
+/** Drop lexical hits below this score so embedding fallback does not inject weak token overlap. */
+export const KEYWORD_SCORE_THRESHOLD = 0.25;
+
 export class SearchEngine {
 	private store: PlanStore;
 	private embed: EmbeddingService;
@@ -65,7 +68,7 @@ export class SearchEngine {
 		return this.store.searchChunksTextScored(query.query, {
 			limit: query.limit ?? 5,
 			planId: query.planId,
-		}).map(({ chunk, score, matchedTerms }) => ({
+		}).filter(({ score }) => score >= KEYWORD_SCORE_THRESHOLD).map(({ chunk, score, matchedTerms }) => ({
 			chunkId: chunk.id,
 			planId: chunk.planId,
 			section: chunk.section,

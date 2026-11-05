@@ -15,7 +15,30 @@ import { generateKnowledgeGraph } from "./visualize.js";
 
 const args = process.argv.slice(2);
 const command = args[0] ?? "help";
-const query = args.slice(1).join(" ");
+
+function queryArgs(): string[] {
+	return args.slice(1);
+}
+
+function wantsStdin(qArgs: string[]): boolean {
+	return qArgs[0] === "--stdin" || qArgs[0] === "-";
+}
+
+async function readStdinText(): Promise<string> {
+	const chunks: Buffer[] = [];
+	for await (const chunk of process.stdin) {
+		chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+	}
+	return Buffer.concat(chunks).toString("utf8").trim();
+}
+
+async function resolveQuery(): Promise<string> {
+	const qArgs = queryArgs();
+	if (wantsStdin(qArgs)) {
+		return readStdinText();
+	}
+	return qArgs.join(" ").trim();
+}
 
 // Parse --output flag
 function parseOutputFlag(): string | undefined {
@@ -41,6 +64,7 @@ function printHelp() {
 	console.log("  sync             Sync .plan-reviews/ to knowledge base");
 	console.log("  search <query>   Search the knowledge base");
 	console.log("  recall <query>   Search and print injection-ready context block");
+	console.log("  recall --stdin   Read recall query from stdin (shell-only hosts)");
 	console.log("  merge            De-dup / consolidate cross-plan knowledge (metabolism)");
 	console.log("  stats            Show KB statistics");
 	console.log("  reset            Full reset and re-sync");
@@ -61,7 +85,16 @@ async function main() {
 		return;
 	}
 
-	const kb = await PlanReviewsKB.init();
+	let kb: PlanReviewsKB;
+	try {
+		kb = await PlanReviewsKB.init();
+	} catch (err) {
+		if (command === "recall") {
+			console.error(`[plan-reviews] recall failed: ${(err as Error).message}`);
+			return;
+		}
+		throw err;
+	}
 	try {
 		switch (command) {
 			case "sync": {
@@ -79,6 +112,7 @@ async function main() {
 			}
 
 			case "search": {
+				const query = (await resolveQuery()).trim();
 				if (!query) {
 					console.log("Usage: cli.ts search <query>");
 					break;
@@ -90,16 +124,21 @@ async function main() {
 			}
 
 			case "recall": {
-				if (!query) {
-					console.log("Usage: cli.ts recall <query>");
-					break;
-				}
-				console.log(`Recalling context for: "${query}"\n`);
-				const block = await kb.recall(query);
-				if (!block) {
-					console.log("(no relevant prior knowledge found)");
-				} else {
-					console.log(block);
+				try {
+					const query = (await resolveQuery()).trim();
+					if (!query) {
+						console.log("Usage: cli.ts recall <query>");
+						break;
+					}
+					console.log(`Recalling context for: "${query}"\n`);
+					const block = await kb.recall(query);
+					if (!block) {
+						console.log("(no relevant prior knowledge found)");
+					} else {
+						console.log(block);
+					}
+				} catch (err) {
+					console.error(`[plan-reviews] recall failed: ${(err as Error).message}`);
 				}
 				break;
 			}
@@ -158,6 +197,11 @@ async function main() {
 }
 
 main().catch((err) => {
+	if (command === "recall") {
+		console.error(`[plan-reviews] recall failed: ${(err as Error).message}`);
+		process.exit(0);
+		return;
+	}
 	console.error("Error:", err.message);
 	process.exit(1);
 });

@@ -201,8 +201,8 @@
       "version": "1.0.0",
       "display_name": "历史线索召回",
       "display_name_en": "Historical Recall",
-      "description_zh": "动手前先召回历史：每个任务开始时 best-effort 检索 .plan-reviews/ 里的既往决策与审查线索，避免重复踩坑。",
-      "description_en": "Recall before acting: best-effort retrieval of past decisions and review findings from .plan-reviews/ at the start of every task.",
+      "description_zh": "动手前先召回历史：每个任务开始时 best-effort 检索 .plan-reviews/ 里的既往决策与审查线索。依赖本机已构建的 ai-coding-kit plan-reviews CLI（skills-engineering/plan-reviews/dist/cli.js）；CLI 不存在时门控跳过、不阻断任务。",
+      "description_en": "Recall before acting: best-effort retrieval of past decisions and review findings from .plan-reviews/. Requires a locally built ai-coding-kit plan-reviews CLI (skills-engineering/plan-reviews/dist/cli.js); if the CLI is missing the gate skips without blocking the task.",
       "examples_zh": [
         "开工前先召回这个项目的历史决策",
         "之前有没有讨论过这个方案",
@@ -213,7 +213,7 @@
         "Have we discussed this approach before?",
         "Give me the relevant historical findings as unverified context"
       ],
-      "pricing": { "mode": "free", "cny": 0, "note": "免费引流，同时是 auto-code-review / prompt-optimizer 的内联依赖" },
+      "pricing": { "mode": "free", "cny": 0, "note": "免费引流。召回依赖本机已构建的 plan-reviews CLI；未构建时门控跳过。同时是 auto-code-review / prompt-optimizer 的内联依赖" },
       "deps": [],
       "include": ["references"]
     },
