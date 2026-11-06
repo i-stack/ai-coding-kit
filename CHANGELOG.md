@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-06
+
+- **learning-loop skill 落地**：把 `docs/musk-learning-method.md` 的五步框架做成按需触发的独立 skill（`skills-engineering/learning-loop/`），定义 `LL-001~008` 规则集：触发门控、目标先定、主干先立、类比优先、三类约束深拆、闭环校准、授权与执行边界、证据口径。执行范围服从用户原请求：纯分析请求不修改状态，明确实现请求完成必要修改与本地验证；跨模型审查仍需单独显式授权。新增运行时来源表与五类行为回归场景，登记 `source-truth.json` 与 `.agents/invocation.md` 触发矩阵；`depends_on` 委托 `problem-analysis` / `cognitive-reasoning` / `plan-grill`。计划见 `.plan-reviews/2026-11-06-learning-loop-skill/PLAN.md`。
+
 ## 2026-11-05
 
 - **problem-analysis 三态可执行化**：PA-001「实质」改为四条独立判据（矛盾 / 循环 / 虚假二分 / 未说明强假设），轻微偏差静默。PA-002 用「手段 vs 替代」区分更优路径与停确认：分页仍能达成流畅度做出块后作答；上链与可审计日志互相替代则停确认（路径评估固定写「未确认，不推进」）。用户未提出路径或事实类问题跳过需求树，默认静默。`rule_index.md` 字段 owner 按 PA-001/002/003 拆开。WorkBuddy catalog 改为「问题清晰时静默」。`behavior-evals` 去掉强制「第一性原理」出字，补静默 / 更优路径 / 停确认 / 事实题四条契约。
