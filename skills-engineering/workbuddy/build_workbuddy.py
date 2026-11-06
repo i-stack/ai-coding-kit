@@ -290,7 +290,7 @@ def stage_skill(
     boundary        : 链接允许落到的根；技能包 = 技能根，专家包 = skills/ 根。
     companion_in_refs: True 时 AGENT-BRIEF/OUT-OF-SCOPE 放到 references/（市场包根级白名单要求），
                        False 时留在技能根（专家包内，保留原有相对链接）。
-    inline_deps     : 专家包内 13 个技能同在 skills/ 下，无需内联。
+    inline_deps     : 专家包内 14 个技能同在 skills/ 下，无需内联。
     """
     src = SE_DIR / skill
     if not src.is_dir():

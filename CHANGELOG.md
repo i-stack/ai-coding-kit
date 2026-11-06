@@ -2,6 +2,7 @@
 
 ## 2026-11-06
 
+- **learning-loop 补齐 WorkBuddy 上架登记 / cognitive-reasoning 元数据字段补档**：`workbuddy/expert.json`、`workbuddy/catalog.json` 补上 `learning-loop`（原 13 技能遗漏新 skill，专家包技能数改为 14）；`cognitive-reasoning/references/rule_index.md`（含 en-US 镜像）补齐 `owner/scope/phase/precedence/conflicts_with/merges_into/field_owner` 七列的权威字段定义，修复 `engineering-discipline`/`problem-analysis`/`doc-hygiene`/`learning-loop` 等文件「字段语义见 cognitive-reasoning/references/rule_index.md」指向落空的问题；刷新 `skills-engineering/.integrity/cognitive-reasoning.sha256` 并同步各端副本。
 - **learning-loop skill 落地**：把 `docs/musk-learning-method.md` 的五步框架做成按需触发的独立 skill（`skills-engineering/learning-loop/`），定义 `LL-001~008` 规则集：触发门控、目标先定、主干先立、类比优先、三类约束深拆、闭环校准、授权与执行边界、证据口径。执行范围服从用户原请求：纯分析请求不修改状态，明确实现请求完成必要修改与本地验证；跨模型审查仍需单独显式授权。新增运行时来源表与五类行为回归场景，登记 `source-truth.json` 与 `.agents/invocation.md` 触发矩阵；`depends_on` 委托 `problem-analysis` / `cognitive-reasoning` / `plan-grill`。计划见 `.plan-reviews/2026-11-06-learning-loop-skill/PLAN.md`。
 
 ## 2026-11-05

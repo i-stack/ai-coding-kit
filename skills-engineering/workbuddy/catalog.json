@@ -304,6 +304,28 @@
       "pricing": { "mode": "one-time", "cny": 9.9, "note": "低价买断引流" },
       "deps": ["plan-grill", "historical-recall"],
       "include": ["references"]
+    },
+    "learning-loop": {
+      "route_hint": "按五步来 / 用学习闭环 / @learning-loop",
+      "enabled": true,
+      "version": "1.0.0",
+      "display_name": "学习闭环",
+      "display_name_en": "Learning Loop",
+      "description_zh": "五步学习与问题求解框架：目标先定、主干先立、类比优先复用成熟解法、仅在惯例卡住时做三类约束深拆、用可失败验证清单闭环；仅在用户显式触发时介入，执行范围服从用户原请求。",
+      "description_en": "A five-step learning and problem-solving loop: define a falsifiable goal, establish the core trunk, reuse proven solutions by analogy first, fall back to first-principles decomposition only when convention blocks progress, and close the loop with a falsifiable verification checklist. Only engages on explicit trigger; execution stays within the user's original request.",
+      "examples_zh": [
+        "按五步来，帮我在两周内做出一个可演示的命令行工具原型",
+        "用学习闭环分析这个新框架该怎么上手",
+        "@learning-loop 实现这个功能并跑通本地验证"
+      ],
+      "examples_en": [
+        "Walk me through the five steps to ship a demoable CLI prototype in two weeks",
+        "Use the learning loop to figure out how to approach this new framework",
+        "@learning-loop implement this feature and verify it locally"
+      ],
+      "pricing": { "mode": "one-time", "cny": 9.9, "note": "流程稳定、更新少，适合买断" },
+      "deps": ["problem-analysis", "cognitive-reasoning", "plan-grill"],
+      "include": ["references"]
     }
   }
 }

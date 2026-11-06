@@ -1,6 +1,6 @@
-<!-- last-verified: 2026-08 -->
+<!-- last-verified: 2026-11 -->
 <!-- owner: cognitive-reasoning -->
-<!-- sha256: 9234a07ac1f215ce78cccb50efa6e4e8698296a09d0d033c6c8fdc3bad5d1e7b -->
+<!-- sha256: 25bf9f93e6e2a5224d41def8fac522d021f8e1777c2c78738a5c21efb89c32a4 -->
 
 # 规则索引（cognitive-reasoning）
 
@@ -47,3 +47,17 @@
 - [CE-013] 去重：Tier 0 尾注不得与同轮 cognitive-reasoning 逻辑链（GR-010）重复维度。
 
 细则见 [cognitive_expansion.md](cognitive_expansion.md)；形态校准见 [examples.md](examples.md)。
+
+## 跨 skill 元数据字段说明
+
+`engineering-discipline`、`problem-analysis`、`doc-hygiene`、`learning-loop` 等 skill 的 `references/rule_index.md` 用表格登记 `owner / scope / phase / precedence / conflicts_with / merges_into / field_owner` 七列，并注明"字段语义见本文件"。以下为这七列的权威定义：
+
+| 字段 | 含义 |
+|------|------|
+| `owner` | 拥有该规则条文真值的 skill 名，与其 SKILL.md frontmatter 一致。 |
+| `scope` | 规则适用范围；当前所有登记规则均为 `global`（不限平台/语言）。 |
+| `phase` | 规则在构造回复过程中所处阶段：`timing`（触发/时序门控）、`structure`（输出结构/格式）、`evidence`（证据与推理约束）、`safety`（安全与授权边界）。 |
+| `precedence` | 与 `conflicts_with` 指向的规则比较优先级的数值，数值越大越优先；`.agents/composition.md`「冲突裁决」把"安全 > 真相 > 问题 > 结构"的文字顺序落到可比较数字时使用。仅当 `conflicts_with` 非空、确有同处内容的冲突要求时才参与裁决；数值目前按各 skill 内部相对顺序设定，未建立跨 skill 统一刻度，新增规则沿用同 `phase` 内邻近规则的数量级即可，不要求与其它 skill 同名 `phase` 的数值直接可比。 |
+| `conflicts_with` | 本规则与哪些其它规则 ID 可能就同一处内容给出冲突要求；当前所有登记规则均为 `[]`（尚无已登记的冲突对）。 |
+| `merges_into` | 本规则的输出字段最终并入哪个机械块（如 `逻辑链`/`验证锚点`/四段式）；当前为保留列，所有登记规则均为 `[]`——多块合并的具体对应关系仍以 `engineering-discipline` GR-004「多块合并」的散文表述为准，尚未逐条登记到本列。 |
+| `field_owner` | 当某机械块的具体字段（如"已覆盖"/"真实需求"）由某条规则独占命名权时，以 `{字段名: owner-skill}` 登记；无独占字段的规则登记为 `{}`。 |

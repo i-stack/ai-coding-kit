@@ -6,7 +6,7 @@
   "version": "1.0.0",
   "expert_type": "agent",
   "category_id": "02-Engineering",
-  "description": "Routes 13 production engineering skills - requirements grilling, cross-model adversarial review, iOS/macOS engineering, cognitive reasoning discipline and project decision evaluation - into one orchestrated workflow.",
+  "description": "Routes 14 production engineering skills - requirements grilling, cross-model adversarial review, iOS/macOS engineering, cognitive reasoning discipline and project decision evaluation - into one orchestrated workflow.",
   "author": {
     "name": "i-stack",
     "email": "songshoubing7664@163.com"
@@ -21,8 +21,8 @@
     "en": "Engineering Skill Orchestrator"
   },
   "display_description": {
-    "zh": "聚合十三个工程化技能：需求盘问锁定、跨模型对抗审查、iOS 全栈工程、认知论证纪律、项目决策评估，按场景路由、逐层加载。",
-    "en": "One expert carrying 13 production engineering skills: requirements grilling, cross-model adversarial review, iOS/macOS engineering, cognitive reasoning discipline and project decision evaluation, routed per scenario and loaded layer by layer."
+    "zh": "聚合十四个工程化技能：需求盘问锁定、跨模型对抗审查、iOS 全栈工程、认知论证纪律、项目决策评估，按场景路由、逐层加载。",
+    "en": "One expert carrying 14 production engineering skills: requirements grilling, cross-model adversarial review, iOS/macOS engineering, cognitive reasoning discipline and project decision evaluation, routed per scenario and loaded layer by layer."
   },
   "default_init_prompt": {
     "zh": "帮我盘问清楚这个需求再动手",
@@ -40,7 +40,7 @@
   ],
   "agent": {
     "name": "ai-engineering-expert",
-    "description": "Orchestrator that routes each request to one of 13 production engineering skills and loads their full rule text before acting.",
+    "description": "Orchestrator that routes each request to one of 14 production engineering skills and loads their full rule text before acting.",
     "max_turns": 100
   },
   "skills": [
@@ -56,10 +56,11 @@
     "doc-hygiene",
     "project-decision-evaluation",
     "classics-reading",
-    "prompt-optimizer"
+    "prompt-optimizer",
+    "learning-loop"
   ],
   "notes": {
-    "skills": "专家包内 13 个技能同处 skills/ 下，跨技能链接（如 ../../cognitive-reasoning/references/...）天然可解析，因此不做依赖内联；技能包才需要内联。",
+    "skills": "专家包内 14 个技能同处 skills/ 下，跨技能链接（如 ../../cognitive-reasoning/references/...）天然可解析，因此不做依赖内联；技能包才需要内联。",
     "team": "改 expert_type 为 team 时，需要补 team_info{leadAgent, memberAgents} 并为每个成员在 workbuddy/templates/ 下准备同名 Agent 定义。",
     "avatar_source": "源图在 workbuddy/avatars/expert.png（512×512 PNG），构建时复制进包；缺失才回退到脚本生成的渐变占位图。"
   }
