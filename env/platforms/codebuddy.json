@@ -41,8 +41,8 @@
             "supportsReasoning": true
         },
         {
-            "id": "gemini-3.8-flash",
-            "name": "gemini-3.8-flash",
+            "id": "gemini-4-argon",
+            "name": "gemini-4-argon",
             "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",

@@ -4,7 +4,7 @@
         "enabled": true
     },
     "model": {
-        "name": "gemini-3.7-flash",
+        "name": "gemini-4-argon",
         "maxSessionTurns": -1,
         "compressionThreshold": 0.5,
         "skipNextSpeakerCheck": true
@@ -55,7 +55,7 @@
     "export_env_to_zshrc": {
         "GEMINI_API_KEY": "${gemini.key}",
         "GOOGLE_GEMINI_BASE_URL": "${gemini.url}",
-        "GEMINI_MODEL": "gemini-3.5-flash"
+        "GEMINI_MODEL": "gemini-4-argon"
     },
     "preamble": {
         "target": "GEMINI.md",
