@@ -17,8 +17,8 @@
 			"supportsReasoning": true
         },
         {
-            "id": "deepseek-v4-flash-0731",
-            "name": "deepseek-v4-flash-0731",
+            "id": "deepseek-v4.1-flash-1017",
+            "name": "deepseek-v4.1-flash-1017",
             "vendor": "user",
             "url": "${codebuddy.url}",
             "apiKey": "${codebuddy.key}",
